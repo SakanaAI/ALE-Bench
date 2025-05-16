@@ -1,10 +1,11 @@
 # ALE-Bench
 
 [![GitHub license](https://img.shields.io/github/license/SakanaAI/ALE-Bench?logo=github)](https://github.com/SakanaAI/ALE-Bench/blob/main/LICENSE)
+[![GitHub check](https://github.com/SakanaAI/ALE-Bench/actions/workflows/check.yml/badge.svg)](https://github.com/SakanaAI/ALE-Bench/actions/workflows/check.yml)
 [![GitHub stars](https://img.shields.io/github/stars/SakanaAI/ALE-Bench?logo=github)](https://github.com/SakanaAI/ALE-Bench/stargazers)
 [![GitHub downloads](https://img.shields.io/github/downloads/SakanaAI/ALE-Bench/total?logo=github)](https://github.com/SakanaAI/ALE-Bench/releases)
 [![Hugging Face repository](https://img.shields.io/badge/Hugging%20Face-SakanaAI%2FALE--Bench-FFD21E?logo=huggingface)](https://huggingface.co/datasets/SakanaAI/ALE-Bench)
-[![Docker Hub](https://img.shields.io/badge/Docker%20Hub-yimjk%2Fale--bench-1D63ED?logo=docker)](https://hub.docker.com/repository/docker/yimjk/ale-bench/general)
+[![Docker Hub](https://img.shields.io/badge/Docker%20Hub-yimjk%2Fale--bench-1D63ED?logo=docker)](https://hub.docker.com/r/yimjk/ale-bench)
 
 **ALE-Bench** is a benchmark for evaluating AI systems on score-based algorithmic programming contests.
 Drawing on real-world tasks from the AtCoder Heuristic Contest (AHC), ALE-Bench presents optimization problems (e.g., routing and scheduling) that are computationally hard and admit no known exact solution.
