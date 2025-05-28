@@ -1,0 +1,100 @@
+[project]
+name = "ale_bench_mcp_server"
+version = "1.0.0"
+description = "The MCP server for the ALE-Bench"
+authors = [
+    { name = "Yuki-Imajuku", email = "yuki.imjk@gmail.com" }
+]
+readme = "README.md"
+requires-python = ">=3.10,<3.14"
+license = { file = "LICENSE" }
+keywords = ["benchmark", "algorithmic programming", "atcoder", "AHC", "AI evaluation", "heuristic", "optimization", "estimation", "MCP", "server"]
+classifiers = [
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: Apache Software License",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+dependencies = [
+    "ahocorapy",
+    "ale-bench",
+    "cairosvg",
+    "docker",
+    "huggingface_hub",
+    "mcp[cli]",
+    "pillow",
+    "polars>=1",
+    "pydantic>=2",
+]
+
+[project.urls]
+Repository = "https://github.com/SakanaAI/ALE-Bench"
+
+[project.optional-dependencies]
+dev = [
+    "mypy==1.15.0",
+    "pytest==8.3.4",
+    "pytest-mock==3.14.0",
+    "ruff==0.9.7",
+    "types-requests==2.32.0.20250301",
+]
+
+[tool.uv.sources]
+ale-bench = { git = "https://github.com/SakanaAI/ALE-Bench.git", tag = "v1.0.0" }
+
+[tool.mypy]
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+disallow_untyped_decorators = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_no_return = true
+warn_unreachable = true
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "docker: marks tests as docker (deselect with '-m \"not docker\"')",
+]
+
+[tool.ruff]
+fix = true
+target-version = "py312"
+line-length = 120
+
+[tool.ruff.format]
+quote-style = "double"
+
+[tool.ruff.lint]
+select = [
+    "C9",
+    "E",
+    "F",
+    "W",
+    "I",
+]
+ignore = ["C901"]
+
+[tool.ruff.lint.isort]
+case-sensitive = true
+combine-as-imports = true
+default-section = "first-party"
+known-first-party = ["ale_bench"]
+section-order = [
+    "future",
+    "standard-library",
+    "third-party",
+    "first-party",
+    "local-folder"
+]
+split-on-trailing-comma = true

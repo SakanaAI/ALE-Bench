@@ -485,17 +485,44 @@ Set `num_workers` to at most the number of **physical cores** of your instance, 
     # Confirm with 'yes' or use -auto-approve
     ```
 
+# MCP (Model Context Protocol) Server
+The MCP server is a lightweight HTTP server that provides a simple interface for interacting with the ALE-Bench toolkit. It allows you to run evaluations and manage sessions without needing to write Python code directly.
+
+## Setup
+1. Install Node.js and npm
+    ```sh
+    # Install nvm (Node Version Manager) for easy Node.js management
+    curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh | bash
+    export NVM_DIR="$HOME/.nvm"
+    [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
+    [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
+    # Install the latest LTS version of Node.js
+    nvm install --lts
+    # Install the Model Context Protocol Inspector globally (may not be necessary global installation)
+    npm install -g @modelcontextprotocol/inspector
+    ```
+2. Install the MCP server dependencies using pip or uv:
+```sh
+cd mcp
+uv sync
+```
+
+## Running the MCP Server
+```sh
+uv run mcp dev server.py --with-editable .
+```
+
 ## Development
 
 -   **Environment Setup:**
     ```sh
     git clone https://github.com/SakanaAI/ALE-Bench.git
     cd ALE-Bench
-    pip install ".[dev]"
+    pip install ".[dev,mcp]"
 
     # Using uv
     uv venv --python 3.12.9
-    uv sync --extra dev
+    uv sync --extra dev --extra mcp
     source .venv/bin/activate
     ```
 
@@ -516,13 +543,13 @@ Set `num_workers` to at most the number of **physical cores** of your instance, 
 -   **Python Library Development:**
     ```sh
     # Linting
-    ruff check src tests
+    ruff check src mcp tests
 
     # Formatting
-    ruff format src tests
+    ruff format src mcp tests
 
     # Static Type Checking
-    mypy src tests
+    mypy src mcp tests
 
     # Running Tests
     pytest
