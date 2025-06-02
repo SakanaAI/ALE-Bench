@@ -104,7 +104,7 @@ resource "aws_instance" "ale_bench_instance" {
     disable_api_termination = false
     instance_initiated_shutdown_behavior = "stop"
 
-    user_data = file("setup.sh")
+    user_data = file(var.setup_file_name)
 
     tags = {
         Name = "ale-bench-instance-${count.index}"

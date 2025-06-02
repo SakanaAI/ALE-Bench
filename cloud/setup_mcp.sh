@@ -54,14 +54,13 @@ su - ubuntu -c "source /home/ubuntu/.local/bin/env"
 
 # Install Node Version Manager (NVM) and Node.js
 su - ubuntu -c "curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh | bash"
-su - ubuntu -c "export NVM_DIR=\"\${HOME}/.nvm\" && [ -s \"\${NVM_DIR}/nvm.sh\" ] && \\. \"\${NVM_DIR}/nvm.sh\""
-su - ubuntu -c "nvm install --lts"
-su - ubuntu -c "npm install -g @modelcontextprotocol/inspector"
+su - ubuntu -c "export NVM_DIR=\"\${HOME}/.nvm\" && [ -s \"\${NVM_DIR}/nvm.sh\" ] && \\. \"\${NVM_DIR}/nvm.sh\" && nvm install --lts && nvm use --lts && npm install -g @modelcontextprotocol/inspector"
 
 
 # Clone the ALE-Bench repository and setup the environment
 su - ubuntu -c "cd /home/ubuntu/ && git clone https://github.com/SakanaAI/ALE-Bench.git"
-su - ubuntu -c "cd /home/ubuntu/ALE-Bench && uv -q venv --python 3.12.9 && uv -q sync --extra mcp"
+su - ubuntu -c "cd /home/ubuntu/ALE-Bench && uv -q venv --python 3.12.9 && uv -q sync"
+su - ubuntu -c "cd /home/ubuntu/ALE-Bench/mcp && uv -q venv --python 3.12.9 && uv -q sync"
 su - ubuntu -c "cd /home/ubuntu/ALE-Bench && bash ./scripts/docker_build_all.sh \$(id -u) \$(id -g)"
 
 

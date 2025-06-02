@@ -498,7 +498,7 @@ The MCP server is a lightweight HTTP server that provides a simple interface for
     [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
     # Install the latest LTS version of Node.js
     nvm install --lts
-    # Install the Model Context Protocol Inspector globally (may not be necessary global installation)
+    # Install the Model Context Protocol Inspector
     npm install -g @modelcontextprotocol/inspector
     ```
 2. Install the MCP server dependencies using pip or uv:

@@ -39,3 +39,9 @@ variable "allowed_ssh_cidr" {
     type        = string
     default     = "0.0.0.0/0"
 }
+
+variable "setup_file_name" {
+    description = "Name of the setup file to be copied to the instance"
+    type        = string
+    default     = "setup.sh"
+}
