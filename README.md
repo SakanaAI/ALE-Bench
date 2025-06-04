@@ -485,10 +485,10 @@ Set `num_workers` to at most the number of **physical cores** of your instance, 
     # Confirm with 'yes' or use -auto-approve
     ```
 
-# MCP (Model Context Protocol) Server
+## MCP (Model Context Protocol) Server
 The MCP server is a lightweight HTTP server that provides a simple interface for interacting with the ALE-Bench toolkit. It allows you to run evaluations and manage sessions without needing to write Python code directly.
 
-## Setup
+### Setup
 1. Install Node.js and npm
     ```sh
     # Install nvm (Node Version Manager) for easy Node.js management
@@ -502,15 +502,35 @@ The MCP server is a lightweight HTTP server that provides a simple interface for
     npm install -g @modelcontextprotocol/inspector
     ```
 2. Install the MCP server dependencies using pip or uv:
+    ```sh
+    cd mcp
+    uv sync
+    uv sync --extra dev  # For development dependencies
+    ```
+
+### Running the MCP Server
 ```sh
-cd mcp
-uv sync
+# Ensure you are in the mcp directory (e.g., cd mcp from the project root)
+uv run mcp run server.py
+uv run mcp dev server.py --with-editable .  # For development
 ```
 
-## Running the MCP Server
-```sh
-uv run mcp dev server.py --with-editable .
-```
+### Use with Claude Desktop
+1. Open the `claude_desktop_config.json` file that configures the Claude Desktop. Add the following configuration to connect to the MCP server, ensuring you replace `/path/to/ALE-Bench` in the `args` with the actual absolute path to your cloned `ALE-Bench` repository directory:
+    ```json
+    {
+        "mcpServers": {
+            "ALE-Bench MCP Server": {
+                "command": "/bin/bash",
+                "args": [
+                    "-c",
+                    "cd /path/to/ALE-Bench/mcp && uv run --with ale_bench --with mcp[cli] mcp run /path/to/ALE-Bench/mcp/server.py"
+                ]
+            }
+        }
+    }
+    ```
+2. Restart the Claude Desktop application to apply the changes.
 
 ## Development
 
@@ -518,11 +538,11 @@ uv run mcp dev server.py --with-editable .
     ```sh
     git clone https://github.com/SakanaAI/ALE-Bench.git
     cd ALE-Bench
-    pip install ".[dev,mcp]"
+    pip install ".[dev]"
 
     # Using uv
     uv venv --python 3.12.9
-    uv sync --extra dev --extra mcp
+    uv sync --extra dev
     source .venv/bin/activate
     ```
 

@@ -1,10 +1,8 @@
 #!/bin/bash
 set -Eeuo pipefail
 
-user_id=$1
-user_id=${user_id:-0}  # default 0 (root)
-group_id=$2
-group_id=${group_id:-0}  # default 0 (root)
+user_id=${1:-0}  # default 0 (root)
+group_id=${2:-0}  # default 0 (root)
 
 # C++
 ## Judge version 2019-07

@@ -1,8 +1,7 @@
 #!/bin/bash
 set -Eeuo pipefail
 
-remote=$1
-remote=${remote:-"yimjk/ale-bench"}
+remote=${1:-"yimjk/ale-bench"}
 
 # C++
 ## Judge version 2019-07

@@ -50,7 +50,23 @@ async def app_lifespan(server: FastMCP) -> AsyncIterator[AppContext]:
 mcp = FastMCP("ALE-Bench MCP Server", dependencies=["ale_bench"], lifespan=app_lifespan)
 
 
-@mcp.resource("check://app")
+@mcp.resource("description://app")
+async def app_description() -> str:
+    """
+    Returns the description of the ALE-Bench MCP application.
+    This is used to provide metadata about the application.
+
+    Returns:
+        str: The description of the application.
+    """
+    return (
+        "ALE-Bench is a benchmark for evaluating AI systems on score-based algorithmic programming contests. "
+        "Drawing on real-world tasks from the AtCoder Heuristic Contest (AHC), "
+        "ALE-Bench presents optimization problems (e.g., routing and scheduling) "
+        "that are computationally hard and admit no known exact solution."
+    )
+
+@mcp.tool()
 async def check_app() -> str:
     """
     Health check endpoint for the application.
@@ -62,7 +78,7 @@ async def check_app() -> str:
     return f"Server `{mcp.name}` is running."
 
 
-@mcp.resource("list://problem_ids")
+@mcp.tool()
 async def list_problem_ids() -> list[str]:
     """
     Lists all available problem IDs in the ALE-Bench.
@@ -74,7 +90,7 @@ async def list_problem_ids() -> list[str]:
     return ale_bench.list_problem_ids(lite_version=LITE_VERSION)
 
 
-@mcp.resource("list://current_sessions")
+@mcp.tool()
 async def list_current_sessions() -> list[tuple[str, bool]]:
     """
     Lists all currently active ALE-Bench sessions.
@@ -87,7 +103,7 @@ async def list_current_sessions() -> list[tuple[str, bool]]:
     return sorted(list(current_sessions.keys()))
 
 
-@mcp.resource("get://{problem_id}/problem")
+@mcp.tool()
 async def get_problem(problem_id: str) -> Problem:
     """
     Retrieves the problem for the given problem ID from ALE-Bench.
@@ -106,7 +122,7 @@ async def get_problem(problem_id: str) -> Problem:
     return ale_bench_session.problem
 
 
-@mcp.resource("get://{problem_id}/public_seeds")
+@mcp.tool()
 async def get_public_seeds(problem_id: str) -> list[int]:
     """
     Retrieves the public seeds for the given problem ID.
@@ -125,7 +141,7 @@ async def get_public_seeds(problem_id: str) -> list[int]:
     return ale_bench_session.public_seeds
 
 
-@mcp.resource("get://{problem_id}/rust_tool_source")
+@mcp.tool()
 async def get_rust_tool_source(problem_id: str) -> dict[str, str]:
     """
     Retrieves the Rust tool source code for the given problem ID.
@@ -155,7 +171,7 @@ async def get_rust_tool_source(problem_id: str) -> dict[str, str]:
     return rust_tool_sources
 
 
-@mcp.resource("get://{problem_id}/remaining_time")
+@mcp.tool()
 async def get_remaining_time(problem_id: str) -> float:
     """
     Retrieves the remaining time for the given problem ID.
@@ -174,7 +190,7 @@ async def get_remaining_time(problem_id: str) -> float:
     return ale_bench_session.session_remaining_time.total_seconds()
 
 
-@mcp.resource("get://{problem_id}/visualization_server_port")
+@mcp.tool()
 async def get_visualization_server_port(problem_id: str) -> int:
     """
     Retrieves the port number for the visualization server of the given problem ID.

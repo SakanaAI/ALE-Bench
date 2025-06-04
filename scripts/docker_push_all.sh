@@ -1,8 +1,7 @@
 #!/bin/bash
 set -Eeuo pipefail
 
-remote=$1
-remote=${remote:-"yimjk/ale-bench"}
+remote=${1:-"yimjk/ale-bench"}
 
 docker image push ${remote}:cpp17-201907
 docker image push ${remote}:cpp17-202301
