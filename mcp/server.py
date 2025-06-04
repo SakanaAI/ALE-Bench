@@ -66,6 +66,7 @@ async def app_description() -> str:
         "that are computationally hard and admit no known exact solution."
     )
 
+
 @mcp.tool()
 async def check_app() -> str:
     """
