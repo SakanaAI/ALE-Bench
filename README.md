@@ -16,6 +16,8 @@ Drawing on real-world tasks from the AtCoder Heuristic Contest (AHC), ALE-Bench 
 
 *Note: This repository is not an official product of SakanaAI or AtCoder and is therefore not officially supported.*
 
+https://github.com/user-attachments/assets/41d8e2be-3219-4dab-bfde-3b7fa9ac873e
+
 ## Setup
 
 1.  **Install Docker:**
