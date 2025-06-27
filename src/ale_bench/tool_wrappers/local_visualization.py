@@ -77,7 +77,7 @@ def local_visualization(
     problem_id: str,
     tool_dir: Path,
     num_workers: int,
-) -> list[Image.Image | None] | None:
+) -> list[Image.Image | None]:
     """Run the cases for the given inputs and code.
 
     Args:
@@ -92,7 +92,7 @@ def local_visualization(
             If a case fails, the corresponding entry will be None.
     """
     if problem_id in ale_bench.constants.NO_LOCAL_VIS:
-        return None  # No local visualization for this problem
+        return [None for _ in range(len(inputs))]  # No local visualization for this problem
     # Temporary directory
     with tempfile.TemporaryDirectory() as temp_dir_str:
         temp_dir = Path(temp_dir_str)

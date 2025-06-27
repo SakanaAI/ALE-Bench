@@ -332,6 +332,7 @@ class Session:
         Returns:
             list[Image.Image | None] | Image.Image | None: The generated visualization(s).
                 None if the problem has no local visualization or the visualization fails.
+                Scalar value will be returned if `input_str` and `output_str` are scalar.
         """
         # Preprocessing
         try:
@@ -351,9 +352,6 @@ class Session:
         )
 
         # Postprocessing
-        if local_visualization_images is None:
-            warnings.warn("The problem has no local visualization.", UserWarning)
-            return None
         assert len(local_visualization_images) == len(input_str), (
             "The number of local visualization images must match the number of input strings."
         )
