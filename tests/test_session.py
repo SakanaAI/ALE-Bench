@@ -52,6 +52,7 @@ def ale_bench_session_mocker(mocker: MockerFixture) -> None:
             ),
         ],
     )
+    mocker.patch("ale_bench.session.local_visualization", return_value=[None])
 
 
 @pytest.fixture(scope="function")
@@ -381,6 +382,30 @@ class TestSession:
         mocked_datetime.now.return_value = utc_now
         with context:
             dummy_session.case_gen_eval(code="dummy code", code_language="rust", seed=[0, 1, 2])
+
+    @pytest.mark.parametrize(
+        "utc_now,context",
+        [
+            pytest.param(dt.datetime(2000, 1, 1, 0, 30, tzinfo=dt.timezone.utc), does_not_raise(), id="ok"),
+            pytest.param(
+                dt.datetime(2000, 1, 1, 1, 0, tzinfo=dt.timezone.utc),
+                pytest.raises(AleBenchError, match=r"The session is finished\."),
+                id="ng_session_duration",
+            ),
+        ],
+    )
+    def test_local_visualization(
+        self,
+        utc_now: dt.datetime,
+        context: AbstractContextManager,
+        dummy_session: Session,
+        mocker: MockerFixture,
+    ) -> None:
+        dummy_session._session_started_at = dt.datetime(2000, 1, 1, 0, 0, tzinfo=dt.timezone.utc)
+        mocked_datetime = mocker.patch("ale_bench.session.dt.datetime", return_value=utc_now)
+        mocked_datetime.now.return_value = utc_now
+        with context:
+            dummy_session.local_visualization(input_str="dummy input", output_str="dummy output")
 
     @pytest.mark.parametrize(
         "current_resource_usage,utc_now,context",
@@ -1284,6 +1309,104 @@ class TestSession:
     ) -> None:
         with context:
             arguments = dummy_session._check_input_generation_arguments(seed=seed, gen_kwargs=gen_kwargs)
+            assert arguments == expected
+
+    @pytest.mark.parametrize(
+        "input_str,output_str,expected,context",
+        [
+            pytest.param(
+                "dummy input",
+                "dummy output",
+                (["dummy input"], ["dummy output"]),
+                does_not_raise(),
+                id="default_both_scalar",
+            ),
+            pytest.param(
+                "dummy input",
+                ["dummy output"],
+                None,
+                pytest.raises(
+                    AleBenchError,
+                    match=r"Both `input_str` and `output_str` must be either a string or a list of strings\.",
+                ),
+                id="default_input_scalar_output_list",
+            ),
+            pytest.param(
+                ["dummy input"],
+                "dummy output",
+                None,
+                pytest.raises(
+                    AleBenchError,
+                    match=r"Both `input_str` and `output_str` must be either a string or a list of strings\.",
+                ),
+                id="default_input_list_output_scalar",
+            ),
+            pytest.param(
+                ["dummy input"],
+                ["dummy output"],
+                (["dummy input"], ["dummy output"]),
+                does_not_raise(),
+                id="default_both_list",
+            ),
+            pytest.param(
+                ["dummy input 1", "dummy input 2", "dummy input 3"],
+                ["dummy output 1", "dummy output 2", "dummy output 3"],
+                (
+                    ["dummy input 1", "dummy input 2", "dummy input 3"],
+                    ["dummy output 1", "dummy output 2", "dummy output 3"],
+                ),
+                does_not_raise(),
+                id="default_both_list_multiple",
+            ),
+            pytest.param(
+                ["dummy input 1", "dummy input 2", "dummy input 3"],
+                ["dummy output 1", "dummy output 2", "dummy output 3", " "],
+                None,
+                pytest.raises(
+                    AleBenchError, match=r"The number of input strings and output strings must be the same\."
+                ),
+                id="default_both_list_different_length",
+            ),
+            pytest.param(
+                "            ",
+                "dummy output",
+                None,
+                pytest.raises(AleBenchError, match=r"The input string is empty\."),
+                id="default_both_string_input_empty",
+            ),
+            pytest.param(
+                "dummy input",
+                "           ",
+                None,
+                pytest.raises(AleBenchError, match=r"The output string is empty\."),
+                id="default_both_string_output_empty",
+            ),
+            pytest.param(
+                ["dummy input 1", "               "],
+                ["dummy output 1", "dummy output 2"],
+                None,
+                pytest.raises(AleBenchError, match=r"The input string is empty\."),
+                id="default_list_string_input_empty",
+            ),
+            pytest.param(
+                ["dummy input 1", "dummy input 2"],
+                ["dummy output 1", "            "],
+                None,
+                pytest.raises(AleBenchError, match=r"The output string is empty\."),
+                id="default_list_string_output_empty",
+            ),
+        ],
+    )
+    def test_check_local_visualization_arguments(
+        self,
+        dummy_session: Session,
+        input_str: str | list[str],
+        output_str: str | list[str],
+        expected: tuple[list[str], list[str]] | None,
+        context: AbstractContextManager,
+    ) -> None:
+        with context:
+            arguments = dummy_session._check_local_visualization_arguments(input_str=input_str, output_str=output_str)
             assert arguments == expected
 
     @pytest.mark.parametrize(

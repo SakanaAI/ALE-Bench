@@ -163,6 +163,17 @@ A convenience method that first generates test case(s) using specified seeds and
 - `Result`: A `Result` object with the evaluation outcome.
 
 ---
+#### `local_visualization`
+Creates local visualization(s) of the provided input string(s) and output string(s).
+
+**Parameters:**
+- `input_str (list[str] | str)`: The input string(s) to visualize.
+- `output_str (list[str] | str)`: The output string(s) to visualize.
+
+**Returns:**
+- `list[Image.Image | None] | Image.Image | None`: The generated visualization(s) as Pillow `Image` object(s). Returns `None` if the problem does not support local visualization or if an error occurs (mainly due to the `output_str` being invalid).
+
+---
 #### `public_eval`
 Evaluates the provided code against the predefined set of public test cases for the current problem.
 
@@ -536,49 +547,8 @@ uv run mcp dev server.py --with-editable .  # For development
 
 <img width="680" alt="MCP_Claude_Desktop" src="https://github.com/user-attachments/assets/d9f22719-5686-406d-aa94-44406c700d6f" />
 
-## Development
-
--   **Environment Setup:**
-    ```sh
-    git clone https://github.com/SakanaAI/ALE-Bench.git
-    cd ALE-Bench
-    pip install ".[dev]"
-
-    # Using uv
-    uv venv --python 3.12.9
-    uv sync --extra dev
-    source .venv/bin/activate
-    ```
-
--   **Docker Image Management:**
-    ```sh
-    # Build a base image (see scripts/docker_build_base_all.sh)
-    # Specify --platform linux/amd64 if building on ARM for x86 compatibility
-    docker build ./dockerfiles -t yimjk/ale-bench:python-202301-base -f ./dockerfiles/Dockerfile_python_202301_base
-
-    # Push to Docker Hub (see scripts/docker_push_all.sh)
-    docker image push yimjk/ale-bench:python-202301-base
-
-    # Build a user-specific image with correct permissions (see scripts/docker_build_all.sh)
-    docker build ./dockerfiles -t ale-bench:python-202301 -f ./dockerfiles/Dockerfile_python_202301 --build-arg UID=$(id -u) --build-arg GID=$(id -g)
-    ```
-    *Note: When pushing to Docker Hub, please change the image tag prefix `yimjk/` to your own username or organization name as appropriate (e.g., `your-username/ale-bench` or `your-organization/ale-bench`).*
-
--   **Python Library Development:**
-    ```sh
-    # Linting
-    ruff check src mcp tests
-
-    # Formatting
-    ruff format src mcp tests
-
-    # Static Type Checking
-    mypy src mcp tests
-
-    # Running Tests
-    pytest
-    pytest -m "not docker"  # Exclude tests requiring Docker
-    ```
+## Development and Contributing
+Please see the [CONTRIBUTING.md](./CONTRIBUTING.md) file.
 
 ## Citation
 
@@ -586,9 +556,9 @@ Please cite ALE-Bench as follows:
 
 ```bibtex
 @article{imajuku2025ale-bench,
-    title={ALE-Bench: A Benchmark for Long-Horizon Objective-Driven Algorithm Engineering},
-    author={Imajuku, Yuki and Horie, Kohki and Iwata, Yoichi and Aoki, Kensho and Takahashi, Naohiro and Akiba, Takuya},
-    journal={arXiv preprint arXiv:2506.09050},
-    year={2025}
+    title　=　{ALE-Bench: A Benchmark for Long-Horizon Objective-Driven Algorithm Engineering},
+    author　=　{Imajuku, Yuki and Horie, Kohki and Iwata, Yoichi and Aoki, Kensho and Takahashi, Naohiro and Akiba, Takuya},
+    journal　=　{arXiv preprint arXiv:2506.09050},
+    year　=　{2025}
 }
 ```
