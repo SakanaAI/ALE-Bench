@@ -556,9 +556,9 @@ Please cite ALE-Bench as follows:
 
 ```bibtex
 @article{imajuku2025ale-bench,
-    title　=　{ALE-Bench: A Benchmark for Long-Horizon Objective-Driven Algorithm Engineering},
-    author　=　{Imajuku, Yuki and Horie, Kohki and Iwata, Yoichi and Aoki, Kensho and Takahashi, Naohiro and Akiba, Takuya},
-    journal　=　{arXiv preprint arXiv:2506.09050},
-    year　=　{2025}
+    title = {ALE-Bench: A Benchmark for Long-Horizon Objective-Driven Algorithm Engineering},
+    author = {Imajuku, Yuki and Horie, Kohki and Iwata, Yoichi and Aoki, Kensho and Takahashi, Naohiro and Akiba, Takuya},
+    journal = {arXiv preprint arXiv:2506.09050},
+    year = {2025}
 }
 ```
