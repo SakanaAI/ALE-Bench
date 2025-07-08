@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "ale_bench"
-version = "1.0.0"
+version = "1.1.0"
 description = "The official library for the ALE-Bench"
 authors = [
     { name = "Yuki-Imajuku", email = "yuki.imjk@gmail.com" }
@@ -51,6 +51,8 @@ dev = [
 [tool.mypy]
 exclude = [
     "^tests/judge/codes/ce_python\\.py$",
+    "^tests/judge/codes/mle_python\\.py$",
+    "^tests/judge/codes/tle_python\\.py$",
 ]
 warn_return_any = true
 warn_unused_configs = true
