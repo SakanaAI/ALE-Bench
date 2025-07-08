@@ -1,9 +1,11 @@
 import tempfile
 from contextlib import AbstractContextManager, nullcontext as does_not_raise
 from pathlib import Path
+from typing import Any
+
+import pytest
 
 import ale_bench.constants
-import pytest
 from ale_bench.tool_wrappers.input_generation import (
     HostPathsGen,
     build_gen_command,
@@ -62,6 +64,8 @@ def test_get_gen_volumes() -> None:
         ),
     ],
 )
-def test_build_gen_command(gen_kwargs: dict, expected_context: AbstractContextManager, expected_command: str) -> None:
+def test_build_gen_command(
+    gen_kwargs: dict[str, Any], expected_context: AbstractContextManager[None], expected_command: str
+) -> None:
     with expected_context:
         assert build_gen_command(gen_kwargs) == expected_command

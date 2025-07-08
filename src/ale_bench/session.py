@@ -8,10 +8,11 @@ import shutil
 import warnings
 from enum import Enum
 from pathlib import Path
-from typing import NoReturn
+from typing import Any, NoReturn
+
+from PIL import Image
 
 import ale_bench.constants
-from PIL import Image
 from ale_bench.code_language import CodeLanguage, JudgeVersion
 from ale_bench.data import Problem, RankPerformanceMap, Standings, start_visualization_server
 from ale_bench.error import AleBenchError
@@ -124,12 +125,12 @@ class Session:
         return f"Session(problem_id={self.problem_id})"
 
     # Interface
-    def case_gen(self, seed: list[int] | int = 0, gen_kwargs: dict = {}) -> list[str] | str:
+    def case_gen(self, seed: list[int] | int = 0, gen_kwargs: dict[str, Any] = {}) -> list[str] | str:
         """Generate a case using the given seed and generation arguments.
 
         Args:
             seed (list[int] | int, optional): The seed(s) for the case generation. Defaults to 0.
-            gen_kwargs (dict): The generation arguments. Defaults to an empty dictionary.
+            gen_kwargs (dict[str, Any]): The generation arguments. Defaults to an empty dictionary.
 
         Returns:
             list[str] | str: The generated case(s). If `seed` is a list, returns a list of cases.
@@ -139,8 +140,9 @@ class Session:
         """
         # Preprocessing
         try:
-            assert self.session_finished is False
-        except (AleBenchError, AssertionError):
+            if self.session_finished:
+                raise AleBenchError("The session is finished.")
+        except AleBenchError:
             raise AleBenchError("The session is finished.")
         if not self._check_within_resource_usage_before(AleBenchFunction.CASE_GEN):
             raise AleBenchError("The resource usage is exceeded.")
@@ -199,8 +201,9 @@ class Session:
         """
         # Preprocessing
         try:
-            assert self.session_finished is False
-        except (AleBenchError, AssertionError):
+            if self.session_finished:
+                raise AleBenchError("The session is finished.")
+        except AleBenchError:
             raise AleBenchError("The session is finished.")
         if not self._check_within_resource_usage_before(AleBenchFunction.CASE_EVAL):
             raise AleBenchError("The resource usage is exceeded.")
@@ -271,7 +274,7 @@ class Session:
         seed: list[int] | int = 0,
         time_limit: float | None = None,
         memory_limit: int | str | None = None,
-        gen_kwargs: dict = {},
+        gen_kwargs: dict[str, Any] = {},
         skip_local_visualization: bool = False,
     ) -> Result:
         """Generate a case and evaluate the code with the given input.
@@ -283,7 +286,7 @@ class Session:
             seed (list[int] | int, optional): The seed for the case generation. Defaults to 0.
             time_limit (float, optional): The time limit in seconds. Defaults to None.
             memory_limit (int | str, optional): The memory limit in bytes. Defaults to None.
-            gen_kwargs (dict): The generation arguments. Defaults to an empty dictionary.
+            gen_kwargs (dict[str, Any]): The generation arguments. Defaults to an empty dictionary.
             skip_local_visualization (bool, optional): Whether to skip local visualization. Defaults to False.
 
         Returns:
@@ -294,8 +297,9 @@ class Session:
         """
         # Preprocessing (to avoid unnecessary computation, we check the resource usage of both functions here)
         try:
-            assert self.session_finished is False
-        except (AleBenchError, AssertionError):
+            if self.session_finished:
+                raise AleBenchError("The session is finished.")
+        except AleBenchError:
             raise AleBenchError("The session is finished.")
         if not self._check_within_resource_usage_before(AleBenchFunction.CASE_GEN_EVAL):
             raise AleBenchError("The resource usage is exceeded.")
@@ -336,8 +340,9 @@ class Session:
         """
         # Preprocessing
         try:
-            assert self.session_finished is False
-        except (AleBenchError, AssertionError):
+            if self.session_finished:
+                raise AleBenchError("The session is finished.")
+        except AleBenchError:
             raise AleBenchError("The session is finished.")
         is_scalar = isinstance(input_str, str)
         input_str, output_str = self._check_local_visualization_arguments(input_str=input_str, output_str=output_str)
@@ -381,8 +386,9 @@ class Session:
         """
         # Preprocessing
         try:
-            assert self.session_finished is False
-        except (AleBenchError, AssertionError):
+            if self.session_finished:
+                raise AleBenchError("The session is finished.")
+        except AleBenchError:
             raise AleBenchError("The session is finished.")
         if not self._check_within_resource_usage_before(AleBenchFunction.PUBLIC_EVAL):
             raise AleBenchError("The resource usage is exceeded.")
@@ -459,8 +465,9 @@ class Session:
         """
         # Preprocessing
         try:
-            assert self.session_finished is False
-        except (AleBenchError, AssertionError):
+            if self.session_finished:
+                raise AleBenchError("The session is finished.")
+        except AleBenchError:
             raise AleBenchError("The session is finished.")
         if not self._check_within_resource_usage_before(AleBenchFunction.PRIVATE_EVAL):
             raise AleBenchError("The resource usage is exceeded.")
@@ -536,13 +543,13 @@ class Session:
         )
         return processed_private_result, new_rank, new_performance
 
-    def save(self, filepath: str | os.PathLike = "session.json") -> None:
+    def save(self, filepath: str | os.PathLike[str] = "session.json") -> None:
         """Save the session to a JSON file.
 
         You can restart the session from this file by using the `load` method.
 
         Args:
-            filepath (str | os.PathLike, optional): The path to save the session. Defaults to "session.json".
+            filepath (str | os.PathLike[str], optional): The path to save the session. Defaults to "session.json".
         """
         filepath_path = Path(filepath)
         with open(filepath_path, "w") as f:
@@ -854,8 +861,8 @@ class Session:
     def _check_input_generation_arguments(
         self,
         seed: list[int] | int | None = None,
-        gen_kwargs: dict | None = None,
-    ) -> tuple[list[int], dict]:
+        gen_kwargs: dict[str, Any] | None = None,
+    ) -> tuple[list[int], dict[str, Any]]:
         """Check if the arguments for `generate_inputs` are valid."""
         # Check `seed`
         if seed is None:

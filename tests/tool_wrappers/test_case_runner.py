@@ -3,8 +3,9 @@ from __future__ import annotations
 import tempfile
 from pathlib import Path
 
-import ale_bench.constants
 import pytest
+
+import ale_bench.constants
 from ale_bench.code_language import CodeLanguage, JudgeVersion, get_compile_command
 from ale_bench.result import CaseResult, JudgeResult
 from ale_bench.tool_wrappers.case_runner import (

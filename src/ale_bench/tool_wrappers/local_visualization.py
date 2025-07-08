@@ -4,8 +4,9 @@ import tempfile
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
-import ale_bench.constants
 from PIL import Image
+
+import ale_bench.constants
 from ale_bench.tool_wrappers.case_runner import (
     HostPathsVis,
     build_vis_command,

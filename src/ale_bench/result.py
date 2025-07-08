@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from enum import Enum
+from typing import Sequence
 
 from PIL import Image
 from pydantic import BaseModel, ConfigDict, Field, computed_field, field_validator
@@ -136,7 +137,7 @@ class Result(BaseModel):
         description="Whether to allow non zero score when the overall judge result is not AC"
     )
     resource_usage: ResourceUsage = Field(description="The resource usage")
-    case_results: list[CaseResult] = Field(description="The results of each case")
+    case_results: Sequence[CaseResult] = Field(description="The results of each case")
 
     @computed_field  # type: ignore[prop-decorator]
     @property

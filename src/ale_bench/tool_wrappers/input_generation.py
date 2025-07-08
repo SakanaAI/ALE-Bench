@@ -2,11 +2,13 @@ import os
 import tempfile
 import warnings
 from pathlib import Path
+from typing import Any
+
+import docker
+from pydantic import BaseModel, ConfigDict, Field
 
 import ale_bench.constants
-import docker
 from ale_bench.error import AleBenchError
-from pydantic import BaseModel, ConfigDict, Field
 
 
 class HostPathsGen(BaseModel):
@@ -52,11 +54,11 @@ def get_gen_volumes(host_paths: HostPathsGen, tool_dir: Path) -> dict[str, dict[
     }
 
 
-def build_gen_command(gen_kwargs: dict) -> str:
+def build_gen_command(gen_kwargs: dict[str, Any]) -> str:
     """Build the command for the generator tool.
 
     Args:
-        gen_kwargs (dict): The keyword arguments for the generator tool.
+        gen_kwargs (dict[str, Any]): The keyword arguments for the generator tool.
 
     Returns:
         str: The command for the generator tool.
@@ -115,12 +117,12 @@ def run_gen_container(
         raise AleBenchError("Failed to generate the case.")
 
 
-def generate_inputs(seeds: list[int], gen_kwargs: dict, tool_dir: Path) -> list[str]:
+def generate_inputs(seeds: list[int], gen_kwargs: dict[str, Any], tool_dir: Path) -> list[str]:
     """Generate input cases using the generator tool.
 
     Args:
         seeds (list[int]): The list of seeds for the generation.
-        gen_kwargs (dict): The keyword arguments for the generator tool.
+        gen_kwargs (dict[str, Any]): The keyword arguments for the generator tool.
         tool_dir (Path): The directory of the tools.
 
     Returns:

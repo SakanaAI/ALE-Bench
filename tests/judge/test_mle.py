@@ -1,8 +1,9 @@
 from pathlib import Path
 
+import pytest
+
 import ale_bench
 import ale_bench.constants
-import pytest
 from ale_bench.code_language import CodeLanguage, JudgeVersion
 from ale_bench.data import ProblemType
 from ale_bench.result import JudgeResult

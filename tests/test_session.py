@@ -5,8 +5,11 @@ import json
 import tempfile
 from contextlib import AbstractContextManager, nullcontext as does_not_raise
 from pathlib import Path
+from typing import Any
 
 import pytest
+from pytest_mock.plugin import MockerFixture
+
 from ale_bench.code_language import CodeLanguage, JudgeVersion
 from ale_bench.data import (
     Problem,
@@ -20,7 +23,6 @@ from ale_bench.data import (
 from ale_bench.error import AleBenchError
 from ale_bench.result import CaseResult, JudgeResult, ResourceUsage
 from ale_bench.session import AleBenchFunction, Session
-from pytest_mock.plugin import MockerFixture
 
 
 @pytest.fixture(scope="function")
@@ -158,7 +160,7 @@ class TestSession:
         self,
         current_resource_usage: ResourceUsage,
         utc_now: dt.datetime,
-        context: AbstractContextManager,
+        context: AbstractContextManager[None],
         dummy_session: Session,
         mocker: MockerFixture,
     ) -> None:
@@ -251,7 +253,7 @@ class TestSession:
         self,
         current_resource_usage: ResourceUsage,
         utc_now: dt.datetime,
-        context: AbstractContextManager,
+        context: AbstractContextManager[None],
         dummy_session: Session,
         mocker: MockerFixture,
     ) -> None:
@@ -372,7 +374,7 @@ class TestSession:
         self,
         current_resource_usage: ResourceUsage,
         utc_now: dt.datetime,
-        context: AbstractContextManager,
+        context: AbstractContextManager[None],
         dummy_session: Session,
         mocker: MockerFixture,
     ) -> None:
@@ -397,7 +399,7 @@ class TestSession:
     def test_local_visualization(
         self,
         utc_now: dt.datetime,
-        context: AbstractContextManager,
+        context: AbstractContextManager[None],
         dummy_session: Session,
         mocker: MockerFixture,
     ) -> None:
@@ -451,7 +453,7 @@ class TestSession:
         self,
         current_resource_usage: ResourceUsage,
         utc_now: dt.datetime,
-        context: AbstractContextManager,
+        context: AbstractContextManager[None],
         dummy_session: Session,
         mocker: MockerFixture,
     ) -> None:
@@ -487,7 +489,7 @@ class TestSession:
         self,
         current_resource_usage: ResourceUsage,
         utc_now: dt.datetime,
-        context: AbstractContextManager,
+        context: AbstractContextManager[None],
         dummy_session: Session,
         mocker: MockerFixture,
     ) -> None:
@@ -746,7 +748,7 @@ class TestSession:
     def test_session_finished(
         self,
         utc_now: dt.datetime,
-        context: AbstractContextManager,
+        context: AbstractContextManager[None],
         dummy_session: Session,
         mocker: MockerFixture,
     ) -> None:
@@ -1038,7 +1040,7 @@ class TestSession:
         function_type: AleBenchFunction,
         current_resource_usage: ResourceUsage,
         utc_now: dt.datetime,
-        context: AbstractContextManager,
+        context: AbstractContextManager[None],
         dummy_session: Session,
         mocker: MockerFixture,
     ) -> None:
@@ -1253,7 +1255,7 @@ class TestSession:
         function_type: AleBenchFunction,
         current_resource_usage: ResourceUsage,
         utc_now: dt.datetime,
-        context: AbstractContextManager,
+        context: AbstractContextManager[None],
         dummy_session: Session,
         mocker: MockerFixture,
     ) -> None:
@@ -1303,9 +1305,9 @@ class TestSession:
         self,
         dummy_session: Session,
         seed: int | None,
-        gen_kwargs: dict | None,
-        expected: tuple[int, dict],
-        context: AbstractContextManager,
+        gen_kwargs: dict[str, Any] | None,
+        expected: tuple[list[int], dict[str, Any]],
+        context: AbstractContextManager[None],
     ) -> None:
         with context:
             arguments = dummy_session._check_input_generation_arguments(seed=seed, gen_kwargs=gen_kwargs)
@@ -1403,7 +1405,7 @@ class TestSession:
         input_str: str | list[str],
         output_str: str | list[str],
         expected: tuple[list[str], list[str]] | None,
-        context: AbstractContextManager,
+        context: AbstractContextManager[None],
     ) -> None:
         with context:
             arguments = dummy_session._check_local_visualization_arguments(input_str=input_str, output_str=output_str)
@@ -1775,8 +1777,8 @@ class TestSession:
         judge_version: JudgeVersion | str | None,
         time_limit: float | None,
         memory_limit: int | str | None,
-        expected: tuple[str, str, CodeLanguage, JudgeVersion, float, int],
-        context: AbstractContextManager,
+        expected: tuple[list[str], str, CodeLanguage, JudgeVersion, float, int],
+        context: AbstractContextManager[None],
     ) -> None:
         with context:
             arguments = dummy_session._check_run_cases_arguments(

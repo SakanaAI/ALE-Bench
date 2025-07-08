@@ -7,6 +7,7 @@ from typing import Literal, TypedDict
 
 import pytest
 from PIL import Image
+
 from ale_bench.utils import get_cache_dir, get_local_data_dir, parse_statement, pil_to_base64jpeg, read_svg
 
 

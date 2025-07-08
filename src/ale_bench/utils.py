@@ -13,6 +13,7 @@ from typing import Literal
 import cairosvg
 from PIL import Image
 from ahocorapy.keywordtree import KeywordTree
+
 from ale_bench.constants import DEFAULT_CACHE_DIR
 
 
@@ -214,6 +215,35 @@ def find_free_port(min_port: int = 9000, max_port: int = 65535) -> int:
 
 
 # Image
+def base64_to_pil(base64_str: str) -> Image.Image:
+    """Convert a base64 string to a PIL image.
+
+    Args:
+        base64_str (str): The base64 string of the image.
+
+    Returns:
+        Image.Image: The PIL image.
+    """
+    image_data = base64.b64decode(base64_str)
+    image = Image.open(io.BytesIO(image_data))
+    return image.convert(image.mode)  # NOTE: to create a new Image instance (not subclasses like PngImageFile)
+
+
+def pil_to_base64(image: Image.Image, image_format: Literal["JPEG", "PNG"] = "PNG") -> str:
+    """Convert a PIL image to a base64 string.
+
+    Args:
+        image (Image.Image): The PIL image.
+        image_format (Literal["JPEG", "PNG"]): The format to save the image in. Defaults to "PNG".
+
+    Returns:
+        str: The base64 string of the image.
+    """
+    buffer = io.BytesIO()
+    image.save(buffer, format=image_format)
+    return base64.b64encode(buffer.getvalue()).decode("ascii")
+
+
 def pil_to_base64jpeg(image: Image.Image) -> str:
     """Convert a PIL image to a base64 string of a JPEG image.
 
@@ -223,9 +253,7 @@ def pil_to_base64jpeg(image: Image.Image) -> str:
     Returns:
         str: The base64 string of the JPEG image.
     """
-    buffer = io.BytesIO()
-    image.convert("RGB").save(buffer, format="JPEG")
-    return base64.b64encode(buffer.getvalue()).decode("utf-8")
+    return pil_to_base64(image.convert("RGB"), image_format="JPEG")
 
 
 def read_svg(svg_text: str, size: int | tuple[int, int] = 1000) -> Image.Image:

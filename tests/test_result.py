@@ -3,6 +3,7 @@ from __future__ import annotations
 from contextlib import AbstractContextManager, nullcontext as does_not_raise
 
 import pytest
+
 from ale_bench.result import (
     CaseResult,
     JudgeResult,
@@ -1346,7 +1347,7 @@ def test_resource_usage_sub(
 def test_result_model_post_init(
     case_results: list[CaseResult],
     allow_score_non_ac: bool,
-    context: AbstractContextManager,
+    context: AbstractContextManager[None],
     overall_judge_result: JudgeResult,
     overall_absolute_score: int,
     overall_relative_score: int | None,

@@ -9,8 +9,11 @@ import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
-import ale_bench.constants
 import docker
+from pydantic import BaseModel, ConfigDict, Field
+from requests.exceptions import ConnectionError, Timeout
+
+import ale_bench.constants
 from ale_bench.code_language import (
     CodeLanguage,
     JudgeVersion,
@@ -23,8 +26,6 @@ from ale_bench.code_language import (
 from ale_bench.data import ProblemType
 from ale_bench.result import CaseResult, JudgeResult, Profiles
 from ale_bench.utils import read_svg
-from pydantic import BaseModel, ConfigDict, Field
-from requests.exceptions import ConnectionError, Timeout
 
 
 class HostPathsCompile(BaseModel):

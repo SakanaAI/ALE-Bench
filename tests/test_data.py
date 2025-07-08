@@ -4,6 +4,7 @@ import datetime as dt
 from contextlib import AbstractContextManager, nullcontext as does_not_raise
 
 import pytest
+
 from ale_bench.data import (
     ProblemMetaData,
     ProblemType,
@@ -100,7 +101,7 @@ class TestRankPerformanceMap:
     def test_init(
         self,
         raw_data: list[tuple[int, int]],
-        context: AbstractContextManager,
+        context: AbstractContextManager[None],
         data: dict[float, int],
     ) -> None:
         with context:
@@ -250,7 +251,7 @@ class TestRankPerformanceMap:
         ],
     )
     def test_get_performance(
-        self, raw_data: list[tuple[int, int]], rank: int | float, context: AbstractContextManager, expected: int
+        self, raw_data: list[tuple[int, int]], rank: int | float, context: AbstractContextManager[None], expected: int
     ) -> None:
         rank_performance_map = RankPerformanceMap(raw_data=raw_data)
         with context:
@@ -324,7 +325,7 @@ class TestRelativeResults:
         absolute_scores: list[list[int]],
         relative_score_type: RelativeScoreType,
         relative_max_score: int,
-        context: AbstractContextManager,
+        context: AbstractContextManager[None],
         expected_absolute_scores: list[list[int]],
     ) -> None:
         with context:
@@ -450,7 +451,7 @@ class TestRelativeResults:
         self,
         new_scores: list[int],
         relative_score_type: RelativeScoreType,
-        context: AbstractContextManager,
+        context: AbstractContextManager[None],
         expected: tuple[int, list[int], list[int]],
     ) -> None:
         relative_results = RelativeResults(
@@ -581,7 +582,7 @@ class TestStandings:
     def test_init(
         self,
         standings_scores: list[tuple[int, int]],
-        context: AbstractContextManager,
+        context: AbstractContextManager[None],
         score_rank_list: list[tuple[int, int, int]],
     ) -> None:
         with context:
@@ -1602,7 +1603,7 @@ class TestRatingCalculator:
         self,
         performances: dict[str, int],
         final_problem_id: str,
-        context: AbstractContextManager,
+        context: AbstractContextManager[None],
         expected: int,
         rating_calculator_instance: RatingCalculator,
     ) -> None:
@@ -1637,7 +1638,7 @@ class TestRankingCalculator:
     def test_calculate_rating_rank(
         self,
         rating: int,
-        context: AbstractContextManager,
+        context: AbstractContextManager[None],
         expected: int,
         ranking_calculator_instance: RankingCalculator,
     ) -> None:

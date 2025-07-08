@@ -93,7 +93,7 @@ ignore = ["C901"]
 [tool.ruff.lint.isort]
 case-sensitive = true
 combine-as-imports = true
-default-section = "first-party"
+default-section = "third-party"
 known-first-party = ["ale_bench"]
 section-order = [
     "future",

@@ -113,14 +113,14 @@ def start(
 
 
 def restart(
-    session_saved_file: str | os.PathLike,
+    session_saved_file: str | os.PathLike[str],
     num_workers: int | None = None,
     visualization_server_port: int | None = None,
 ) -> Session:
     """Restart a session from a saved file.
 
     Args:
-        session_saved_file (str | os.PathLike): The path to the saved session file.
+        session_saved_file (str | os.PathLike[str]): The path to the saved session file.
         num_workers (int, optional): The number of workers to run the judge in parallel. Defaults to 1.
         visualization_server_port (int | None, optional): The port for the visualization server. Defaults to None.
             If None, the port from the saved session will be used if saved session used the visualization server.

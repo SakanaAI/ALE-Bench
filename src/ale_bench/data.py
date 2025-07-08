@@ -12,15 +12,16 @@ from enum import Enum
 from pathlib import Path
 from typing import Any
 
-import ale_bench.constants
 import docker
 import polars as pl
 from PIL import Image
-from ale_bench.result import JudgeResult, Result
-from ale_bench.utils import get_cache_dir, get_local_data_dir, read_svg
 from docker.models.containers import Container as DockerContainer
 from huggingface_hub import hf_hub_download
 from pydantic import BaseModel, ConfigDict, Field, field_serializer, field_validator
+
+import ale_bench.constants
+from ale_bench.result import JudgeResult, Result
+from ale_bench.utils import get_cache_dir, get_local_data_dir, read_svg
 
 
 class ProblemType(str, Enum):

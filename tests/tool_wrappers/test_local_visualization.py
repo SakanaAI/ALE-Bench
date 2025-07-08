@@ -2,6 +2,7 @@ import tempfile
 from pathlib import Path
 
 import pytest
+
 from ale_bench.tool_wrappers.local_visualization import setup_local_visualization_paths
 
 
