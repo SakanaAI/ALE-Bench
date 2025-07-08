@@ -146,6 +146,7 @@ class Session:
             raise AleBenchError("The session is finished.")
         if not self._check_within_resource_usage_before(AleBenchFunction.CASE_GEN):
             raise AleBenchError("The resource usage is exceeded.")
+        elapsed_time = (dt.datetime.now(tz=dt.timezone.utc) - self._session_started_at).total_seconds()
         is_scalar = isinstance(seed, int)
         seed, gen_kwargs = self._check_input_generation_arguments(seed=seed, gen_kwargs=gen_kwargs)
 
@@ -165,7 +166,13 @@ class Session:
 
         # Save the action log and return the result
         self._action_log.append(
-            json.dumps({"function": "case_gen", "arguments": {"seed": seed, "gen_kwargs": gen_kwargs}})
+            json.dumps(
+                {
+                    "function": "case_gen",
+                    "arguments": {"seed": seed, "gen_kwargs": gen_kwargs},
+                    "elapsed_time": elapsed_time,
+                }
+            )
         )
         return generated_cases[0] if is_scalar else generated_cases
 
@@ -207,6 +214,7 @@ class Session:
             raise AleBenchError("The session is finished.")
         if not self._check_within_resource_usage_before(AleBenchFunction.CASE_EVAL):
             raise AleBenchError("The resource usage is exceeded.")
+        elapsed_time = (dt.datetime.now(tz=dt.timezone.utc) - self._session_started_at).total_seconds()
         (input_str, code, code_language, judge_version, time_limit, memory_limit) = self._check_run_cases_arguments(
             input_str=input_str,
             code=code,
@@ -257,6 +265,7 @@ class Session:
                         "time_limit": time_limit,
                         "memory_limit": memory_limit,
                     },
+                    "elapsed_time": elapsed_time,
                 }
             )
         )
@@ -344,6 +353,7 @@ class Session:
                 raise AleBenchError("The session is finished.")
         except AleBenchError:
             raise AleBenchError("The session is finished.")
+        elapsed_time = (dt.datetime.now(tz=dt.timezone.utc) - self._session_started_at).total_seconds()
         is_scalar = isinstance(input_str, str)
         input_str, output_str = self._check_local_visualization_arguments(input_str=input_str, output_str=output_str)
 
@@ -360,6 +370,18 @@ class Session:
         assert len(local_visualization_images) == len(input_str), (
             "The number of local visualization images must match the number of input strings."
         )
+
+        # Save the action log and return the result
+        self._action_log.append(
+            json.dumps(
+                {
+                    "function": "local_visualization",
+                    "arguments": {"input_str": input_str, "output_str": output_str},
+                    "elapsed_time": elapsed_time,
+                }
+            )
+        )
+
         return local_visualization_images[0] if is_scalar else local_visualization_images
 
     def public_eval(
@@ -392,6 +414,7 @@ class Session:
             raise AleBenchError("The session is finished.")
         if not self._check_within_resource_usage_before(AleBenchFunction.PUBLIC_EVAL):
             raise AleBenchError("The resource usage is exceeded.")
+        elapsed_time = (dt.datetime.now(tz=dt.timezone.utc) - self._session_started_at).total_seconds()
         _, code, code_language, judge_version, _, _ = self._check_run_cases_arguments(
             code=code, code_language=code_language, judge_version=judge_version
         )
@@ -432,6 +455,7 @@ class Session:
                         "code_language": code_language.value,
                         "judge_version": judge_version.value,
                     },
+                    "elapsed_time": elapsed_time,
                 }
             )
         )
@@ -471,6 +495,7 @@ class Session:
             raise AleBenchError("The session is finished.")
         if not self._check_within_resource_usage_before(AleBenchFunction.PRIVATE_EVAL):
             raise AleBenchError("The resource usage is exceeded.")
+        elapsed_time = (dt.datetime.now(tz=dt.timezone.utc) - self._session_started_at).total_seconds()
         _, code, code_language, judge_version, _, _ = self._check_run_cases_arguments(
             code=code, code_language=code_language, judge_version=judge_version
         )
@@ -511,6 +536,7 @@ class Session:
                         "code_language": code_language.value,
                         "judge_version": judge_version.value,
                     },
+                    "elapsed_time": elapsed_time,
                 }
             )
         )
