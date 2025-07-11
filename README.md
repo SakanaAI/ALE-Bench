@@ -88,9 +88,9 @@ https://github.com/user-attachments/assets/50a8de5a-b519-4aef-8e54-c60ac9dcbb90
 For fair and reproducible performance comparisons, we **strongly recommend** running evaluations on a consistent, specified AWS instance (e.g., `c6i.32xlarge`).
 
 We provide a Terraform configuration to set up the necessary environment, including the ALE-Bench toolkit and required dependencies.
-Please refer to the [AWS Evaluation Guide](./aws_evaluation.md) for detailed instructions on setting up and running evaluations in AWS.
+Please refer to the [AWS Evaluation Guide](./docs/aws_evaluation.md) for detailed instructions on setting up and running evaluations in AWS.
 
-We also provide a MCP (Model Context Protocol) server feature to simplify the use of ALE-Bench as a tool. For setup and usage instructions, please refer to the [MCP Server documentation](./mcp_server.md).
+We also provide a MCP (Model Context Protocol) server feature to simplify the use of ALE-Bench as a tool. For setup and usage instructions, please refer to the [MCP Server documentation](./docs/mcp_server.md).
 
 ### Example Evaluation Script
 
