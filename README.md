@@ -23,6 +23,7 @@ https://github.com/user-attachments/assets/50a8de5a-b519-4aef-8e54-c60ac9dcbb90
 ## Table of Contents
 - [Setup](#setup)
 - [Evaluation](#evaluation)
+- [Documentation](#documentation)
 - [Development and Contributing](#development-and-contributing)
 - [Citation](#citation)
 
@@ -92,8 +93,6 @@ Please refer to the [AWS Evaluation Guide](./aws_evaluation.md) for detailed ins
 We also provide a MCP (Model Context Protocol) server feature to simplify the use of ALE-Bench as a tool. For setup and usage instructions, please refer to the [MCP Server documentation](./mcp_server.md).
 
 ### Example Evaluation Script
-
-For more details about ALE-Bench, please refer to the [docs/](./docs/) directory.
 
 ```python
 import ale_bench
@@ -200,6 +199,9 @@ session.close()
 # To clear all cached ALE-Bench data (problem data, toolchains):
 # ale_bench.clear_cache()
 ```
+
+## Documentation
+For more details about ALE-Bench, please refer to the [docs/](./docs/) diretory.
 
 ## Development and Contributing
 Please see the [CONTRIBUTING.md](./CONTRIBUTING.md) file.
