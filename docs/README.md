@@ -8,7 +8,7 @@ Please refer to the [Session Object documentation](./session_object.md) for deta
 ALE-Bench provides utilities for calculating ratings and rankings based on contest performance. For detailed information on how to use these calculators, including initialization and core methods, please refer to the [Rating and Ranking documentation](./rating_and_ranking.md).
 
 ## Cloud Evaluation with AWS
-ALE-Bench supports cloud-based evaluation using AWS. This allows you to run fair evaluations without needing to manage local resources. For setup and usage instructions, please refer to the [Cloud Evaluation documentation](./cloud_evaluation.md).
+ALE-Bench supports cloud-based evaluation using AWS. This allows you to run fair evaluations without needing to manage local resources. For setup and usage instructions, please refer to the [Cloud Evaluation documentation](./aws_evaluation.md).
 
 ## MCP Server
 The MCP (Model Context Protocol) server is a lightweight HTTP server that provides a simple interface for interacting with the ALE-Bench toolkit. It allows you to run evaluations and manage sessions without needing to write Python code directly. For setup and usage instructions, please refer to the [MCP Server documentation](./mcp_server.md).
