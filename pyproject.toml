@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "ale_bench"
-version = "1.1.0"
+version = "1.2.0"
 description = "The official library for the ALE-Bench"
 authors = [
     { name = "Yuki-Imajuku", email = "yuki.imjk@gmail.com" }
