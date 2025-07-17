@@ -18,6 +18,7 @@ from ale_bench.data import Problem, RankPerformanceMap, Standings, start_visuali
 from ale_bench.error import AleBenchError
 from ale_bench.result import CaseResult, ResourceUsage, Result
 from ale_bench.tool_wrappers import generate_inputs, local_visualization, run_cases
+from ale_bench.utils import docker_client
 
 
 class AleBenchFunction(str, Enum):
@@ -105,10 +106,10 @@ class Session:
             raise AleBenchError("Failed to initialize: generating private inputs failed.")
 
         # Start the visualization server if needed
-        self._visualization_server_container = None
+        self._visualization_server_container_id = None
         if visualization_server_port is not None:
             try:
-                self._visualization_server_container = start_visualization_server(
+                self._visualization_server_container_id = start_visualization_server(
                     visualization_server_dir=tool_dir / "visualization_server",
                     port_num=visualization_server_port,
                 )
@@ -605,14 +606,16 @@ class Session:
     def close(self) -> None:
         """Close the session and clean up resources."""
         shutil.rmtree(self._tool_dir, ignore_errors=True)
-        if self._visualization_server_container is not None:
+        if self._visualization_server_container_id is not None:
             print("Stopping the visualization server...")
-            self._visualization_server_container.stop()
-            self._visualization_server_container.remove(force=True)
+            with docker_client() as client:
+                visualization_server_container = client.containers.get(self._visualization_server_container_id)
+                visualization_server_container.stop()
+                visualization_server_container.remove(force=True)
             print("Visualization server stopped.")
             self._run_visualization_server = False
             self._visualization_server_port = None
-            self._visualization_server_container = None
+            self._visualization_server_container_id = None
 
     # Properties
     @property

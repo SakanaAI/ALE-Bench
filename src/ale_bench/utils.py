@@ -7,14 +7,31 @@ import random
 import shutil
 import socket
 from collections.abc import Generator
+from contextlib import contextmanager
 from pathlib import Path
 from typing import Literal
 
 import cairosvg
+import docker
 from PIL import Image
 from ahocorapy.keywordtree import KeywordTree
 
 from ale_bench.constants import DEFAULT_CACHE_DIR
+
+
+# Docker
+@contextmanager
+def docker_client() -> Generator[docker.DockerClient, None, None]:
+    """Context manager for Docker client.
+
+    Yields:
+        docker.DockerClient: The Docker client.
+    """
+    client = docker.from_env()
+    try:
+        yield client
+    finally:
+        client.close()
 
 
 # Cache

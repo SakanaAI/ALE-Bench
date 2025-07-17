@@ -4,11 +4,11 @@ import warnings
 from pathlib import Path
 from typing import Any
 
-import docker
 from pydantic import BaseModel, ConfigDict, Field
 
 import ale_bench.constants
 from ale_bench.error import AleBenchError
+from ale_bench.utils import docker_client
 
 
 class HostPathsGen(BaseModel):
@@ -88,32 +88,33 @@ def run_gen_container(
     Raises:
         AleBenchError: If the container fails to run or the command fails.
     """
-    docker_client = docker.from_env()
-    container = docker_client.containers.run(
-        image=ale_bench.constants.RUST_TOOL_DOCKER_IMAGE,
-        command=f"/bin/sh -c '{gen_command}'",
-        remove=True,
-        auto_remove=True,
-        cpu_period=100000,
-        cpu_quota=100000,  # 1 CPU
-        detach=True,
-        group_add=[os.getgid()],
-        mem_limit=ale_bench.constants.MAX_MEMORY_LIMIT,
-        network_disabled=True,
-        user=os.getuid(),
-        volumes=gen_volumes,
-        working_dir=ale_bench.constants.WORK_DIR,
-    )
-    try:
-        container.wait(timeout=timeout)
-    except Exception:
-        stderr = container.logs(stdout=False, stderr=True).decode("utf-8").strip()
-        container.remove(force=True)
-        if len(stderr) > 0:
-            raise AleBenchError(f"Failed to generate the case. The standard error is:\n{stderr}")
-        else:
-            raise AleBenchError(f"Failed to generate the case. Timeout after {timeout} seconds.")
-    if container.attrs["State"]["ExitCode"] != 0:
+    with docker_client() as client:
+        container = client.containers.run(
+            image=ale_bench.constants.RUST_TOOL_DOCKER_IMAGE,
+            command=f"/bin/sh -c '{gen_command}'",
+            remove=True,
+            auto_remove=True,
+            cpu_period=100000,
+            cpu_quota=100000,  # 1 CPU
+            detach=True,
+            group_add=[os.getgid()],
+            mem_limit=ale_bench.constants.MAX_MEMORY_LIMIT,
+            network_disabled=True,
+            user=os.getuid(),
+            volumes=gen_volumes,
+            working_dir=ale_bench.constants.WORK_DIR,
+        )
+        try:
+            container.wait(timeout=timeout)
+            exit_code = container.attrs["State"]["ExitCode"]
+        except Exception:
+            stderr = container.logs(stdout=False, stderr=True).decode("utf-8").strip()
+            container.remove(force=True)
+            if len(stderr) > 0:
+                raise AleBenchError(f"Failed to generate the case. The standard error is:\n{stderr}")
+            else:
+                raise AleBenchError(f"Failed to generate the case. Timeout after {timeout} seconds.")
+    if exit_code != 0:
         raise AleBenchError("Failed to generate the case.")
 
 
