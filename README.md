@@ -201,7 +201,7 @@ session.close()
 ```
 
 ## Documentation
-For more details about ALE-Bench, please refer to the [docs/](./docs/) diretory.
+For more details about ALE-Bench, please refer to the [docs/](./docs/) directory.
 
 ## Development and Contributing
 Please see the [CONTRIBUTING.md](./CONTRIBUTING.md) file.
