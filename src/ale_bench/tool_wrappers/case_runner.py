@@ -9,7 +9,6 @@ import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
-import docker
 from pydantic import BaseModel, ConfigDict, Field
 from requests.exceptions import ConnectionError, Timeout
 
@@ -25,7 +24,7 @@ from ale_bench.code_language import (
 )
 from ale_bench.data import ProblemType
 from ale_bench.result import CaseResult, JudgeResult, Profiles
-from ale_bench.utils import read_svg
+from ale_bench.utils import docker_client, read_svg
 
 
 class HostPathsCompile(BaseModel):
@@ -479,57 +478,58 @@ def run_compile_container(
     Returns:
         CaseResult | None: The case result if the compilation fails, otherwise None.
     """
-    docker_client = docker.from_env()
-    container = docker_client.containers.run(
-        image=get_docker_image_name(code_language, judge_version),
-        command=f"/bin/sh -c '{compile_command}'",
-        remove=False,
-        auto_remove=False,
-        cpu_period=100000,
-        cpu_quota=100000,  # 1 CPU
-        detach=True,
-        group_add=[os.getgid()],
-        mem_limit=ale_bench.constants.MAX_MEMORY_LIMIT,
-        network_disabled=True,
-        user=os.getuid(),
-        volumes=compile_volumes,
-        working_dir=ale_bench.constants.WORK_DIR,
-    )
-    try:
-        container.wait(timeout=ale_bench.constants.COMPILE_TIMEOUT)
-    # NOTE: It will catch ReadTimeout, ConnectTimeout and ConnectionError.
-    # NOTE: ConnectionError occurs when the compile code timed out with sleep.
-    except (Timeout, ConnectionError):
-        if code_language != CodeLanguage.PYTHON:
-            container.remove(force=True)
-            return CaseResult(
-                input_str=None,
-                output_str=None,
-                error_str=None,
-                judge_result=JudgeResult.COMPILATION_ERROR,
-                message=f"Compilation timed out ({ale_bench.constants.COMPILE_TIMEOUT}s).",
-                absolute_score=ale_bench.constants.REJECTED_ABSOLUTE_SCORE,
-                execution_time=0.0,
-                memory_usage=0,
-            )
-    except Exception:
-        container.remove(force=True)
-        return CaseResult(
-            input_str=None,
-            output_str=None,
-            error_str=None,
-            judge_result=JudgeResult.COMPILATION_ERROR,
-            message="Failed to compile the code.",
-            absolute_score=ale_bench.constants.REJECTED_ABSOLUTE_SCORE,
-            execution_time=0.0,
-            memory_usage=0,
+    with docker_client() as client:
+        container = client.containers.run(
+            image=get_docker_image_name(code_language, judge_version),
+            command=f"/bin/sh -c '{compile_command}'",
+            remove=False,
+            auto_remove=False,
+            cpu_period=100000,
+            cpu_quota=100000,  # 1 CPU
+            detach=True,
+            group_add=[os.getgid()],
+            mem_limit=ale_bench.constants.MAX_MEMORY_LIMIT,
+            network_disabled=True,
+            user=os.getuid(),
+            volumes=compile_volumes,
+            working_dir=ale_bench.constants.WORK_DIR,
         )
-    # stdout = container.logs(stdout=True, stderr=False).decode("utf-8").strip()
-    stderr = container.logs(stdout=False, stderr=True).decode("utf-8").strip()
-    container.remove(force=True)
+        try:
+            try:
+                container.wait(timeout=ale_bench.constants.COMPILE_TIMEOUT)
+            # NOTE: It will catch ReadTimeout, ConnectTimeout and ConnectionError.
+            # NOTE: ConnectionError occurs when the compile code timed out with sleep.
+            except (Timeout, ConnectionError):
+                if code_language != CodeLanguage.PYTHON:
+                    return CaseResult(
+                        input_str=None,
+                        output_str=None,
+                        error_str=None,
+                        judge_result=JudgeResult.COMPILATION_ERROR,
+                        message=f"Compilation timed out ({ale_bench.constants.COMPILE_TIMEOUT}s).",
+                        absolute_score=ale_bench.constants.REJECTED_ABSOLUTE_SCORE,
+                        execution_time=0.0,
+                        memory_usage=0,
+                    )
+            except Exception:
+                return CaseResult(
+                    input_str=None,
+                    output_str=None,
+                    error_str=None,
+                    judge_result=JudgeResult.COMPILATION_ERROR,
+                    message="Failed to compile the code.",
+                    absolute_score=ale_bench.constants.REJECTED_ABSOLUTE_SCORE,
+                    execution_time=0.0,
+                    memory_usage=0,
+                )
+            # stdout = container.logs(stdout=True, stderr=False).decode("utf-8").strip()
+            stderr = container.logs(stdout=False, stderr=True).decode("utf-8").strip()
+            exit_code = container.attrs["State"]["ExitCode"]
+        finally:
+            container.remove(force=True)
     object_size = host_paths_compile.object_file.stat().st_size
     if (
-        container.attrs["State"]["ExitCode"] != 0
+        exit_code != 0
         or (
             code_language != CodeLanguage.PYTHON and object_size == 0
         )  # NOTE: As for Python, it is fine if .pyc file is not created during the compilation step.
@@ -570,29 +570,32 @@ def run_batch_run_container(
         CaseResult | tuple[float, str]:
             The case result if the run fails, otherwise the execution time in seconds and the stndard error.
     """
-    docker_client = docker.from_env()
-    start_at = time.perf_counter()
-    container = docker_client.containers.run(
-        image=get_docker_image_name(code_language, judge_version),
-        command=f"/bin/sh -c '{run_command}'",
-        remove=False,
-        auto_remove=False,
-        cpu_period=100000,
-        cpu_quota=100000,  # 1 CPU
-        detach=True,
-        group_add=[os.getgid()],
-        mem_limit=ale_bench.constants.MAX_MEMORY_LIMIT,
-        network_disabled=True,
-        user=os.getuid(),
-        volumes=run_volumes,
-        working_dir=ale_bench.constants.WORK_DIR,
-    )
-    container.wait()  # NOTE: Killed by `timeout` command in the run command
-    end_at = time.perf_counter()
-    execution_time_host = end_at - start_at  # NOTE: we use this wall time for `RE` (including the overhead)
-    stderr = container.logs(stdout=False, stderr=True).decode("utf-8").strip()
-    container.remove(force=True)
-    if container.attrs["State"]["ExitCode"] != 0:
+    with docker_client() as client:
+        start_at = time.perf_counter()
+        container = client.containers.run(
+            image=get_docker_image_name(code_language, judge_version),
+            command=f"/bin/sh -c '{run_command}'",
+            remove=False,
+            auto_remove=False,
+            cpu_period=100000,
+            cpu_quota=100000,  # 1 CPU
+            detach=True,
+            group_add=[os.getgid()],
+            mem_limit=ale_bench.constants.MAX_MEMORY_LIMIT,
+            network_disabled=True,
+            user=os.getuid(),
+            volumes=run_volumes,
+            working_dir=ale_bench.constants.WORK_DIR,
+        )
+        try:
+            container.wait()  # NOTE: Killed by `timeout` command in the run command
+            end_at = time.perf_counter()
+            execution_time_host = end_at - start_at  # NOTE: we use this wall time for `RE` (including the overhead)
+            stderr = container.logs(stdout=False, stderr=True).decode("utf-8").strip()
+            exit_code = container.attrs["State"]["ExitCode"]
+        finally:
+            container.remove(force=True)
+    if exit_code != 0:
         if execution_time_host > time_limit:  # Killed by `timeout` command
             return CaseResult(
                 input_str=input_str,
@@ -639,27 +642,30 @@ def run_batch_judge_container(
     Returns:
         CaseResult | int: The case result if the judge fails, otherwise the score.
     """
-    docker_client = docker.from_env()
-    container = docker_client.containers.run(
-        image=ale_bench.constants.RUST_TOOL_DOCKER_IMAGE,
-        command=f"/bin/sh -c '{judge_command}'",
-        remove=False,
-        auto_remove=False,
-        cpu_period=100000,
-        cpu_quota=100000,  # 1 CPU
-        detach=True,
-        group_add=[os.getgid()],
-        mem_limit=ale_bench.constants.MAX_MEMORY_LIMIT,
-        network_disabled=True,
-        user=os.getuid(),
-        volumes=judge_volumes,
-        working_dir=ale_bench.constants.WORK_DIR,
-    )
-    container.wait()  # NOTE: Killed by `timeout` command in the run command
-    # stdout = container.logs(stdout=True, stderr=False).decode("utf-8").strip()
-    stderr = container.logs(stdout=False, stderr=True).decode("utf-8").strip()
-    container.remove(force=True)
-    if container.attrs["State"]["ExitCode"] != 0:
+    with docker_client() as client:
+        container = client.containers.run(
+            image=ale_bench.constants.RUST_TOOL_DOCKER_IMAGE,
+            command=f"/bin/sh -c '{judge_command}'",
+            remove=False,
+            auto_remove=False,
+            cpu_period=100000,
+            cpu_quota=100000,  # 1 CPU
+            detach=True,
+            group_add=[os.getgid()],
+            mem_limit=ale_bench.constants.MAX_MEMORY_LIMIT,
+            network_disabled=True,
+            user=os.getuid(),
+            volumes=judge_volumes,
+            working_dir=ale_bench.constants.WORK_DIR,
+        )
+        try:
+            container.wait()  # NOTE: Killed by `timeout` command in the run command
+            # stdout = container.logs(stdout=True, stderr=False).decode("utf-8").strip()
+            stderr = container.logs(stdout=False, stderr=True).decode("utf-8").strip()
+            exit_code = container.attrs["State"]["ExitCode"]
+        finally:
+            container.remove(force=True)
+    if exit_code != 0:
         return CaseResult(
             input_str=input_str,
             output_str=output_str,
@@ -723,30 +729,33 @@ def run_reactive_judge_container(
         CaseResult | tuple[float, int]: The case result if the run fails,
             otherwise the execution time in seconds, the score and the standard error.
     """
-    docker_client = docker.from_env()
-    start_at = time.perf_counter()
-    container = docker_client.containers.run(
-        image=get_docker_image_name(code_language, judge_version),
-        command=f"/bin/sh -c '{judge_command}'",
-        remove=False,
-        auto_remove=False,
-        cpu_period=100000,
-        cpu_quota=100000,  # 1 CPU
-        detach=True,
-        group_add=[os.getgid()],
-        mem_limit=ale_bench.constants.MAX_MEMORY_LIMIT,
-        network_disabled=True,
-        user=os.getuid(),
-        volumes=judge_volumes,
-        working_dir=ale_bench.constants.WORK_DIR,
-    )
-    container.wait()  # NOTE: Killed by `timeout` command in the run command
-    end_at = time.perf_counter()
-    # stdout = container.logs(stdout=True, stderr=False).decode("utf-8").strip()
-    stderr = container.logs(stdout=False, stderr=True).decode("utf-8").strip()
-    execution_time_host = end_at - start_at  # NOTE: we use this wall time for `RE` (including the overhead)
-    container.remove(force=True)
-    if container.attrs["State"]["ExitCode"] != 0 or stderr == "":
+    with docker_client() as client:
+        start_at = time.perf_counter()
+        container = client.containers.run(
+            image=get_docker_image_name(code_language, judge_version),
+            command=f"/bin/sh -c '{judge_command}'",
+            remove=False,
+            auto_remove=False,
+            cpu_period=100000,
+            cpu_quota=100000,  # 1 CPU
+            detach=True,
+            group_add=[os.getgid()],
+            mem_limit=ale_bench.constants.MAX_MEMORY_LIMIT,
+            network_disabled=True,
+            user=os.getuid(),
+            volumes=judge_volumes,
+            working_dir=ale_bench.constants.WORK_DIR,
+        )
+        try:
+            container.wait()  # NOTE: Killed by `timeout` command in the run command
+            end_at = time.perf_counter()
+            # stdout = container.logs(stdout=True, stderr=False).decode("utf-8").strip()
+            stderr = container.logs(stdout=False, stderr=True).decode("utf-8").strip()
+            execution_time_host = end_at - start_at  # NOTE: we use this wall time for `RE` (including the overhead)
+            exit_code = container.attrs["State"]["ExitCode"]
+        finally:
+            container.remove(force=True)
+    if exit_code != 0 or stderr == "":
         if execution_time_host > time_limit:  # Killed by `timeout` command
             return CaseResult(
                 input_str=input_str,
@@ -793,29 +802,31 @@ def run_vis_container(vis_command: str, vis_volumes: dict[str, dict[str, str]]) 
         vis_command (str): The visualization command.
         vis_volumes (dict[str, dict[str, str]]): The volumes for the visualization command with the setup.
     """
-    docker_client = docker.from_env()
-    container = docker_client.containers.run(
-        image=ale_bench.constants.RUST_TOOL_DOCKER_IMAGE,
-        command=f"/bin/sh -c '{vis_command}'",
-        remove=False,
-        auto_remove=False,
-        cpu_period=100000,
-        cpu_quota=100000,  # 1 CPU
-        detach=True,
-        group_add=[os.getgid()],
-        mem_limit=ale_bench.constants.MAX_MEMORY_LIMIT,
-        network_disabled=True,
-        user=os.getuid(),
-        volumes=vis_volumes,
-        working_dir=ale_bench.constants.WORK_DIR,
-    )
-    try:
-        container.wait(timeout=ale_bench.constants.VISUALIZE_TIMEOUT)
-    except Exception:
-        container.remove(force=True)
-        raise RuntimeError("Timeout while running the visualization command. Something went wrong.")
-    container.remove(force=True)
-    if container.attrs["State"]["ExitCode"] != 0:
+    with docker_client() as client:
+        container = client.containers.run(
+            image=ale_bench.constants.RUST_TOOL_DOCKER_IMAGE,
+            command=f"/bin/sh -c '{vis_command}'",
+            remove=False,
+            auto_remove=False,
+            cpu_period=100000,
+            cpu_quota=100000,  # 1 CPU
+            detach=True,
+            group_add=[os.getgid()],
+            mem_limit=ale_bench.constants.MAX_MEMORY_LIMIT,
+            network_disabled=True,
+            user=os.getuid(),
+            volumes=vis_volumes,
+            working_dir=ale_bench.constants.WORK_DIR,
+        )
+        try:
+            try:
+                container.wait(timeout=ale_bench.constants.VISUALIZE_TIMEOUT)
+            except Exception:
+                raise RuntimeError("Timeout while running the visualization command. Something went wrong.")
+            exit_code = container.attrs["State"]["ExitCode"]
+        finally:
+            container.remove(force=True)
+    if exit_code != 0:
         raise RuntimeError("Failed to run the visualization command. Something went wrong.")
 
 

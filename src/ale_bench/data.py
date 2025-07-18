@@ -12,16 +12,14 @@ from enum import Enum
 from pathlib import Path
 from typing import Any
 
-import docker
 import polars as pl
 from PIL import Image
-from docker.models.containers import Container as DockerContainer
 from huggingface_hub import hf_hub_download
 from pydantic import BaseModel, ConfigDict, Field, field_serializer, field_validator
 
 import ale_bench.constants
 from ale_bench.result import JudgeResult, Result
-from ale_bench.utils import get_cache_dir, get_local_data_dir, read_svg
+from ale_bench.utils import docker_client, get_cache_dir, get_local_data_dir, read_svg
 
 
 class ProblemType(str, Enum):
@@ -623,24 +621,23 @@ def build_rust_tools(tool_cache_dir: Path) -> None:
     Raises:
         RuntimeError: If the build fails.
     """
-    docker_client = docker.from_env()
-    build_container = docker_client.containers.run(
-        image=ale_bench.constants.RUST_TOOL_DOCKER_IMAGE,
-        command="cargo build --release",
-        remove=True,
-        auto_remove=True,
-        detach=True,
-        environment={"RUSTFLAGS": "-Awarnings"},
-        group_add=[os.getgid()],
-        user=os.getuid(),
-        volumes={str(tool_cache_dir): {"bind": ale_bench.constants.WORK_DIR, "mode": "rw"}},
-        working_dir=ale_bench.constants.WORK_DIR,
-    )
-    build_container.wait()
-    # Check if the build was successful
-    if build_container.attrs["State"]["ExitCode"] != 0:
-        raise RuntimeError("Failed to build the Rust tool.")
-    docker_client.close()
+    with docker_client() as client:
+        build_container = client.containers.run(
+            image=ale_bench.constants.RUST_TOOL_DOCKER_IMAGE,
+            command="cargo build --release",
+            remove=True,
+            auto_remove=True,
+            detach=True,
+            environment={"RUSTFLAGS": "-Awarnings"},
+            group_add=[os.getgid()],
+            user=os.getuid(),
+            volumes={str(tool_cache_dir): {"bind": ale_bench.constants.WORK_DIR, "mode": "rw"}},
+            working_dir=ale_bench.constants.WORK_DIR,
+        )
+        build_container.wait()
+        # Check if the build was successful
+        if build_container.attrs["State"]["ExitCode"] != 0:
+            raise RuntimeError("Failed to build the Rust tool.")
     # Check if the build was successful
     for tool in ["gen", "tester", "vis"]:
         if not (tool_cache_dir / "src" / "bin" / f"{tool}.rs").is_file():
@@ -649,7 +646,7 @@ def build_rust_tools(tool_cache_dir: Path) -> None:
         assert tool_path.is_file() and tool_path.stat().st_size > 0, f"Failed to build the {tool} tool."
 
 
-def start_visualization_server(visualization_server_dir: Path, port_num: int) -> DockerContainer:
+def start_visualization_server(visualization_server_dir: Path, port_num: int) -> str:
     """Start the visualization server.
 
     Args:
@@ -657,19 +654,22 @@ def start_visualization_server(visualization_server_dir: Path, port_num: int) ->
         port_num (int): Port number for the visualization server.
 
     Returns:
-        docker.models.containers.Container: The Docker container running the visualization server.
+        str: The ID of the started Docker container.
     """
-    docker_client = docker.from_env()
-    container = docker_client.containers.run(
-        image=ale_bench.constants.VIS_SERVER_DOCKER_IMAGE,
-        cpu_period=100000,
-        cpu_quota=100000,  # 1 CPU
-        detach=True,
-        mem_limit=ale_bench.constants.MAX_MEMORY_LIMIT,
-        ports={"80/tcp": port_num},
-        volumes={str(visualization_server_dir): {"bind": ale_bench.constants.VIS_SERVER_DIR, "mode": "ro"}},
-    )
-    return container
+    with docker_client() as client:
+        container = client.containers.run(
+            image=ale_bench.constants.VIS_SERVER_DOCKER_IMAGE,
+            cpu_period=100000,
+            cpu_quota=100000,  # 1 CPU
+            detach=True,
+            mem_limit=ale_bench.constants.MAX_MEMORY_LIMIT,
+            ports={"80/tcp": port_num},
+            volumes={str(visualization_server_dir): {"bind": ale_bench.constants.VIS_SERVER_DIR, "mode": "ro"}},
+        )
+        container_id: str | None = container.id
+    if container_id is None:
+        raise RuntimeError("Failed to start the visualization server container.")
+    return container_id
 
 
 class RatingCalculator:
