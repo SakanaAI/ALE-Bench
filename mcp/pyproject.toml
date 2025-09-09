@@ -1,6 +1,6 @@
 [project]
 name = "ale_bench_mcp_server"
-version = "1.0.0"
+version = "1.1.0"
 description = "The MCP server for the ALE-Bench"
 authors = [
     { name = "Yuki-Imajuku", email = "yuki.imjk@gmail.com" }
@@ -37,15 +37,15 @@ Repository = "https://github.com/SakanaAI/ALE-Bench"
 
 [project.optional-dependencies]
 dev = [
-    "mypy==1.15.0",
-    "pytest==8.3.4",
-    "pytest-mock==3.14.0",
-    "ruff==0.9.7",
-    "types-requests==2.32.0.20250301",
+    "mypy==1.17.1",
+    "pytest==8.4.2",
+    "pytest-mock==3.15.0",
+    "ruff==0.12.12",
+    "types-requests==2.32.4.20250809",
 ]
 
 [tool.uv.sources]
-ale-bench = { git = "https://github.com/SakanaAI/ALE-Bench.git", tag = "v1.0.0" }
+ale-bench = { git = "https://github.com/SakanaAI/ALE-Bench.git", tag = "v1.1.0" }
 
 [tool.mypy]
 warn_return_any = true
