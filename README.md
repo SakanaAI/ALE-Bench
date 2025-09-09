@@ -44,7 +44,7 @@ https://github.com/user-attachments/assets/50a8de5a-b519-4aef-8e54-c60ac9dcbb90
     ```
     *Note: These paths might vary depending on your macOS version and Homebrew installation. If you encounter issues, verify the correct paths for `cairo` and `libffi` installed by Homebrew.*
 
-3.  **Install Python (3.9 - 3.13) and ALE-Bench Toolkit:**
+3.  **Install Python (3.9 - 3.14) and ALE-Bench Toolkit:**
     ```sh
     # Install via this GitHub repository
     pip install git+https://github.com/SakanaAI/ALE-Bench.git
@@ -57,7 +57,7 @@ https://github.com/user-attachments/assets/50a8de5a-b519-4aef-8e54-c60ac9dcbb90
     # Using uv (recommended for faster environment management)
     git clone https://github.com/SakanaAI/ALE-Bench.git
     cd ALE-Bench
-    uv venv --python 3.12.9  # Or any supported Python version (3.9 ~ 3.13)
+    uv venv --python 3.12.9  # Or any supported Python version (3.9 ~ 3.14)
     uv sync
     source .venv/bin/activate
     ```
