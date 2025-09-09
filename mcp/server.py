@@ -95,10 +95,10 @@ async def list_problem_ids() -> list[str]:
 async def list_current_sessions() -> list[str]:
     """
     Lists all currently active ALE-Bench sessions.
-    Returns a list of problem IDs, lite version.
+    Returns a list of problem IDs.
 
     Returns:
-        list[str]: A list of containing problem IDs.
+        list[str]: A list containing problem IDs.
     """
     current_sessions = get_current_sessions(mcp.get_context())
     return sorted(list(current_sessions.keys()))
