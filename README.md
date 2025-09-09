@@ -57,7 +57,7 @@ https://github.com/user-attachments/assets/50a8de5a-b519-4aef-8e54-c60ac9dcbb90
     # Using uv (recommended for faster environment management)
     git clone https://github.com/SakanaAI/ALE-Bench.git
     cd ALE-Bench
-    uv venv --python 3.12.9  # Or any supported Python version (3.9 ~ 3.13)
+    uv venv --python 3.12.11  # Or any supported Python version (3.9 ~ 3.13)
     uv sync
     source .venv/bin/activate
     ```
@@ -66,10 +66,14 @@ https://github.com/user-attachments/assets/50a8de5a-b519-4aef-8e54-c60ac9dcbb90
     This script will build the necessary Docker execution images for ALE-Bench. It automatically pulls pre-built base images from Docker Hub (repository: `yimjk/ale-bench`) and then creates local images tagged as `ale-bench:<language>-<version>` with appropriate permissions for your user.
     ```sh
     bash ./scripts/docker_build_all.sh $(id -u) $(id -g)
+    # Or you can build images for specific version (202301)
+    bash ./scripts/docker_build_202301.sh $(id -u) $(id -g)
     ```
     If you prefer to pull all base images beforehand, you can optionally run:
     ```sh
     bash ./scripts/docker_pull_all.sh
+    # Or pull images for specific version (202301)
+    bash ./scripts/docker_pull_202301.sh
     ```
 
 5.  **[Optional] Download Data via Hugging Face Repository:**
