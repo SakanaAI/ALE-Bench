@@ -21,12 +21,18 @@ from ale_bench.data import (
     Standings,
 )
 from ale_bench.error import AleBenchError
-from ale_bench.result import CaseResult, JudgeResult, ResourceUsage
+from ale_bench.result import CaseResult, CodeRunResult, JudgeResult, ResourceUsage
 from ale_bench.session import AleBenchFunction, Session
 
 
 @pytest.fixture(scope="function")
 def ale_bench_session_mocker(mocker: MockerFixture) -> None:
+    mocker.patch(
+        "ale_bench.session.run_code",
+        return_value=CodeRunResult(
+            stdin="", stdout="", stderr="", exit_status=0, execution_time=4.8, memory_usage=16 * 1024 * 1024
+        ),
+    )
     mocker.patch("ale_bench.session.generate_inputs", return_value=["dummy input 1", "dummy input 2", "dummy input 3"])
     mocker.patch(
         "ale_bench.session.run_cases",
@@ -103,6 +109,87 @@ class TestSession:
     def test_repr(self, dummy_session: Session) -> None:
         assert str(dummy_session) == "Session(problem_id=ahc001)"
         assert repr(dummy_session) == "Session(problem_id=ahc001)"
+
+    @pytest.mark.parametrize(
+        "current_resource_usage,utc_now,context",
+        [
+            pytest.param(
+                ResourceUsage(), dt.datetime(2000, 1, 1, 0, 30, tzinfo=dt.timezone.utc), does_not_raise(), id="ok"
+            ),
+            pytest.param(
+                ResourceUsage(),
+                dt.datetime(2000, 1, 1, 1, 0, tzinfo=dt.timezone.utc),
+                pytest.raises(AleBenchError, match=r"The session is finished\."),
+                id="ng_session_duration",
+            ),
+            pytest.param(
+                ResourceUsage(num_call_private_eval=1),
+                dt.datetime(2000, 1, 1, 0, 30, tzinfo=dt.timezone.utc),
+                pytest.raises(AleBenchError, match=r"The session is finished\."),
+                id="ng_private_eval_called",
+            ),
+            pytest.param(
+                ResourceUsage(execution_time_case_eval=55.2),
+                dt.datetime(2000, 1, 1, 0, 30, tzinfo=dt.timezone.utc),
+                does_not_raise(),
+                id="ok_maximum",
+            ),
+            pytest.param(
+                ResourceUsage(execution_time_case_eval=55.3),
+                dt.datetime(2000, 1, 1, 0, 30, tzinfo=dt.timezone.utc),
+                pytest.raises(
+                    AleBenchError,
+                    match=r"Exceeded the maximum resource usage for the `code_run` function after the action\.",
+                ),
+                id="ng_execution_time_case_eval_after_minimum",
+            ),
+            pytest.param(
+                ResourceUsage(execution_time_case_eval=59.9),
+                dt.datetime(2000, 1, 1, 0, 30, tzinfo=dt.timezone.utc),
+                pytest.raises(
+                    AleBenchError,
+                    match=r"Exceeded the maximum resource usage for the `code_run` function after the action\.",
+                ),
+                id="ng_execution_time_case_eval_after_maximum",
+            ),
+            pytest.param(
+                ResourceUsage(execution_time_case_eval=60.0),
+                dt.datetime(2000, 1, 1, 0, 30, tzinfo=dt.timezone.utc),
+                pytest.raises(
+                    AleBenchError, match=r"Exceeded the maximum resource usage for the `code_run` function\."
+                ),
+                id="ng_execution_time_case_eval_before",
+            ),
+        ],
+    )
+    def test_code_run(
+        self,
+        current_resource_usage: ResourceUsage,
+        utc_now: dt.datetime,
+        context: AbstractContextManager[None],
+        dummy_session: Session,
+        mocker: MockerFixture,
+    ) -> None:
+        dummy_session._session_started_at = dt.datetime(2000, 1, 1, 0, 0, tzinfo=dt.timezone.utc)
+        dummy_session._current_resource_usage = current_resource_usage
+        mocked_datetime = mocker.patch("ale_bench.session.dt.datetime", return_value=utc_now)
+        mocked_datetime.now.return_value = utc_now
+        with context:
+            dummy_session.code_run(input_str="dummy input", code="dummy code", code_language="rust")
+            action_log = [json.loads(log) for log in dummy_session.action_log]
+            assert len(action_log) == 1
+            assert action_log[0]["function"] == "code_run"
+            assert action_log[0]["arguments"] == {
+                "input_str": "dummy input",
+                "code": "dummy code",
+                "code_language": "rust",
+                "judge_version": "202301",
+                "time_limit": 5.0,
+                "memory_limit": 1073741824,
+            }
+            assert action_log[0]["elapsed_time"] == pytest.approx(
+                (utc_now - dummy_session.session_started_at).total_seconds()
+            )
 
     @pytest.mark.parametrize(
         "current_resource_usage,utc_now,context",
@@ -849,6 +936,47 @@ class TestSession:
         "function_type,current_resource_usage,utc_now,context",
         [
             pytest.param(
+                AleBenchFunction.CODE_RUN,
+                ResourceUsage(
+                    num_case_gen=5,
+                    num_case_eval=5,
+                    execution_time_case_eval=59.9,
+                    num_call_public_eval=3,
+                    num_call_private_eval=1,
+                ),
+                dt.datetime(2000, 1, 1, 0, 59, 59, tzinfo=dt.timezone.utc),
+                does_not_raise(),
+                id="code_run_ok",
+            ),
+            pytest.param(
+                AleBenchFunction.CODE_RUN,
+                ResourceUsage(
+                    num_case_gen=5,
+                    num_case_eval=5,
+                    execution_time_case_eval=59.9,
+                    num_call_public_eval=3,
+                    num_call_private_eval=1,
+                ),
+                dt.datetime(2000, 1, 1, 1, 0, 0, tzinfo=dt.timezone.utc),
+                pytest.raises(AleBenchError, match=r"The session has already finished\."),
+                id="code_run_ng_session_duration",
+            ),
+            pytest.param(
+                AleBenchFunction.CODE_RUN,
+                ResourceUsage(
+                    num_case_gen=5,
+                    num_case_eval=5,
+                    execution_time_case_eval=60.0,
+                    num_call_public_eval=3,
+                    num_call_private_eval=1,
+                ),
+                dt.datetime(2000, 1, 1, 0, 59, 59, tzinfo=dt.timezone.utc),
+                pytest.raises(
+                    AleBenchError, match=r"Exceeded the maximum resource usage for the `code_run` function\."
+                ),
+                id="code_run_ng_execution_time_case_eval",
+            ),
+            pytest.param(
                 AleBenchFunction.CASE_GEN,
                 ResourceUsage(
                     num_case_gen=4,
@@ -1133,6 +1261,35 @@ class TestSession:
     @pytest.mark.parametrize(
         "function_type,current_resource_usage,utc_now,context",
         [
+            pytest.param(
+                AleBenchFunction.CODE_RUN,
+                ResourceUsage(
+                    num_case_gen=5,
+                    num_case_eval=5,
+                    execution_time_case_eval=60.0,
+                    num_call_public_eval=3,
+                    num_call_private_eval=1,
+                ),
+                dt.datetime(2000, 1, 1, 1, 0, 1, tzinfo=dt.timezone.utc),
+                does_not_raise(),
+                id="code_run_ok",
+            ),
+            pytest.param(
+                AleBenchFunction.CODE_RUN,
+                ResourceUsage(
+                    num_case_gen=5,
+                    num_case_eval=5,
+                    execution_time_case_eval=60.1,
+                    num_call_public_eval=3,
+                    num_call_private_eval=1,
+                ),
+                dt.datetime(2000, 1, 1, 1, 0, 1, tzinfo=dt.timezone.utc),
+                pytest.raises(
+                    AleBenchError,
+                    match=r"Exceeded the maximum resource usage for the `code_run` function after the action\.",
+                ),
+                id="code_run_ng_execution_time_case_eval",
+            ),
             pytest.param(
                 AleBenchFunction.CASE_GEN,
                 ResourceUsage(
@@ -1555,6 +1712,39 @@ class TestSession:
                 id="input_empty",
             ),
             pytest.param(
+                " ",
+                "dummy code",
+                CodeLanguage.RUST,
+                JudgeVersion.V201907,
+                5.0,
+                1073741824,
+                (),
+                pytest.raises(AleBenchError, match=r"The input string is empty\."),
+                id="input_empty_whitespace",
+            ),
+            pytest.param(
+                "\n",
+                "dummy code",
+                CodeLanguage.RUST,
+                JudgeVersion.V201907,
+                5.0,
+                1073741824,
+                (),
+                pytest.raises(AleBenchError, match=r"The input string is empty\."),
+                id="input_empty_newline",
+            ),
+            pytest.param(
+                ["dummy input", " "],
+                "dummy code",
+                CodeLanguage.RUST,
+                JudgeVersion.V201907,
+                5.0,
+                1073741824,
+                (),
+                pytest.raises(AleBenchError, match=r"The input string is empty\."),
+                id="input_empty_list_partial",
+            ),
+            pytest.param(
                 "dummy input",
                 None,
                 CodeLanguage.RUST,
@@ -1861,6 +2051,90 @@ class TestSession:
         with context:
             arguments = dummy_session._check_run_cases_arguments(
                 input_str=input_str,
+                code=code,
+                code_language=code_language,
+                judge_version=judge_version,
+                time_limit=time_limit,
+                memory_limit=memory_limit,
+            )
+            assert arguments == expected
+
+    @pytest.mark.parametrize(
+        "input_str,code,code_language,judge_version,time_limit,memory_limit,expected,context",
+        [
+            pytest.param(
+                None,
+                "dummy code",
+                CodeLanguage.RUST,
+                JudgeVersion.V201907,
+                5.0,
+                1073741824,
+                ([""], "dummy code", CodeLanguage.RUST, JudgeVersion.V201907, 5.0, 1073741824),
+                does_not_raise(),
+                id="input_none",
+            ),
+            pytest.param(
+                "",
+                "dummy code",
+                CodeLanguage.RUST,
+                JudgeVersion.V201907,
+                5.0,
+                1073741824,
+                ([""], "dummy code", CodeLanguage.RUST, JudgeVersion.V201907, 5.0, 1073741824),
+                does_not_raise(),
+                id="input_empty",
+            ),
+            pytest.param(
+                " ",
+                "dummy code",
+                CodeLanguage.RUST,
+                JudgeVersion.V201907,
+                5.0,
+                1073741824,
+                ([" "], "dummy code", CodeLanguage.RUST, JudgeVersion.V201907, 5.0, 1073741824),
+                does_not_raise(),
+                id="input_empty_whitespace",
+            ),
+            pytest.param(
+                "\n",
+                "dummy code",
+                CodeLanguage.RUST,
+                JudgeVersion.V201907,
+                5.0,
+                1073741824,
+                (["\n"], "dummy code", CodeLanguage.RUST, JudgeVersion.V201907, 5.0, 1073741824),
+                does_not_raise(),
+                id="input_empty_newline",
+            ),
+            pytest.param(
+                ["dummy input", " "],
+                "dummy code",
+                CodeLanguage.RUST,
+                JudgeVersion.V201907,
+                5.0,
+                1073741824,
+                (["dummy input", " "], "dummy code", CodeLanguage.RUST, JudgeVersion.V201907, 5.0, 1073741824),
+                does_not_raise(),
+                id="input_empty_list_partial",
+            ),
+        ],
+    )
+    def test_check_run_cases_arguments_allow_empty_input(
+        self,
+        dummy_session: Session,
+        input_str: str | None,
+        code: str | None,
+        code_language: CodeLanguage | str | None,
+        judge_version: JudgeVersion | str | None,
+        time_limit: float | None,
+        memory_limit: int | str | None,
+        expected: tuple[list[str], str, CodeLanguage, JudgeVersion, float, int],
+        context: AbstractContextManager[None],
+    ) -> None:
+        with context:
+            arguments = dummy_session._check_run_cases_arguments(
+                input_str=input_str,
+                allow_empty_input=True,
                 code=code,
                 code_language=code_language,
                 judge_version=judge_version,

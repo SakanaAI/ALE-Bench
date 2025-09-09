@@ -16,14 +16,15 @@ import ale_bench.constants
 from ale_bench.code_language import CodeLanguage, JudgeVersion
 from ale_bench.data import Problem, RankPerformanceMap, Standings, start_visualization_server
 from ale_bench.error import AleBenchError
-from ale_bench.result import CaseResult, ResourceUsage, Result
-from ale_bench.tool_wrappers import generate_inputs, local_visualization, run_cases
+from ale_bench.result import CaseResult, CodeRunResult, ResourceUsage, Result
+from ale_bench.tool_wrappers import generate_inputs, local_visualization, run_cases, run_code
 from ale_bench.utils import docker_client
 
 
 class AleBenchFunction(str, Enum):
     """Functions for ALE-Bench."""
 
+    CODE_RUN = "code_run"
     CASE_GEN = "case_gen"
     CASE_EVAL = "case_eval"
     CASE_GEN_EVAL = "case_gen_eval"
@@ -32,6 +33,7 @@ class AleBenchFunction(str, Enum):
 
 
 CHECK_RESOURCE_USAGE_FIELDS = {
+    AleBenchFunction.CODE_RUN: {"execution_time_case_eval"},
     AleBenchFunction.CASE_GEN: {"num_case_gen"},
     AleBenchFunction.CASE_EVAL: {"num_case_eval", "execution_time_case_eval"},
     AleBenchFunction.CASE_GEN_EVAL: {"num_case_gen", "num_case_eval", "execution_time_case_eval"},
@@ -126,6 +128,89 @@ class Session:
         return f"Session(problem_id={self.problem_id})"
 
     # Interface
+    def code_run(
+        self,
+        input_str: str,
+        code: str,
+        code_language: CodeLanguage | str,
+        judge_version: JudgeVersion | str | None = None,
+        time_limit: float | None = None,
+        memory_limit: int | str | None = None,
+    ) -> CodeRunResult:
+        """Run arbitrary code with input and return stdout, stderr, exit status, time, and memory.
+
+        This endpoint compiles (if needed) and runs the given code inside the language-specific Docker image.
+        It does NOT perform judging or visualization.
+
+        Args:
+            input_str (str): Standard input passed to the program.
+            code (str): Source code to run.
+            code_language (CodeLanguage | str): Language of the source code.
+            judge_version (JudgeVersion | str | None): Toolchain version (e.g., 201907/202301). Defaults to 202301.
+            time_limit (float | None): CPU/timeout limit in seconds. Defaults to the problem's time limit.
+            memory_limit (int | str | None): Memory limit in bytes. Defaults to the problem's memory limit.
+
+        Returns:
+            CodeRunResult: Run outputs and resource usage. Status code does NOT match the original AtCoder status code.
+
+        Raises:
+            AleBenchError: If the session has finished or arguments are invalid.
+        """
+        # Preprocessing
+        try:
+            if self.session_finished:
+                raise AleBenchError("The session is finished.")
+        except AleBenchError:
+            raise AleBenchError("The session is finished.")
+        if not self._check_within_resource_usage_before(AleBenchFunction.CODE_RUN):
+            raise AleBenchError("The resource usage is exceeded.")
+        elapsed_time = (dt.datetime.now(tz=dt.timezone.utc) - self._session_started_at).total_seconds()
+        (input_list, code, code_language, judge_version, time_limit, memory_limit) = self._check_run_cases_arguments(
+            input_str=input_str,
+            allow_empty_input=True,
+            code=code,
+            code_language=code_language,
+            judge_version=judge_version,
+            time_limit=time_limit,
+            memory_limit=memory_limit,
+        )
+        assert len(input_list) == 1
+
+        # Run
+        result = run_code(
+            code=code,
+            code_language=code_language,
+            judge_version=judge_version,
+            stdin=input_list[0],
+            time_limit=time_limit,
+            memory_limit=memory_limit,
+        )
+
+        # Resource usage update (execution time only)
+        resource_usage = ResourceUsage(execution_time_case_eval=result.execution_time)
+        self._current_resource_usage = self._current_resource_usage + resource_usage
+        if not self._check_within_resource_usage_after(AleBenchFunction.CODE_RUN):
+            raise AleBenchError("The resource usage is exceeded after the action.")
+
+        # Save the action log and return the result
+        self._action_log.append(
+            json.dumps(
+                {
+                    "function": "code_run",
+                    "arguments": {
+                        "input_str": input_str,
+                        "code": code,
+                        "code_language": code_language.value,
+                        "judge_version": judge_version.value,
+                        "time_limit": time_limit,
+                        "memory_limit": memory_limit,
+                    },
+                    "elapsed_time": elapsed_time,
+                }
+            )
+        )
+        return result
+
     def case_gen(self, seed: list[int] | int = 0, gen_kwargs: dict[str, Any] = {}) -> list[str] | str:
         """Generate a case using the given seed and generation arguments.
 
@@ -938,6 +1023,7 @@ class Session:
     def _check_run_cases_arguments(
         self,
         input_str: list[str] | str | None = None,
+        allow_empty_input: bool = False,
         code: str | None = None,
         code_language: CodeLanguage | str | None = None,
         judge_version: JudgeVersion | str | None = None,
@@ -952,7 +1038,7 @@ class Session:
             if isinstance(input_str, str):
                 input_str = [input_str]
             for in_s in input_str:
-                if in_s.strip() == "":
+                if in_s.strip() == "" and not allow_empty_input:
                     raise AleBenchError("The input string is empty.")
 
         # Check `code`
