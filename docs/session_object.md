@@ -38,6 +38,21 @@ session = ale_bench.start(
 
 Each method is described below with its parameters and return values.
 
+### `code_run`
+Compiles (if needed) and runs arbitrary code inside the language-specific Docker image. No judging or visualization is performed.
+
+**Parameters:**
+- `input_str (str)`: Standard input to the program.
+- `code (str)`: The source code to run.
+- `code_language (CodeLanguage | str)`: The programming language of the code. Can be a `CodeLanguage` enum member or its string representation (e.g., "python", "cpp17").
+- `judge_version (JudgeVersion | str, optional)`: The version of the judge to use. Defaults to `None` (uses the latest or problem-specific default).
+- `time_limit (float, optional)`: Custom time limit for execution in seconds. Defaults to `None` (uses problem-specific default).
+- `memory_limit (int | str, optional)`: Custom memory limit for execution (e.g., `256_000_000` for 256MB, or "256m"). Defaults to `None` (uses problem-specific default).
+
+**Returns:**
+- `CodeRunResult`: A `CodeRunResult` object containing the standard input, output, error, exit status, execution time, and memory usage for the code run.
+
+---
 ### `case_gen`
 Generates input case(s) based on the provided seed(s) and generation arguments.
 

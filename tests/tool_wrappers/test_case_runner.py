@@ -200,7 +200,7 @@ def test_setup_paths_batch_run(
     with tempfile.TemporaryDirectory() as temp_dir_str:
         temp_dir = Path(temp_dir_str)
         host_paths_compile = HostPathsCompile(code_file=temp_dir / "code.txt", object_file=temp_dir / "object.out")
-        host_paths_run = setup_paths_batch_run(host_paths_compile, temp_dir, problem_id, case_idx, input_str)
+        host_paths_run = setup_paths_batch_run(host_paths_compile, temp_dir, input_str, f"{problem_id}_{case_idx:06d}_")
         assert host_paths_run.code_file == host_paths_compile.code_file
         assert host_paths_run.object_file == host_paths_compile.object_file
         assert host_paths_run.input_file.name == input_file_name
@@ -502,7 +502,9 @@ def test_setup_paths_reactive_judge(
     with tempfile.TemporaryDirectory() as temp_dir_str:
         temp_dir = Path(temp_dir_str)
         host_paths_compile = HostPathsCompile(code_file=temp_dir / "code.txt", object_file=temp_dir / "object.out")
-        host_paths_run = setup_paths_reactive_judge(host_paths_compile, temp_dir, problem_id, case_idx, input_str)
+        host_paths_run = setup_paths_reactive_judge(
+            host_paths_compile, temp_dir, input_str, f"{problem_id}_{case_idx:06d}_"
+        )
         assert host_paths_run.code_file == host_paths_compile.code_file
         assert host_paths_run.object_file == host_paths_compile.object_file
         assert host_paths_run.input_file.name == input_file_name
@@ -766,7 +768,7 @@ def test_setup_paths_vis(
             output_file=temp_dir / f"{problem_id}_{case_idx:06d}_output.txt",
             profiles_file=temp_dir / f"{problem_id}_{case_idx:06d}_profiles.json",
         )
-        host_paths_vis = setup_paths_vis(host_paths_run_batch, temp_dir, problem_id, case_idx)
+        host_paths_vis = setup_paths_vis(host_paths_run_batch, temp_dir, problem_id, f"{problem_id}_{case_idx:06d}_")
         assert host_paths_vis.input_file == host_paths_run_batch.input_file
         assert host_paths_vis.output_file == host_paths_run_batch.output_file
         assert host_paths_vis.local_visualization_file.name == local_visualization_file_name
@@ -782,7 +784,7 @@ def test_setup_paths_vis(
             output_file=temp_dir / f"{problem_id}_{case_idx:06d}_output.txt",
             profiles_file=temp_dir / f"{problem_id}_{case_idx:06d}_profiles.json",
         )
-        host_paths_vis = setup_paths_vis(host_paths_run_reactive, temp_dir, problem_id, case_idx)
+        host_paths_vis = setup_paths_vis(host_paths_run_reactive, temp_dir, problem_id, f"{problem_id}_{case_idx:06d}_")
         assert host_paths_vis.input_file == host_paths_run_reactive.input_file
         assert host_paths_vis.output_file == host_paths_run_reactive.output_file
         assert host_paths_vis.local_visualization_file.name == local_visualization_file_name
@@ -1001,7 +1003,7 @@ sample_profiles_content = """{{
                 execution_time=1.99,
                 memory_usage=0,
             ),
-            id="non_aero_exited_broken_wa",
+            id="non_zero_exited_broken_wa",
         ),
         pytest.param(
             2.0,

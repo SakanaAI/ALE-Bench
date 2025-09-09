@@ -58,6 +58,9 @@ ALLOW_SCORE_NON_AC_PRIVATE = {
     "ahc040",
     "ahc043",
     "ahc045",
+    "ahc048",
+    "ahc051",
+    "awtf2025heuristic",
     "future-contest-2022-qual",
 }  # NOTE: long contests
 NO_LOCAL_VIS = {"ahc016"}

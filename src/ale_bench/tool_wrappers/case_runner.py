@@ -122,31 +122,29 @@ class HostPathsBatchRun(BaseModel):
 def setup_paths_batch_run(
     host_paths_compile: HostPathsCompile,
     temp_dir: Path,
-    problem_id: str,
-    case_idx: int,
     input_str: str,
+    prefix: str = "",
 ) -> HostPathsBatchRun:
     """Setup paths for the running step of the submission for batch problems.
 
     Args:
         host_paths_compile (HostPathsCompile): The paths in the compilation step for the runner tool.
         temp_dir (Path): The temporary directory.
-        problem_id (str): The problem ID.
-        case_idx (int): The case number for the input.
         input_str (str): The input string for the problem.
+        prefix (str): The prefix for the input/output/profiles files. Defaults to "".
 
     Returns:
         HostPathsBatchRun: The paths for the runner tool.
     """
-    input_file_ext = ale_bench.constants.INPUT_FILE.split(".")[-1]
-    input_file = temp_dir / f"{problem_id}_{case_idx:06d}_input.{input_file_ext}"
+    input_file_name = ale_bench.constants.INPUT_FILE.split("/")[-1]
+    input_file = temp_dir / f"{prefix}{input_file_name}"
     input_file.touch()
     input_file.write_text(input_str)
-    output_file_ext = ale_bench.constants.OUTPUT_FILE.split(".")[-1]
-    output_file = temp_dir / f"{problem_id}_{case_idx:06d}_output.{output_file_ext}"
+    output_file_name = ale_bench.constants.OUTPUT_FILE.split("/")[-1]
+    output_file = temp_dir / f"{prefix}{output_file_name}"
     output_file.touch()
-    profiles_file_ext = ale_bench.constants.PROFILES_FILE.split(".")[-1]
-    profiles_file = temp_dir / f"{problem_id}_{case_idx:06d}_profiles.{profiles_file_ext}"
+    profiles_file_name = ale_bench.constants.PROFILES_FILE.split("/")[-1]
+    profiles_file = temp_dir / f"{prefix}{profiles_file_name}"
     profiles_file.touch()
     return HostPathsBatchRun(
         code_file=host_paths_compile.code_file,
@@ -284,31 +282,29 @@ class HostPathsReactiveJudge(BaseModel):
 def setup_paths_reactive_judge(
     host_paths_compile: HostPathsCompile,
     temp_dir: Path,
-    problem_id: str,
-    case_idx: int,
     input_str: str,
+    prefix: str = "",
 ) -> HostPathsReactiveJudge:
     """Setup paths for the judging step of the submission for reactive problems.
 
     Args:
         host_paths_compile (HostPathsCompile): The paths in the compilation step for the runner tool.
         temp_dir (Path): The temporary directory.
-        problem_id (str): The problem ID.
-        case_idx (int): The case number for the input.
         input_str (str): The input string for the problem.
+        prefix (str): The prefix for the input/output/profiles files. Defaults to "".
 
     Returns:
-        HostPathsBatchRun: The paths for the runner tool.
+        HostPathsReactiveJudge: The paths for the runner tool.
     """
-    input_file_ext = ale_bench.constants.INPUT_FILE.split(".")[-1]
-    input_file = temp_dir / f"{problem_id}_{case_idx:06d}_input.{input_file_ext}"
+    input_file_name = ale_bench.constants.INPUT_FILE.split("/")[-1]
+    input_file = temp_dir / f"{prefix}{input_file_name}"
     input_file.touch()
     input_file.write_text(input_str)
-    output_file_ext = ale_bench.constants.OUTPUT_FILE.split(".")[-1]
-    output_file = temp_dir / f"{problem_id}_{case_idx:06d}_output.{output_file_ext}"
+    output_file_name = ale_bench.constants.OUTPUT_FILE.split("/")[-1]
+    output_file = temp_dir / f"{prefix}{output_file_name}"
     output_file.touch()
-    profiles_file_ext = ale_bench.constants.PROFILES_FILE.split(".")[-1]
-    profiles_file = temp_dir / f"{problem_id}_{case_idx:06d}_profiles.{profiles_file_ext}"
+    profiles_file_name = ale_bench.constants.PROFILES_FILE.split("/")[-1]
+    profiles_file = temp_dir / f"{prefix}{profiles_file_name}"
     profiles_file.touch()
     return HostPathsReactiveJudge(
         code_file=host_paths_compile.code_file,
@@ -390,7 +386,7 @@ class HostPathsVis(BaseModel):
 
 
 def setup_paths_vis(
-    host_paths_judge: HostPathsBatchJudge | HostPathsReactiveJudge, temp_dir: Path, problem_id: str, case_idx: int
+    host_paths_judge: HostPathsBatchJudge | HostPathsReactiveJudge, temp_dir: Path, problem_id: str, prefix: str = ""
 ) -> HostPathsVis:
     """Setup paths for the visualization step of the judge.
 
@@ -398,7 +394,7 @@ def setup_paths_vis(
         host_paths_run (HostPathsBatchRun | HostPathsReactiveRun): The paths for the judge.
         temp_dir (Path): The temporary directory.
         problem_id (str): The problem ID.
-        case_idx (int): The case index for the input.
+        prefix (str): The prefix for the local visualization file. Defaults to "".
 
     Returns:
         HostPathsVis: The paths for the visualization step of the judge.
@@ -409,7 +405,7 @@ def setup_paths_vis(
         else ale_bench.constants.LOCAL_VIS_HTML
     )
     local_visualization_ext = local_visualization_container.rsplit(".", 1)[1]
-    local_visualization_file = temp_dir / f"{problem_id}_{case_idx:06d}_local_visualization.{local_visualization_ext}"
+    local_visualization_file = temp_dir / f"{prefix}local_visualization.{local_visualization_ext}"
     local_visualization_file.touch()
     return HostPathsVis(
         input_file=host_paths_judge.input_file,
@@ -528,13 +524,15 @@ def run_compile_container(
         finally:
             container.remove(force=True)
     object_size = host_paths_compile.object_file.stat().st_size
-    if (
-        exit_code != 0
-        or (
-            code_language != CodeLanguage.PYTHON and object_size == 0
-        )  # NOTE: As for Python, it is fine if .pyc file is not created during the compilation step.
-        or (code_language == CodeLanguage.PYTHON and "SyntaxError" in stderr)
-    ):  # NOTE: We regard SyntaxError as a compilation error for Python
+    if any(
+        [
+            exit_code != 0,
+            # NOTE: As for Python, it is fine if .pyc file is not created during the compilation step.
+            code_language != CodeLanguage.PYTHON and object_size == 0,
+            # NOTE: We regard SyntaxError as a compilation error for Python
+            code_language == CodeLanguage.PYTHON and "SyntaxError" in stderr,
+        ]
+    ):
         return CaseResult(
             input_str=None,
             output_str=None,
@@ -568,7 +566,7 @@ def run_batch_run_container(
 
     Returns:
         CaseResult | tuple[float, str]:
-            The case result if the run fails, otherwise the execution time in seconds and the stndard error.
+            The case result if the run fails, otherwise the execution time in seconds and the standard error.
     """
     with docker_client() as client:
         start_at = time.perf_counter()
@@ -981,7 +979,7 @@ def case_iter_func(
 
     if problem_type == ProblemType.BATCH:
         # Run the submission code and generate the output file
-        host_paths_run = setup_paths_batch_run(host_paths_compile, temp_dir, problem_id, case_idx, input_str)
+        host_paths_run = setup_paths_batch_run(host_paths_compile, temp_dir, input_str, f"{problem_id}_{case_idx:06d}_")
         run_volumes = get_batch_run_volumes(host_paths_run, temp_dir)
         run_result = run_batch_run_container(
             code_language, judge_version, time_limit, run_volumes, batch_run_command, result_input_str
@@ -1023,7 +1021,12 @@ def case_iter_func(
         assert isinstance(batch_judge_result, int), "Judge result must be an integer"
         absolute_score = batch_judge_result
     elif problem_type == ProblemType.REACTIVE:
-        host_paths_judge = setup_paths_reactive_judge(host_paths_compile, temp_dir, problem_id, case_idx, input_str)
+        host_paths_judge = setup_paths_reactive_judge(
+            host_paths_compile,
+            temp_dir,
+            input_str,
+            f"{problem_id}_{case_idx:06d}_",
+        )
         judge_volumes = get_reactive_judge_volumes(host_paths_judge, temp_dir, tool_dir)
         reactive_judge_result = run_reactive_judge_container(
             code_language,
@@ -1078,7 +1081,7 @@ def case_iter_func(
     local_visualization = None
     if not skip_local_visualization and problem_id not in ale_bench.constants.NO_LOCAL_VIS:
         # Run the local visualization command in the Docker container
-        host_paths_vis = setup_paths_vis(host_paths_judge, temp_dir, problem_id, case_idx)
+        host_paths_vis = setup_paths_vis(host_paths_judge, temp_dir, problem_id, f"{problem_id}_{case_idx:06d}_")
         vis_volumes = get_vis_volumes(host_paths_vis, tool_dir)
         run_vis_container(vis_command, vis_volumes)
         # Read the local visualization SVG or HTML

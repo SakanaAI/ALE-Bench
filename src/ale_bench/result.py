@@ -7,6 +7,19 @@ from PIL import Image
 from pydantic import BaseModel, ConfigDict, Field, computed_field, field_validator
 
 
+class CodeRunResult(BaseModel):
+    """Result of a raw code run (no judging)."""
+
+    model_config = ConfigDict(frozen=True)
+
+    stdin: str = Field(description="Provided standard input")
+    stdout: str = Field(description="Captured standard output")
+    stderr: str = Field(description="Captured standard error")
+    exit_status: int = Field(description="Process exit status")
+    execution_time: float = Field(description="Execution time (max of CPU/wall when available)")
+    memory_usage: int = Field(description="Max resident set size in bytes (when available)")
+
+
 class JudgeResult(str, Enum):
     """Result of the judge."""
 
