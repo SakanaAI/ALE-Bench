@@ -1,6 +1,6 @@
 [project]
 name = "ale_bench_mcp_server"
-version = "1.0.0"
+version = "1.1.0"
 description = "The MCP server for the ALE-Bench"
 authors = [
     { name = "Yuki-Imajuku", email = "yuki.imjk@gmail.com" }
@@ -45,7 +45,7 @@ dev = [
 ]
 
 [tool.uv.sources]
-ale-bench = { git = "https://github.com/SakanaAI/ALE-Bench.git", tag = "v1.0.0" }
+ale-bench = { git = "https://github.com/SakanaAI/ALE-Bench.git", tag = "v1.1.0" }
 
 [tool.mypy]
 warn_return_any = true

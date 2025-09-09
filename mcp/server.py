@@ -92,13 +92,13 @@ async def list_problem_ids() -> list[str]:
 
 
 @mcp.tool()
-async def list_current_sessions() -> list[tuple[str, bool]]:
+async def list_current_sessions() -> list[str]:
     """
     Lists all currently active ALE-Bench sessions.
-    Returns a list of (session IDs, lite version) tuples.
+    Returns a list of problem IDs.
 
     Returns:
-        list[tuple[str, bool]]: A list of tuples containing session IDs and whether they are lite versions.
+        list[str]: A list containing problem IDs.
     """
     current_sessions = get_current_sessions(mcp.get_context())
     return sorted(list(current_sessions.keys()))

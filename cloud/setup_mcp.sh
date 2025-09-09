@@ -62,6 +62,7 @@ su - ubuntu -c "cd /home/ubuntu/ && git clone https://github.com/SakanaAI/ALE-Be
 su - ubuntu -c "cd /home/ubuntu/ALE-Bench && uv -q venv --python 3.12.9 && uv -q sync"
 su - ubuntu -c "cd /home/ubuntu/ALE-Bench/mcp && uv -q venv --python 3.12.9 && uv -q sync"
 su - ubuntu -c "cd /home/ubuntu/ALE-Bench && bash ./scripts/docker_build_all.sh \$(id -u) \$(id -g)"
+su - ubuntu -c "docker pull rust:1.79.0-buster"
 
 
 # Finish
