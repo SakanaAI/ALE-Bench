@@ -1,0 +1,22 @@
+{
+    "model_name": "z-ai/glm-4.5",
+    "provider": "openrouter",
+    "settings": {
+        "temperature": 0.6,
+        "top_p": 1.0,
+        "extra_body": {
+            "provider": {
+                "allow_fallbacks": false,
+                "data_collection": "deny",
+                "order": ["parasail/fp8"],
+                "require_parameters": true
+            },
+            "reasoning": {
+                "enabled": true
+            },
+            "usage": {
+                "include": true
+            }
+        }
+    }
+}

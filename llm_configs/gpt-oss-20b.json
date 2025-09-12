@@ -1,0 +1,23 @@
+{
+    "model_name": "openai/gpt-oss-20b",
+    "provider": "openrouter",
+    "settings": {
+        "temperature": 1.0,
+        "top_p": 1.0,
+        "extra_body": {
+            "provider": {
+                "allow_fallbacks": false,
+                "data_collection": "deny",
+                "order": ["wandb/fp4", "nebius/fp4"],
+                "require_parameters": true
+            },
+            "reasoning": {
+                "enabled": true,
+                "effort": "high"
+            },
+            "usage": {
+                "include": true
+            }
+        }
+    }
+}

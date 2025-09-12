@@ -1,0 +1,11 @@
+{
+    "model_name": "gemini-2.5-flash",
+    "provider": "google",
+    "settings": {
+        "temperature": 1.0,
+        "google_thinking_config": {
+            "include_thoughts": true,
+            "thinking_budget": 0
+        }
+    }
+}

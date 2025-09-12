@@ -625,8 +625,8 @@ def build_rust_tools(tool_cache_dir: Path) -> None:
         build_container = client.containers.run(
             image=ale_bench.constants.RUST_TOOL_DOCKER_IMAGE,
             command="cargo build --release",
-            remove=True,
-            auto_remove=True,
+            remove=False,
+            auto_remove=False,
             detach=True,
             environment={"RUSTFLAGS": "-Awarnings"},
             group_add=[os.getgid()],
@@ -634,10 +634,13 @@ def build_rust_tools(tool_cache_dir: Path) -> None:
             volumes={str(tool_cache_dir): {"bind": ale_bench.constants.WORK_DIR, "mode": "rw"}},
             working_dir=ale_bench.constants.WORK_DIR,
         )
-        build_container.wait()
-        # Check if the build was successful
-        if build_container.attrs["State"]["ExitCode"] != 0:
-            raise RuntimeError("Failed to build the Rust tool.")
+        try:
+            build_container.wait()
+            # Check if the build was successful
+            if build_container.attrs["State"]["ExitCode"] != 0:
+                raise RuntimeError("Failed to build the Rust tool.")
+        finally:
+            build_container.remove(force=True)
     # Check if the build was successful
     for tool in ["gen", "tester", "vis"]:
         if not (tool_cache_dir / "src" / "bin" / f"{tool}.rs").is_file():

@@ -1,0 +1,22 @@
+{
+    "model_name": "deepseek/deepseek-chat-v3.1",
+    "provider": "openrouter",
+    "settings": {
+        "temperature": 0.6,
+        "top_p": 0.95,
+        "extra_body": {
+            "provider": {
+                "allow_fallbacks": false,
+                "data_collection": "deny",
+                "order": ["fireworks"],
+                "require_parameters": true
+            },
+            "reasoning": {
+                "enabled": true
+            },
+            "usage": {
+                "include": true
+            }
+        }
+    }
+}

@@ -1,0 +1,22 @@
+{
+    "model_name": "qwen/qwen3-235b-a22b-thinking-2507",
+    "provider": "openrouter",
+    "settings": {
+        "temperature": 0.6,
+        "max_tokens": 81920,
+        "top_p": 0.95,
+        "extra_body": {
+            "top_k": 20,
+            "min_p": 0.0,
+            "provider": {
+                "allow_fallbacks": false,
+                "data_collection": "deny",
+                "order": ["deepinfra/fp8"],
+                "require_parameters": true
+            },
+            "usage": {
+                "include": true
+            }
+        }
+    }
+}

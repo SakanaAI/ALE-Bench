@@ -1,0 +1,10 @@
+{
+    "model_name": "x-ai/grok-code-fast-1",
+    "provider": "openrouter",
+    "settings": {
+        "temperature": 0.3,
+        "usage": {
+            "include": true
+        }
+    }
+}

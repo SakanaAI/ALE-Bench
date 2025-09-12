@@ -53,14 +53,18 @@ https://github.com/user-attachments/assets/50a8de5a-b519-4aef-8e54-c60ac9dcbb90
     git clone https://github.com/SakanaAI/ALE-Bench.git
     cd ALE-Bench
     pip install .
+    pip install ".[eval]"  # For evaluation dependencies
 
     # Using uv (recommended for faster environment management)
     git clone https://github.com/SakanaAI/ALE-Bench.git
     cd ALE-Bench
     uv venv --python 3.12.11  # Or any supported Python version (3.9 ~ 3.13)
     uv sync
+    uv sync --extra eval  # For evaluation dependencies
     source .venv/bin/activate
     ```
+
+    > **Note**: We require Python 3.10 or higher when using the `eval` extra (for evaluation dependencies) due to dependencies on Pydantic AI.
 
 4.  **Build Docker Images:**
     This script will build the necessary Docker execution images for ALE-Bench. It automatically pulls pre-built base images from Docker Hub (repository: `yimjk/ale-bench`) and then creates local images tagged as `ale-bench:<language>-<version>` with appropriate permissions for your user.
@@ -94,9 +98,13 @@ For fair and reproducible performance comparisons, we **strongly recommend** run
 We provide a Terraform configuration to set up the necessary environment, including the ALE-Bench toolkit and required dependencies.
 Please refer to the [AWS Evaluation Guide](./docs/aws_evaluation.md) for detailed instructions on setting up and running evaluations in AWS.
 
-We also provide a MCP (Model Context Protocol) server feature to simplify the use of ALE-Bench as a tool. For setup and usage instructions, please refer to the [MCP Server documentation](./docs/mcp_server.md).
+We also provide a comprehensive framework for evaluating Large Language Models (LLMs) for ALE-Bench (scripts: [ale_bench_eval](./src/ale_bench_eval/)). Please read the [ALE-Bench Evaluation Tool documentation](./docs/evaluation.md) for more details.
+
+There is a MCP (Model Context Protocol) server feature to simplify the use of ALE-Bench as a tool. For setup and usage instructions, please refer to the [MCP Server documentation](./docs/mcp_server.md).
 
 ### Example Evaluation Script
+
+Below is an example script demonstrating how to use the ALE-Bench toolkit for evaluating an AI agent on a specific problem (e.g., `ahc001`).
 
 ```python
 import ale_bench

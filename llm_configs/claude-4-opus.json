@@ -1,0 +1,17 @@
+{
+    "model_name": "anthropic/claude-opus-4",
+    "provider": "openrouter",
+    "settings": {
+        "temperature": 1.0,
+        "max_tokens": 32000,
+        "extra_body": {
+            "reasoning": {
+                "enabled": true,
+                "max_tokens": 16000
+            },
+            "usage": {
+                "include": true
+            }
+        }
+    }
+}

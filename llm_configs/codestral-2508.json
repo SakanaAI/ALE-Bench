@@ -1,0 +1,12 @@
+{
+    "model_name": "mistralai/codestral-2508",
+    "provider": "openrouter",
+    "settings": {
+        "temperature": 0.3,
+        "extra_body": {
+            "usage": {
+                "include": true
+            }
+        }
+    }
+}

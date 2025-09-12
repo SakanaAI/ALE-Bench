@@ -1,0 +1,11 @@
+{
+    "model_name": "gemini-2.5-pro",
+    "provider": "google",
+    "settings": {
+        "temperature": 1.0,
+        "google_thinking_config": {
+            "include_thoughts": true,
+            "thinking_budget": 32768
+        }
+    }
+}

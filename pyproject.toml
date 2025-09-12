@@ -1,13 +1,20 @@
 [build-system]
-requires = ["hatchling"]
+requires = ["hatchling", "uv-dynamic-versioning"]
 build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/ale_bench", "src/ale_bench_eval"]
+
+[tool.hatch.version]
+source = "uv-dynamic-versioning"
 
 [project]
 name = "ale_bench"
-version = "1.2.0"
+dynamic = ["version"]
 description = "The official library for the ALE-Bench"
 authors = [
-    { name = "Yuki-Imajuku", email = "yuki.imjk@gmail.com" }
+    { name = "Yuki-Imajuku", email = "yuki.imjk@gmail.com" },
+    { name = "Ino-Ichan", email = "sys.b11noway@gmail.com" },
 ]
 readme = "README.md"
 requires-python = ">=3.9,<3.14"
@@ -47,12 +54,22 @@ dev = [
     "ruff==0.12.12",
     "types-requests==2.32.4.20250809",
 ]
+eval = [
+    "fire>=0.7.0",
+    "genai-prices>=0.0.27",
+    "numpy>=2.0.2",
+    "pandas>=2.3.1",
+    "psutil>=7.0.0",
+    "pydantic-ai>=1.0.8; python_version >= '3.10'",
+]
+
+[tool.uv-dynamic-versioning]
+fallback-version = "0.0.0"
 
 [tool.mypy]
 exclude = [
-    "^tests/judge/codes/ce_python\\.py$",
-    "^tests/judge/codes/mle_python\\.py$",
-    "^tests/judge/codes/tle_python\\.py$",
+    "^src/ale_bench_eval/codes/.*\\.py$",
+    "^tests/judge/codes/.*\\.py$",
 ]
 warn_return_any = true
 warn_unused_configs = true
@@ -74,7 +91,12 @@ markers = [
 ]
 
 [tool.ruff]
-extend-exclude = ["examples", "tests/judge/codes"]
+extend-exclude = [
+    "mcp",
+    "src/ale_bench_eval/codes",
+    "src/ale_bench_eval/prompts/texts.py",
+    "tests/judge/codes",
+]
 fix = true
 target-version = "py312"
 line-length = 120

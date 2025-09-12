@@ -1,0 +1,23 @@
+{
+    "model_name": "qwen/qwen3-next-80b-a3b-thinking",
+    "provider": "openrouter",
+    "settings": {
+        "temperature": 0.6,
+        "max_tokens": 81920,
+        "top_p": 0.95,
+        "extra_body": {
+            "top_k": 20,
+            "min_p": 0.0,
+            "repetition_penalty": 1.05,
+            "provider": {
+                "allow_fallbacks": false,
+                "data_collection": "deny",
+                "order": ["deepinfra/bf16"],
+                "require_parameters": true
+            },
+            "usage": {
+                "include": true
+            }
+        }
+    }
+}

@@ -1,0 +1,9 @@
+{
+    "model_name": "gpt-5-mini-2025-08-07",
+    "provider": "openai",
+    "settings": {
+        "temperature": 1.0,
+        "openai_reasoning_effort": "high",
+        "openai_reasoning_summary": "detailed"
+    }
+}

@@ -1,0 +1,19 @@
+{
+    "model_name": "deepseek/deepseek-r1-0528",
+    "provider": "openrouter",
+    "settings": {
+        "temperature": 0.6,
+        "top_p": 0.95,
+        "extra_body": {
+            "provider": {
+                "allow_fallbacks": false,
+                "data_collection": "deny",
+                "order": ["parasail/fp8"],
+                "require_parameters": true
+            },
+            "usage": {
+                "include": true
+            }
+        }
+    }
+}

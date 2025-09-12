@@ -1,0 +1,17 @@
+{
+    "model_name": "anthropic/claude-sonnet-4",
+    "provider": "openrouter",
+    "settings": {
+        "temperature": 1.0,
+        "max_tokens": 64000,
+        "extra_body": {
+            "reasoning": {
+                "enabled": true,
+                "max_tokens": 32000
+            },
+            "usage": {
+                "include": true
+            }
+        }
+    }
+}

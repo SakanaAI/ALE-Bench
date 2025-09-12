@@ -1,0 +1,19 @@
+{
+    "model_name": "meta-llama/llama-4-maverick",
+    "provider": "openrouter",
+    "settings": {
+        "temperature": 0.6,
+        "top_p": 0.9,
+        "extra_body": {
+            "provider": {
+                "allow_fallbacks": false,
+                "data_collection": "deny",
+                "order": ["lambda/fp8"],
+                "require_parameters": true
+            },
+            "usage": {
+                "include": true
+            }
+        }
+    }
+}

@@ -3,11 +3,11 @@
     ```sh
     git clone https://github.com/SakanaAI/ALE-Bench.git
     cd ALE-Bench
-    pip install ".[dev]"
+    pip install ".[dev,eval]"
 
     # Using uv
-    uv venv --python 3.12.9
-    uv sync --extra dev
+    uv venv --python 3.12.11
+    uv sync --extra dev --extra eval
     source .venv/bin/activate
     ```
 
@@ -28,13 +28,13 @@
 - **Python Library Development:**
     ```sh
     # Linting
-    ruff check src mcp tests
+    ruff check
 
     # Formatting
-    ruff format src mcp tests
+    ruff format
 
     # Static Type Checking
-    mypy src mcp tests
+    mypy --strict src tests
 
     # Running Tests
     pytest

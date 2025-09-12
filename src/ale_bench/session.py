@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import Any, NoReturn
 
 from PIL import Image
+from docker.errors import NotFound
 
 import ale_bench.constants
 from ale_bench.code_language import CodeLanguage, JudgeVersion
@@ -694,9 +695,12 @@ class Session:
         if self._visualization_server_container_id is not None:
             print("Stopping the visualization server...")
             with docker_client() as client:
-                visualization_server_container = client.containers.get(self._visualization_server_container_id)
-                visualization_server_container.stop()
-                visualization_server_container.remove(force=True)
+                try:
+                    visualization_server_container = client.containers.get(self._visualization_server_container_id)
+                    visualization_server_container.stop()
+                    visualization_server_container.remove(force=True)
+                except NotFound:
+                    print("Visualization server container not found.")
             print("Visualization server stopped.")
             self._run_visualization_server = False
             self._visualization_server_port = None

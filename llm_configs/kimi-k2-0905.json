@@ -1,0 +1,19 @@
+{
+    "model_name": "moonshotai/kimi-k2-0905",
+    "provider": "openrouter",
+    "settings": {
+        "temperature": 0.6,
+        "top_p": 1.0,
+        "extra_body": {
+            "provider": {
+                "allow_fallbacks": false,
+                "data_collection": "deny",
+                "order": ["fireworks/fp8", "novita/fp8", "moonshotai"],
+                "require_parameters": true
+            },
+            "usage": {
+                "include": true
+            }
+        }
+    }
+}

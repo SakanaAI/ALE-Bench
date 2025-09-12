@@ -1,0 +1,12 @@
+{
+    "model_name": "qwen/qwen3-max",
+    "provider": "openrouter",
+    "settings": {
+        "temperature": 1.0,
+        "extra_body": {
+            "usage": {
+                "include": true
+            }
+        }
+    }
+}

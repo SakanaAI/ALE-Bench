@@ -92,8 +92,8 @@ def run_gen_container(
         container = client.containers.run(
             image=ale_bench.constants.RUST_TOOL_DOCKER_IMAGE,
             command=f"/bin/sh -c '{gen_command}'",
-            remove=True,
-            auto_remove=True,
+            remove=False,
+            auto_remove=False,
             cpu_period=100000,
             cpu_quota=100000,  # 1 CPU
             detach=True,
@@ -105,15 +105,17 @@ def run_gen_container(
             working_dir=ale_bench.constants.WORK_DIR,
         )
         try:
-            container.wait(timeout=timeout)
-            exit_code = container.attrs["State"]["ExitCode"]
-        except Exception:
-            stderr = container.logs(stdout=False, stderr=True).decode("utf-8").strip()
+            try:
+                container.wait(timeout=timeout)
+                exit_code = container.attrs["State"]["ExitCode"]
+            except Exception:
+                stderr = container.logs(stdout=False, stderr=True).decode("utf-8").strip()
+                if len(stderr) > 0:
+                    raise AleBenchError(f"Failed to generate the case. The standard error is:\n{stderr}")
+                else:
+                    raise AleBenchError(f"Failed to generate the case. Timeout after {timeout} seconds.")
+        finally:
             container.remove(force=True)
-            if len(stderr) > 0:
-                raise AleBenchError(f"Failed to generate the case. The standard error is:\n{stderr}")
-            else:
-                raise AleBenchError(f"Failed to generate the case. Timeout after {timeout} seconds.")
     if exit_code != 0:
         raise AleBenchError("Failed to generate the case.")
 

@@ -1,0 +1,22 @@
+{
+    "model_name": "qwen/qwen3-coder",
+    "provider": "openrouter",
+    "settings": {
+        "temperature": 0.7,
+        "max_tokens": 65536,
+        "top_p": 0.8,
+        "extra_body": {
+            "top_k": 20,
+            "repetition_penalty": 1.05,
+            "provider": {
+                "allow_fallbacks": false,
+                "data_collection": "deny",
+                "order": ["deepinfra/fp4"],
+                "require_parameters": true
+            },
+            "usage": {
+                "include": true
+            }
+        }
+    }
+}
