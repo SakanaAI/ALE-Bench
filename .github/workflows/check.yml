@@ -44,11 +44,11 @@ jobs:
 
     - name: Run type checks with mypy
       if: matrix.python-version == '3.9'
-      run: uv run mypy --strict --python-version=${{ matrix.python-version }} src/ale_bench tests
+      run: uv run mypy --strict --python-version=${{ matrix.python-version }} --cache-dir=.mypy_cache/${{ matrix.python-version }} --config-file=pyproject.toml src/ale_bench tests
 
     - name: Run type checks with mypy
       if: matrix.python-version != '3.9'
-      run: uv run mypy --strict --python-version=${{ matrix.python-version }} --cache-dir=.mypy_cache/${{ matrix.python-version }} src/ale_bench src/ale_bench_eval tests
+      run: uv run mypy --strict --python-version=${{ matrix.python-version }} --cache-dir=.mypy_cache/${{ matrix.python-version }} --config-file=pyproject.toml src/ale_bench src/ale_bench_eval tests
 
     - name: Run tests
       run: uv run pytest -m "not docker and not slow"
