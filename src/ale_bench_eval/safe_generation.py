@@ -10,6 +10,7 @@ from pydantic_ai import (
     UsageLimitExceeded,
 )
 from pydantic_ai.messages import ModelMessage, ModelResponse, UserContent
+from pydantic_ai.models import Model
 from pydantic_ai.models.anthropic import AnthropicModel, AnthropicModelSettings
 from pydantic_ai.models.bedrock import BedrockConverseModel, BedrockModelSettings
 from pydantic_ai.models.google import GoogleModel, GoogleModelSettings
@@ -20,6 +21,7 @@ from pydantic_ai.models.openai import (
     OpenAIResponsesModelSettings,
 )
 from pydantic_ai.run import AgentRunResult
+from pydantic_ai.settings import ModelSettings
 
 OPENAI_COMPATIBLE_PROVIDERS = {
     "azure",
@@ -72,21 +74,23 @@ def build_agent_from_config(
     provider = model_config["provider"]
     settings = model_config["settings"]
 
+    model: Model
+    model_settings: ModelSettings
     if provider == "openai":
         model = OpenAIResponsesModel(model_name=model_name)
         model_settings = OpenAIResponsesModelSettings(timeout=timeout, **settings)  # type: ignore[typeddict-item]
     elif provider == "anthropic":
-        model = AnthropicModel(model_name=model_name)  # type: ignore[assignment]
-        model_settings = AnthropicModelSettings(timeout=timeout, **settings)  # type: ignore[assignment,typeddict-item]
+        model = AnthropicModel(model_name=model_name)
+        model_settings = AnthropicModelSettings(timeout=timeout, **settings)  # type: ignore[typeddict-item]
     elif provider == "google":
-        model = GoogleModel(model_name=model_name)  # type: ignore[assignment]
-        model_settings = GoogleModelSettings(timeout=timeout, **settings)  # type: ignore[assignment,typeddict-item]
+        model = GoogleModel(model_name=model_name)
+        model_settings = GoogleModelSettings(timeout=timeout, **settings)  # type: ignore[typeddict-item]
     elif provider == "bedrock":
-        model = BedrockConverseModel(model_name=model_name)  # type: ignore[assignment]
-        model_settings = BedrockModelSettings(timeout=timeout, **settings)  # type: ignore[assignment,typeddict-item]
+        model = BedrockConverseModel(model_name=model_name)
+        model_settings = BedrockModelSettings(timeout=timeout, **settings)  # type: ignore[typeddict-item]
     elif provider in OPENAI_COMPATIBLE_PROVIDERS:
-        model = OpenAIChatModel(model_name=model_name, provider=provider)  # type: ignore[assignment]
-        model_settings = OpenAIChatModelSettings(timeout=timeout, **settings)  # type: ignore[assignment,typeddict-item]
+        model = OpenAIChatModel(model_name=model_name, provider=provider)
+        model_settings = OpenAIChatModelSettings(timeout=timeout, **settings)  # type: ignore[typeddict-item]
     else:
         raise ValueError(f"Unsupported provider: {provider}")
     agent = Agent(
