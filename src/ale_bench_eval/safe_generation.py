@@ -74,19 +74,19 @@ def build_agent_from_config(
 
     if provider == "openai":
         model = OpenAIResponsesModel(model_name=model_name)
-        model_settings = OpenAIResponsesModelSettings(timeout=timeout, **settings)  # type: ignore
+        model_settings = OpenAIResponsesModelSettings(timeout=timeout, **settings)  # type: ignore[typeddict-item]
     elif provider == "anthropic":
-        model = AnthropicModel(model_name=model_name)  # type: ignore
-        model_settings = AnthropicModelSettings(timeout=timeout, **settings)  # type: ignore
+        model = AnthropicModel(model_name=model_name)  # type: ignore[assignment]
+        model_settings = AnthropicModelSettings(timeout=timeout, **settings)  # type: ignore[assignment,typeddict-item]
     elif provider == "google":
-        model = GoogleModel(model_name=model_name)  # type: ignore
-        model_settings = GoogleModelSettings(timeout=timeout, **settings)  # type: ignore
+        model = GoogleModel(model_name=model_name)  # type: ignore[assignment]
+        model_settings = GoogleModelSettings(timeout=timeout, **settings)  # type: ignore[assignment,typeddict-item]
     elif provider == "bedrock":
-        model = BedrockConverseModel(model_name=model_name)  # type: ignore
-        model_settings = BedrockModelSettings(timeout=timeout, **settings)  # type: ignore
+        model = BedrockConverseModel(model_name=model_name)  # type: ignore[assignment]
+        model_settings = BedrockModelSettings(timeout=timeout, **settings)  # type: ignore[assignment,typeddict-item]
     elif provider in OPENAI_COMPATIBLE_PROVIDERS:
-        model = OpenAIChatModel(model_name=model_name, provider=provider)  # type: ignore
-        model_settings = OpenAIChatModelSettings(timeout=timeout, **settings)  # type: ignore
+        model = OpenAIChatModel(model_name=model_name, provider=provider)  # type: ignore[assignment]
+        model_settings = OpenAIChatModelSettings(timeout=timeout, **settings)  # type: ignore[assignment,typeddict-item]
     else:
         raise ValueError(f"Unsupported provider: {provider}")
     agent = Agent(

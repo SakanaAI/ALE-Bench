@@ -13,7 +13,7 @@ def select_solution_from_repeated_sampling(
     results_repeated_sampling: dict[int, dict[str, Any]],
     n_repeated_sampling: int,
     selection_method: Literal["best", "median"] = "median",
-    score_type: ScoreType | None = None,
+    score_type: ScoreType = ScoreType.MINIMIZE,
 ) -> tuple[str, str, int]:
     """
     Select a solution from repeated sampling results based on the specified method.
@@ -22,7 +22,7 @@ def select_solution_from_repeated_sampling(
         results_repeated_sampling: dictionary of sampling results indexed by iteration.
         n_repeated_sampling: Total number of repeated samplings performed.
         selection_method: Method to select solution - "best" or "median".
-        score_type: Score type (MINIMIZE or MAXIMIZE). If None, will be inferred from results.
+        score_type: Score type (MINIMIZE or MAXIMIZE).
 
     Returns:
         tuple of (selected_code_language, selected_code, selected_index)
@@ -37,13 +37,7 @@ def select_solution_from_repeated_sampling(
     for idx, result in results_repeated_sampling.items():
         if idx >= n_repeated_sampling:
             continue  # Ignore extra results beyond n_repeated_sampling
-
         score = result.get("overall_absolute_score", worst_score)
-
-        # Infer score_type from first valid result if not provided
-        if score_type is None and "score_type" in result:
-            score_type = result["score_type"]
-
         index_score_pairs.append((idx, score))
 
     if not index_score_pairs:
@@ -65,9 +59,6 @@ def select_solution_from_repeated_sampling(
             array_idx = np.argmin(scores)
         elif score_type == ScoreType.MAXIMIZE:
             array_idx = np.argmax(scores)
-        else:
-            # Default to minimize if score_type not determined
-            array_idx = np.argmin(scores)
     else:
         raise ValueError(f"Unknown selection method: {selection_method}")
 
@@ -84,7 +75,7 @@ def select_solution_from_repeated_sampling(
 
 def select_solution_from_self_refine(
     results_self_refine: dict[int, dict[str, Any]],
-    score_type: ScoreType | None = None,
+    score_type: ScoreType = ScoreType.MINIMIZE,
     n_max_refine: int | None = None,
 ) -> tuple[str, str, int]:
     """
@@ -93,7 +84,7 @@ def select_solution_from_self_refine(
 
     Args:
         results_self_refine: dictionary of self-refine results indexed by iteration.
-        score_type: Score type (MINIMIZE or MAXIMIZE). If None, will be inferred from results.
+        score_type: Score type (MINIMIZE or MAXIMIZE).
         n_max_refine: If specified, only consider the first n_max_refine results.
 
     Returns:
@@ -121,9 +112,6 @@ def select_solution_from_self_refine(
         array_idx = np.argmin(scores)
     elif score_type == ScoreType.MAXIMIZE:
         array_idx = np.argmax(scores)
-    else:
-        # Default to minimize if score_type not determined
-        array_idx = np.argmin(scores)
 
     # Get the actual index in the original results dictionary
     target_index = int(indices[array_idx])
