@@ -5,6 +5,10 @@ import numpy as np
 from ale_bench.data import ScoreType
 
 
+def get_worst_score(score_type: ScoreType) -> int:
+    return -1 if score_type == ScoreType.MAXIMIZE else 1000000000000000000
+
+
 def select_solution_from_repeated_sampling(
     results_repeated_sampling: dict[int, dict[str, Any]],
     n_repeated_sampling: int,
@@ -21,12 +25,12 @@ def select_solution_from_repeated_sampling(
         score_type: Score type (MINIMIZE or MAXIMIZE). If None, will be inferred from results.
 
     Returns:
-        tuple of (selectted_code_language, selected_code, selected_index)
+        tuple of (selected_code_language, selected_code, selected_index)
     """
     if not results_repeated_sampling:
         raise ValueError("No results to select from")
 
-    worst_score = -1 if score_type == ScoreType.MAXIMIZE else 1000000000000000000
+    worst_score = get_worst_score(score_type)
     # Create sorted list of (index, score) tuples
     index_score_pairs = []
 
@@ -95,7 +99,7 @@ def select_solution_from_self_refine(
     Returns:
         tuple of (selected_code_language, selected_code, selected_index)
     """
-    worst_score = -1 if score_type == ScoreType.MAXIMIZE else 1000000000000000000
+    worst_score = get_worst_score(score_type)
     # Create sorted list of (index, score) tuples
     index_score_pairs = []
 

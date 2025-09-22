@@ -3,7 +3,6 @@ from typing import Any
 
 from pydantic_ai.messages import ModelMessage, UserContent
 
-from ale_bench.data import ScoreType
 from ale_bench.result import JudgeResult, Result
 from ale_bench.session import Session
 from ale_bench_eval.calc_cost import calc_cost
@@ -15,13 +14,10 @@ from ale_bench_eval.prompts.builder import (
     get_code_from_response,
 )
 from ale_bench_eval.safe_generation import MaxTokenError, safe_generation
+from ale_bench_eval.selection import get_worst_score
 
 TIMEOUT_SECONDS = 1200
 MAX_RETRIES = 30
-
-
-def worst_score(score_type: ScoreType) -> int:
-    return -1 if score_type == ScoreType.MAXIMIZE else 1000000000000000000
 
 
 def run_repeated_sampling(
@@ -65,17 +61,13 @@ def run_repeated_sampling(
                 num_retries=MAX_RETRIES,
             )
             code_language, code = get_code_from_response(response.output, config.prompt_args.code_language)
-        # except MaxTokenError as e:
-        #     save_info.logger.warning(f"Context length overflow for repeated sampling {i}: {e}")
-        #     response = None
-        #     code_language = ""
-        #     code = ""
-        #     is_context_length_overflow = True
+        # NOTE: We don't expect MaxTokenError here for repeated sampling
+        # NOTE: The model should be able to handle the prompt at this point
         except Exception as e:
             save_info.logger.error(f"Error for repeated sampling {i}: {e}")
             continue  # skip this iteration and do not save results
 
-        overall_absolute_score = worst_score(session.problem.metadata.score_type)
+        overall_absolute_score = get_worst_score(session.problem.metadata.score_type)
         if response is not None:
             try:
                 # If code is empty, use a compile-error-inducing code to save the evaluation result
@@ -94,7 +86,7 @@ def run_repeated_sampling(
                 overall_absolute_score = (
                     public_result.overall_absolute_score
                     if public_result.overall_judge_result == JudgeResult.ACCEPTED
-                    else worst_score(session.problem.metadata.score_type)
+                    else get_worst_score(session.problem.metadata.score_type)
                 )
                 save_info.logger.info(f"Overall absolute score: {overall_absolute_score}")
                 save_info.save_ale_bench_results(f"repeated_sampling_results_{i}.json", public_result)
@@ -208,7 +200,7 @@ def run_self_refinement(
             save_info.logger.info(f"Error for self-refine {i}: {e}")
             raise ValueError(f"Error during self-refinement {i}: {e}")
 
-        overall_absolute_score = worst_score(session.problem.metadata.score_type)
+        overall_absolute_score = get_worst_score(session.problem.metadata.score_type)
         if response is not None:
             try:
                 # If code is empty, use a compile-error-inducing code to save the evaluation result
@@ -227,7 +219,7 @@ def run_self_refinement(
                 overall_absolute_score = (
                     public_result.overall_absolute_score
                     if public_result.overall_judge_result == JudgeResult.ACCEPTED
-                    else worst_score(session.problem.metadata.score_type)
+                    else get_worst_score(session.problem.metadata.score_type)
                 )
                 save_info.logger.info(f"Overall absolute score: {overall_absolute_score}")
                 save_info.save_ale_bench_results(f"self_refine_results_{i}.json", public_result)
