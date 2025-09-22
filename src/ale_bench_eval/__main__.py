@@ -1,4 +1,3 @@
-import datetime as dt
 import json
 import warnings
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -17,7 +16,7 @@ from ale_bench_eval.analyze_results import (
 )
 from ale_bench_eval.data_types import EvaluationConfig, Solution
 from ale_bench_eval.evaluate import run_private_evaluation
-from ale_bench_eval.logger import SaveInfo
+from ale_bench_eval.logger import SaveInfo, get_now_utc, get_now_utc_string
 from ale_bench_eval.prompts.builder import (
     PromptArgs,
     create_initial_message,
@@ -54,7 +53,7 @@ def evaluate_contest(
     root_path: Path | None = None,
 ) -> None:
     """Main evaluation function orchestrating the entire benchmarking process."""
-    start_time = dt.datetime.now(dt.UTC)
+    start_time = get_now_utc()
 
     # Create configuration object
     config = EvaluationConfig(
@@ -195,7 +194,7 @@ def evaluate_contest(
     session.close()
 
     # Log the time taken
-    end_time = dt.datetime.now(dt.UTC)
+    end_time = get_now_utc()
     elapsed_time = (end_time - start_time).total_seconds()
     save_info.logger.info(f"Time taken: {elapsed_time:.2f} seconds")
 
@@ -258,7 +257,7 @@ def main(
     skip_llm_inference: bool = False,
 ) -> None:
     """Main entry point for running LLM benchmarking evaluation."""
-    start_time = dt.datetime.now(dt.UTC)
+    start_time = get_now_utc()
 
     physical_cores = cpu_count(logical=False)
     if physical_cores is None:
@@ -283,7 +282,7 @@ def main(
     model_name = Path(model_config_path).stem
 
     # Create timestamped results directory
-    exp_root = Path.cwd() / f"results/{model_name}_{dt.datetime.now(dt.UTC).strftime('%Y-%m-%d_%H-%M-%S')}"
+    exp_root = Path.cwd() / f"results/{model_name}_{get_now_utc_string()}"
     if root_path is not None:
         exp_root = Path(root_path)
     exp_root.mkdir(parents=True, exist_ok=True)
@@ -408,7 +407,7 @@ def main(
     print(f"📊 Aggregated statistics: {exp_root}/aggregated_results.json")
 
     # Save overall time taken
-    end_time = dt.datetime.now(dt.UTC)
+    end_time = get_now_utc()
     elapsed_time_str = f"Overall time taken: {(end_time - start_time).total_seconds() / 60:.2f} minutes"
     with open(exp_root / "time_taken.txt", "w") as f:
         f.write(elapsed_time_str)

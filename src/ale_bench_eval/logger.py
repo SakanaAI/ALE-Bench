@@ -4,7 +4,7 @@ import datetime
 import json
 import logging
 from pathlib import Path
-from typing import Any
+from typing import Any, Final
 
 from pydantic import BaseModel
 from pydantic_ai.run import AgentRunResult
@@ -12,6 +12,16 @@ from pydantic_ai.run import AgentRunResult
 from ale_bench.constants import ALLOW_SCORE_NON_AC_PRIVATE
 from ale_bench.result import CaseResult, ResourceUsage, Result as AleBenchResult
 from ale_bench.schemas import ResultSerializable as AleBenchResultSerializable
+
+UTC: Final[datetime.tzinfo] = getattr(datetime, "UTC", datetime.timezone.utc)
+
+
+def get_now_utc() -> datetime.datetime:
+    return datetime.datetime.now(tz=UTC)
+
+
+def get_now_utc_string() -> str:
+    return get_now_utc().strftime("%Y-%m-%d_%H-%M-%S")
 
 
 class CustomJSONEncoder(json.JSONEncoder):
@@ -83,11 +93,7 @@ class SaveInfo:
     def __init__(self, model_name: str, problem_id: str, root_path: Path | None = None) -> None:
         self.problem_id = problem_id
         if root_path is None:
-            self.problem_root = (
-                Path.cwd()
-                / f"results/{model_name}_{datetime.datetime.now(datetime.UTC).strftime('%Y-%m-%d_%H-%M-%S')}"
-                / problem_id
-            )
+            self.problem_root = Path.cwd() / f"results/{model_name}_{get_now_utc_string()}" / problem_id
         else:
             self.problem_root = root_path / problem_id
         self.problem_root.mkdir(parents=True, exist_ok=True)
