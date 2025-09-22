@@ -44,7 +44,7 @@ jobs:
 
     - name: Run type checks with mypy
       if: matrix.python-version == '3.12'
-      run: uv run mypy --strict src tests
+      run: uv run mypy --strict --config-file=pyproject.toml src tests
 
     - name: Run tests
       run: uv run pytest -m "not docker and not slow"
