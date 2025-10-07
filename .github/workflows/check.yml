@@ -22,6 +22,7 @@ jobs:
           - "3.11"
           - "3.12"
           - "3.13"
+          - "3.14"
 
     steps:
     - uses: actions/checkout@v5
@@ -31,7 +32,7 @@ jobs:
       with:
         enable-cache: true
         python-version: ${{ matrix.python-version }}
-        version: 0.8.15
+        version: 0.9.0
 
     - name: Install the project (Python 3.9)
       if: matrix.python-version == '3.9'
