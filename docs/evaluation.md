@@ -15,7 +15,7 @@ The tool evaluates LLMs' performance on ALE-Bench problems using two evaluation 
 
 1. Setup ALE-Bench as [ALE-Bench Setup Instructions](../README.md#setup):
 ```sh
-uv venv --python 3.12.11  # Or any supported Python version (3.10 ~ 3.13)
+uv venv --python 3.12.11  # Or any supported Python version (3.10 ~ 3.14)
 uv sync --extra eval
 ```
 
