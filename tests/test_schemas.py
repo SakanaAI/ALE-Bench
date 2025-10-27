@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import datetime
+from typing import Any
 
 import pytest
 from PIL import Image
@@ -67,9 +68,7 @@ from ale_bench.utils import pil_to_base64
         ),
     ],
 )
-def test_problem_serializable(
-    problem: ProblemSerializable, serialized: dict[str, str | int | float | Image.Image]
-) -> None:
+def test_problem_serializable(problem: ProblemSerializable, serialized: dict[str, Any]) -> None:
     """Test serialization and deserialization of ProblemSerializable."""
     # Test serialization to dict
     problem_serialized = problem.model_dump()
