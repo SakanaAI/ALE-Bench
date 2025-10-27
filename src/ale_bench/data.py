@@ -10,7 +10,7 @@ import zipfile
 from copy import deepcopy
 from enum import Enum
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 import polars as pl
 from PIL import Image
@@ -80,7 +80,8 @@ class RankPerformanceMap(BaseModel):
             rank, performance = self.raw_data[i]
             next_rank, next_performance = self.raw_data[i + 1]
             if rank == next_rank:
-                assert performance == next_performance, "Something went wrong: `performance` != `next_performance`."
+                if performance != next_performance:
+                    raise RuntimeError("Something went wrong: `performance` != `next_performance`.")
                 continue  # NOTE: tie
             actual_rank = float((rank + next_rank - 1) / 2)  # NOTE: Use the average of the rank range for performance
             self.data[actual_rank] = performance
@@ -116,7 +117,7 @@ class RankPerformanceMap(BaseModel):
             else:
                 lose = mid
         if win == len(sorted_keys):
-            assert False, "Something went wrong: `win` should be less than `len(sorted_keys)`."
+            raise RuntimeError("Something went wrong: `win` should be less than `len(sorted_keys)`.")
         if win == 0:
             win = 1  # NOTE: to avoid index out of range and use the 1st & 2nd entries
         rank_high = sorted_keys[win - 1]
@@ -301,7 +302,8 @@ class Standings(BaseModel):
         for i in range(len(self.score_rank_list) - 1):
             _, _, end_rank = self.score_rank_list[i]
             _, next_start_rank, _ = self.score_rank_list[i + 1]
-            assert next_start_rank == end_rank + 1, "Something went wrong: `next_start_rank` != `end_rank + 1`."
+            if next_start_rank != end_rank + 1:
+                raise RuntimeError("Something went wrong: `next_start_rank` != `end_rank + 1`.")
 
     def get_new_rank(self, private_result: Result) -> tuple[int, float, list[int]]:
         """Get the new rank for a given private result.
@@ -364,7 +366,7 @@ class Standings(BaseModel):
                 return start_rank, float(start_rank), new_case_scores
             elif new_score == score:
                 return start_rank, float((start_rank + end_rank) / 2), new_case_scores  # NOTE: Average of the ranks
-        assert False, "Something went wrong in `get_new_rank` method."
+        raise RuntimeError("Something went wrong in `get_new_rank` method.")
 
 
 class ProblemMetaData(BaseModel):
@@ -781,7 +783,7 @@ class RankingCalculator:
             ranking_file_path = str(local_data_dir / "ranking.csv")
         df_ranking = pl.read_csv(ranking_file_path).filter(pl.col("competitions") >= minimum_participation)
         # Prepare member variables
-        num_active_users = len(df_ranking)
+        self.num_active_users = len(df_ranking)
         self.avg_perfs = df_ranking["avg_perf"].sort(descending=True).to_list()
         self.ratings = df_ranking["rating"].sort(descending=True).to_list()
         self.avg_perf_ranks, self.rating_ranks = [], []
@@ -798,9 +800,9 @@ class RankingCalculator:
             self.rating_ranks.append(current_rating_rank)
         # Append the last entry for the average performance and rating
         self.avg_perfs.append(-1000.0)
-        self.avg_perf_ranks.append(num_active_users + 1)
+        self.avg_perf_ranks.append(self.num_active_users + 1)
         self.ratings.append(0)
-        self.rating_ranks.append(num_active_users + 1)
+        self.rating_ranks.append(self.num_active_users + 1)
 
     def calculate_avg_perf_rank(self, avg_perf: float) -> int:
         """Calculate the rank based on the rating.
@@ -826,7 +828,7 @@ class RankingCalculator:
             else:  # Exactly matched
                 return self.avg_perf_ranks[mid]
         if ok == len(self.avg_perfs):
-            assert False, "Something went wrong: `ok` should be less than `len(self.avg_perfs)`."
+            raise RuntimeError("Something went wrong: `ok` should be less than `len(self.avg_perfs)`.")
         return self.avg_perf_ranks[ok]
 
     def calculate_rating_rank(self, rating: int) -> int:
@@ -853,5 +855,38 @@ class RankingCalculator:
             else:  # Exactly matched
                 return self.rating_ranks[mid]
         if ok == len(self.ratings):
-            assert False, "Something went wrong: `ok` should be less than `len(self.ratings)`."
+            raise RuntimeError("Something went wrong: `ok` should be less than `len(self.ratings)`.")
         return self.rating_ranks[ok]
+
+    def convert_rank_to_percentile(
+        self,
+        rank: int,
+        method: Literal["original", "hazen", "weibull"] = "weibull",
+    ) -> float:
+        """Convert the rank to percentile.
+
+        Args:
+            rank (int): The rank to convert.
+            method (Literal["original", "hazen", "weibull"]): The mode to use for conversion. Defaults to "weibull".
+                "original": percentile = 100.0 * rank / num_active_users
+                "hazen": percentile = 100.0 * (rank - 0.5) / (num_active_users + 1)
+                "weibull": percentile = 100.0 * rank / (num_active_users + 2)
+
+        Returns:
+            float: The converted percentile.
+
+        Raises:
+            ValueError: If the rank is less than 1 or greater than the number of active users + 1.
+        """
+        if rank < 1 or rank > self.num_active_users + 1:
+            raise ValueError(f"The rank must be between 1 and {self.num_active_users + 1} (the number of users + 1).")
+        if method == "original":
+            return min(
+                100.0 * rank / self.num_active_users, 100.0
+            )  # NOTE: Cap at 100.0% to avoid exceeding 100% when rank == num_active_users + 1
+        elif method == "hazen":
+            return 100.0 * (rank - 0.5) / (self.num_active_users + 1)
+        elif method == "weibull":
+            return 100.0 * rank / (self.num_active_users + 2)
+        else:
+            raise ValueError(f"Invalid method: {method}. Supported methods are 'original', 'hazen', and 'weibull'.")

@@ -119,7 +119,7 @@ class TestRankPerformanceMap:
                 [(1, 3200), (2, 200)],
                 2.01,
                 pytest.raises(
-                    AssertionError, match=r"Something went wrong: `win` should be less than `len\(sorted_keys\)`\."
+                    RuntimeError, match=r"Something went wrong: `win` should be less than `len\(sorted_keys\)`\."
                 ),
                 0,
                 id="2rows_not_within_2nd",
@@ -133,7 +133,7 @@ class TestRankPerformanceMap:
                 [(1, 3200), (2, 2800), (3, 200)],
                 3.14,
                 pytest.raises(
-                    AssertionError, match=r"Something went wrong: `win` should be less than `len\(sorted_keys\)`\."
+                    RuntimeError, match=r"Something went wrong: `win` should be less than `len\(sorted_keys\)`\."
                 ),
                 0,
                 id="3rows_not_within_3rd",
@@ -147,7 +147,7 @@ class TestRankPerformanceMap:
                 [(1, 3200), (99, 2800), (100, 200)],
                 101,
                 pytest.raises(
-                    AssertionError, match=r"Something went wrong: `win` should be less than `len\(sorted_keys\)`\."
+                    RuntimeError, match=r"Something went wrong: `win` should be less than `len\(sorted_keys\)`\."
                 ),
                 0,
                 id="3rows_n100_not_within_100th",
@@ -1619,6 +1619,17 @@ class TestRankingCalculator:
 
     @pytest.mark.slow
     @pytest.mark.parametrize(
+        "minimum_participation,expected",
+        [
+            pytest.param(0, 6139, id="minimum_participation_0"),
+            pytest.param(5, 2220, id="minimum_participation_5"),
+        ],
+    )
+    def test_num_active_users(self, minimum_participation: int, expected: int) -> None:
+        assert RankingCalculator(minimum_participation=minimum_participation).num_active_users == expected
+
+    @pytest.mark.slow
+    @pytest.mark.parametrize(
         "rating,context,expected",
         [
             pytest.param(3348, does_not_raise(), 1, id="1st"),
@@ -1644,3 +1655,81 @@ class TestRankingCalculator:
     ) -> None:
         with context:
             assert ranking_calculator_instance.calculate_rating_rank(rating) == expected
+
+    @pytest.mark.slow
+    @pytest.mark.parametrize(
+        "rank,method,context,expected",
+        [
+            pytest.param(1, "original", does_not_raise(), 100.0 * 1.0 / 6139, id="1st_original"),
+            pytest.param(1, "hazen", does_not_raise(), 100.0 * 0.5 / 6140, id="1st_hazen"),
+            pytest.param(1, "weibull", does_not_raise(), 100.0 * 1.0 / 6141, id="1st_weibull"),
+            pytest.param(150, "original", does_not_raise(), 100.0 * 150.0 / 6139, id="150th_original"),
+            pytest.param(150, "hazen", does_not_raise(), 100.0 * 149.5 / 6140, id="150th_hazen"),
+            pytest.param(150, "weibull", does_not_raise(), 100.0 * 150.0 / 6141, id="150th_weibull"),
+            pytest.param(6140, "original", does_not_raise(), 100.0, id="last_original"),
+            pytest.param(6140, "hazen", does_not_raise(), 100.0 * 6139.5 / 6140, id="last_hazen"),
+            pytest.param(6140, "weibull", does_not_raise(), 100.0 * 6140 / 6141, id="last_weibull"),
+            pytest.param(
+                0,
+                "original",
+                pytest.raises(ValueError, match=r"The rank must be between 1 and 6140 \(the number of users \+ 1\)\."),
+                0.0,
+                id="invalid_rank_0th_original",
+            ),
+            pytest.param(
+                0,
+                "hazen",
+                pytest.raises(ValueError, match=r"The rank must be between 1 and 6140 \(the number of users \+ 1\)\."),
+                0.0,
+                id="invalid_rank_0th_hazen",
+            ),
+            pytest.param(
+                0,
+                "weibull",
+                pytest.raises(ValueError, match=r"The rank must be between 1 and 6140 \(the number of users \+ 1\)\."),
+                0.0,
+                id="invalid_rank_0th_weibull",
+            ),
+            pytest.param(
+                6141,
+                "original",
+                pytest.raises(ValueError, match=r"The rank must be between 1 and 6140 \(the number of users \+ 1\)\."),
+                0.0,
+                id="invalid_rank_6141st_original",
+            ),
+            pytest.param(
+                6141,
+                "hazen",
+                pytest.raises(ValueError, match=r"The rank must be between 1 and 6140 \(the number of users \+ 1\)\."),
+                0.0,
+                id="invalid_rank_6141st_hazen",
+            ),
+            pytest.param(
+                6141,
+                "weibull",
+                pytest.raises(ValueError, match=r"The rank must be between 1 and 6140 \(the number of users \+ 1\)\."),
+                0.0,
+                id="invalid_rank_6141st_weibull",
+            ),
+            pytest.param(
+                3070,
+                "hoge",
+                pytest.raises(
+                    ValueError,
+                    match=r"Invalid method: hoge\. Supported methods are 'original', 'hazen', and 'weibull'\.",
+                ),
+                0.0,
+                id="invalid_method",
+            ),
+        ],
+    )
+    def test_convert_rank_to_percentile(
+        self,
+        rank: int,
+        method: str,
+        expected: float,
+        context: AbstractContextManager[None],
+        ranking_calculator_instance: RankingCalculator,
+    ) -> None:
+        with context:
+            assert ranking_calculator_instance.convert_rank_to_percentile(rank, method) == pytest.approx(expected)
