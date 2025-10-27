@@ -5,11 +5,10 @@
         "temperature": 1.0,
         "top_p": 0.95,
         "extra_body": {
-            "top_k": 40,
             "provider": {
                 "allow_fallbacks": false,
                 "data_collection": "deny",
-                "order": ["parasail/fp8"],
+                "order": ["z-ai"],
                 "require_parameters": true
             },
             "reasoning": {

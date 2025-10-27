@@ -8,7 +8,7 @@
             "provider": {
                 "allow_fallbacks": false,
                 "data_collection": "deny",
-                "order": ["siliconflow/fp8"],
+                "order": ["deepinfra/fp4"],
                 "require_parameters": true
             },
             "reasoning": {

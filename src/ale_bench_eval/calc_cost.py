@@ -36,11 +36,21 @@ FALLBACK_DICT = {
         ),
         output_mtok=TieredPrices(base=Decimal(15), tiers=[Tier(start=200000, price=Decimal(225) / Decimal(10))]),
     ),
+    "claude-haiku-4.5": ModelPrice(
+        input_mtok=Decimal(1),
+        cache_write_mtok=Decimal(125) / Decimal(100),
+        cache_read_mtok=Decimal(1) / Decimal(10),
+        output_mtok=Decimal(5),
+    ),
     "deepseek-v3.1": ModelPrice(input_mtok=Decimal(56) / Decimal(100), output_mtok=Decimal(168) / Decimal(100)),
     "deepseek-v3.1-terminus": ModelPrice(input_mtok=Decimal(27) / Decimal(100), output_mtok=Decimal(1)),
     "deepseek-r1-0528": ModelPrice(input_mtok=Decimal(79) / Decimal(100), output_mtok=Decimal(4)),
     "glm-4.5": ModelPrice(input_mtok=Decimal(59) / Decimal(100), output_mtok=Decimal(21) / Decimal(10)),
-    "glm-4.6": ModelPrice(input_mtok=Decimal(6) / Decimal(10), output_mtok=Decimal(21) / Decimal(10)),
+    "glm-4.6": ModelPrice(
+        input_mtok=Decimal(6) / Decimal(10),
+        output_mtok=Decimal(22) / Decimal(10),
+        cache_read_mtok=Decimal(11) / Decimal(100),
+    ),
     "gpt-oss-120b": ModelPrice(input_mtok=Decimal(1) / Decimal(10), output_mtok=Decimal(5) / Decimal(10)),
     "gpt-oss-20b": ModelPrice(input_mtok=Decimal(5) / Decimal(100), output_mtok=Decimal(2) / Decimal(10)),
     "grok-code-fast-1": ModelPrice(input_mtok=Decimal(2) / Decimal(10), output_mtok=Decimal(15) / Decimal(10)),
@@ -61,6 +71,20 @@ FALLBACK_DICT = {
         input_mtok=Decimal(3) / Decimal(10), output_mtok=Decimal(29) / Decimal(10)
     ),
     "qwen3-coder": ModelPrice(input_mtok=Decimal(29) / Decimal(100), output_mtok=Decimal(12) / Decimal(10)),
+    "qwen3-coder-plus": ModelPrice(
+        input_mtok=TieredPrices(
+            base=Decimal(1),
+            tiers=[Tier(start=32000, price=Decimal(18) / Decimal(10))],
+        ),
+        output_mtok=TieredPrices(
+            base=Decimal(5),
+            tiers=[Tier(start=32000, price=Decimal(9))],
+        ),
+        cache_read_mtok=TieredPrices(
+            base=Decimal(1) / Decimal(10),
+            tiers=[Tier(start=32000, price=Decimal(18) / Decimal(100))],
+        ),
+    ),
     "qwen3-max": ModelPrice(
         input_mtok=TieredPrices(base=Decimal(12) / Decimal(10), tiers=[Tier(start=128000, price=Decimal(3))]),
         cache_read_mtok=TieredPrices(
