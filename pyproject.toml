@@ -42,6 +42,7 @@ dependencies = [
     "pillow",
     "polars>=1",
     "pydantic>=2",
+    "typing_extensions",
 ]
 
 [project.urls]

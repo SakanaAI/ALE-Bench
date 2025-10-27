@@ -92,9 +92,9 @@ Converts a rank to a percentile based on the distribution of ranks.
 *Parameters:*
 - `rank (int)`: The rank to convert.
 - `method (Literal["original", "hazen", "weibull"])`: The method to use for conversion. Defaults to `"weibull"`.
-    - `"original"`: $\text{percentile} = 100.0 \times \frac{\text{rank}}{\text{\#active\_users}}$, capped at 100% when $\text{rank} = \text{\#active\_users} + 1$
-    - `"hazen"`: $\text{percentile} = 100.0 \times \frac{(\text{rank} - 0.5)}{(\text{\#active\_users} + 1)}$
-    - `"weibull"`: $\text{percentile} = 100.0 \times \frac{\text{rank}}{(\text{\#active\_users} + 2)}$
+    - `"original"`: $\text{percentile} = 100.0 \times \frac{\text{rank}}{\text{num\_active\_users}}$, capped at 100% when $\text{rank} = \text{num\_active\_users} + 1$
+    - `"hazen"`: $\text{percentile} = 100.0 \times \frac{(\text{rank} - 0.5)}{(\text{num\_active\_users} + 1)}$
+    - `"weibull"`: $\text{percentile} = 100.0 \times \frac{\text{rank}}{(\text{num\_active\_users} + 2)}$
 
     > *Note:* The `"weibull"` method is recommended because it avoids 0%/100% endpoints (exclusive percentiles) and is widely used in the literature. We selected `"weibull"` as default rather than `"hazen"` because it provides a slightly more aligned to the original percentile calculation when the rank is higher. The original paper uses the `"original"` method, but it does not align well with statistical properties. All methods are acceptable as long as the method is documented.
 
