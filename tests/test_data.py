@@ -1730,8 +1730,8 @@ class TestRankingCalculator:
         self,
         rank: int,
         method: str,
-        expected: float,
         context: AbstractContextManager[None],
+        expected: float,
         ranking_calculator_instance: RankingCalculator,
     ) -> None:
         with context:
