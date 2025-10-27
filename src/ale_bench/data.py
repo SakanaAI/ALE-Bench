@@ -10,7 +10,7 @@ import zipfile
 from copy import deepcopy
 from enum import Enum
 from pathlib import Path
-from typing import Any, Literal
+from typing import Any
 
 import polars as pl
 from PIL import Image
@@ -763,6 +763,14 @@ class RatingCalculator:
         }
 
 
+class RankPercentileMapMethod(str, Enum):
+    """Method for converting rank to percentile."""
+
+    ORIGINAL = "original"
+    HAZEN = "hazen"
+    WEIBULL = "weibull"
+
+
 class RankingCalculator:
     """Ranking calculator for ALE-Bench."""
 
@@ -861,13 +869,13 @@ class RankingCalculator:
     def convert_rank_to_percentile(
         self,
         rank: int,
-        method: Literal["original", "hazen", "weibull"] = "weibull",
+        method: RankPercentileMapMethod | str = RankPercentileMapMethod.WEIBULL,
     ) -> float:
         """Convert the rank to percentile.
 
         Args:
             rank (int): The rank to convert.
-            method (Literal["original", "hazen", "weibull"]): The mode to use for conversion. Defaults to "weibull".
+            method (RankPercentileMapMethod | str): The mode to use for conversion. Defaults to "weibull".
                 "original": percentile = 100.0 * rank / num_active_users
                 "hazen": percentile = 100.0 * (rank - 0.5) / (num_active_users + 1)
                 "weibull": percentile = 100.0 * rank / (num_active_users + 2)
@@ -877,16 +885,19 @@ class RankingCalculator:
 
         Raises:
             ValueError: If the rank is less than 1 or greater than the number of active users + 1.
+            ValueError: If the method is invalid.
         """
         if rank < 1 or rank > self.num_active_users + 1:
             raise ValueError(f"The rank must be between 1 and {self.num_active_users + 1} (the number of users + 1).")
-        if method == "original":
-            return min(
-                100.0 * rank / self.num_active_users, 100.0
-            )  # NOTE: Cap at 100.0% to avoid exceeding 100% when rank == num_active_users + 1
-        elif method == "hazen":
-            return 100.0 * (rank - 0.5) / (self.num_active_users + 1)
-        elif method == "weibull":
-            return 100.0 * rank / (self.num_active_users + 2)
-        else:
+        try:
+            method = RankPercentileMapMethod(method)
+        except ValueError:
             raise ValueError(f"Invalid method: {method}. Supported methods are 'original', 'hazen', and 'weibull'.")
+        if method == RankPercentileMapMethod.ORIGINAL:
+            if rank == self.num_active_users + 1:
+                return 100.0  # NOTE: The lowest rank is always 100.0% (avoid exceeding 100.0%)
+            return 100.0 * rank / self.num_active_users
+        elif method == RankPercentileMapMethod.HAZEN:
+            return 100.0 * (rank - 0.5) / (self.num_active_users + 1)
+        elif method == RankPercentileMapMethod.WEIBULL:
+            return 100.0 * rank / (self.num_active_users + 2)
