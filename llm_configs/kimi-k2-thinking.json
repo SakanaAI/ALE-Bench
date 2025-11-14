@@ -1,0 +1,18 @@
+{
+    "model_name": "moonshotai/kimi-k2-thinking",
+    "provider": "openrouter",
+    "settings": {
+        "temperature": 1.0,
+        "extra_body": {
+            "provider": {
+                "allow_fallbacks": false,
+                "data_collection": "deny",
+                "order": ["moonshotai"],
+                "require_parameters": true
+            },
+            "usage": {
+                "include": true
+            }
+        }
+    }
+}
