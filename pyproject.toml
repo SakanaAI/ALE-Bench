@@ -62,7 +62,7 @@ eval = [
     "numpy>=2.0.2",
     "pandas>=2.3.1",
     "psutil>=7.0.0",
-    "pydantic-ai>=1.19.0; python_version >= '3.10'",
+    "pydantic-ai>=1.20.0; python_version >= '3.10'",
 ]
 
 [tool.uv-dynamic-versioning]
