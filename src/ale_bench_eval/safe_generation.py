@@ -20,6 +20,7 @@ from pydantic_ai.models.openai import (
     OpenAIResponsesModel,
     OpenAIResponsesModelSettings,
 )
+from pydantic_ai.models.openrouter import OpenRouterModel, OpenRouterModelSettings
 from pydantic_ai.run import AgentRunResult
 from pydantic_ai.settings import ModelSettings
 
@@ -35,10 +36,12 @@ OPENAI_COMPATIBLE_PROVIDERS = {
     "ollama",
     "openai",
     "openai-chat",
-    "openrouter",
     "together",
     "vercel",
     "litellm",
+    "nebius",
+    "ovhcloud",
+    "gateway",
 }
 
 
@@ -88,6 +91,9 @@ def build_agent_from_config(
     elif provider == "bedrock":
         model = BedrockConverseModel(model_name=model_name)
         model_settings = BedrockModelSettings(timeout=timeout, **settings)  # type: ignore[typeddict-item]
+    elif provider == "openrouter":
+        model = OpenRouterModel(model_name=model_name)
+        model_settings = OpenRouterModelSettings(timeout=timeout, **settings)  # type: ignore[typeddict-item]
     elif provider in OPENAI_COMPATIBLE_PROVIDERS:
         model = OpenAIChatModel(model_name=model_name, provider=provider)
         model_settings = OpenAIChatModelSettings(timeout=timeout, **settings)  # type: ignore[typeddict-item]
