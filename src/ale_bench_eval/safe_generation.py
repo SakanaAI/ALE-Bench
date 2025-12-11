@@ -24,6 +24,8 @@ from pydantic_ai.models.openrouter import OpenRouterModel, OpenRouterModelSettin
 from pydantic_ai.run import AgentRunResult
 from pydantic_ai.settings import ModelSettings
 
+from ale_bench_eval.shared_async_loop import shared_async_loop
+
 OPENAI_COMPATIBLE_PROVIDERS = {
     "azure",
     "deepseek",
@@ -124,7 +126,9 @@ def safe_generation(
     )
 
     try:
-        result = agent.run_sync(user_prompt=user_prompt, message_history=message_history)
+        result = shared_async_loop().run(
+            agent.run(user_prompt=user_prompt, message_history=message_history),
+        )
         model_response = result.all_messages()[-1]
         if isinstance(model_response, ModelResponse):
             if model_response.finish_reason == "length":
