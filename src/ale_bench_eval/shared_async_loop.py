@@ -9,14 +9,18 @@ T = TypeVar("T")
 
 
 class SharedAsyncLoop:
-    """Background event loop shared across threads for async-only providers like Google GenAI."""
+    """Background event loop shared across threads for async-only providers.
+
+    This class is intended for use cases where synchronous code needs to execute asynchronous coroutines,
+    such as when interacting with async-only providers (e.g., Google GenAI) from synchronous contexts.
+    """
 
     SHUTDOWN_TIMEOUT = 5
 
     def __init__(self) -> None:
         self._loop = asyncio.new_event_loop()
         self._thread = threading.Thread(target=self._run_loop, daemon=True)
-        self._atexit_cb = lambda loop_self=self: loop_self.shutdown()
+        self._atexit_cb = self.shutdown
         self._thread.start()
         try:
             atexit.register(self._atexit_cb)
