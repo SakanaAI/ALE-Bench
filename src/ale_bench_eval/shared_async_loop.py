@@ -51,17 +51,18 @@ class SharedAsyncLoop:
         Raises:
             asyncio.TimeoutError: If the coroutine does not complete within the specified timeout.
             Exception: Any exception raised by the coroutine will be propagated.
+        Note:
+            On exception, this method requests cancellation of the underlying coroutine via the returned Future.
+            If the coroutine ignores cancellation, it may continue running briefly.
         """
         future: Future[T] = asyncio.run_coroutine_threadsafe(coroutine, self._loop)
         try:
             return future.result(timeout=timeout)
         except FutureTimeoutError as exc:
-            if not future.cancelled():
-                future.cancel()
+            future.cancel()
             raise asyncio.TimeoutError(f"Timed out waiting for coroutine result after {timeout}s") from exc
-        except BaseException:
-            if not future.cancelled():
-                future.cancel()
+        except Exception:
+            future.cancel()
             raise
 
     def shutdown(self) -> None:
@@ -103,9 +104,8 @@ SHARED_ASYNC_LOOP_LOCK = threading.Lock()
 
 
 def shared_async_loop() -> SharedAsyncLoop:
-    """Returns a singleton instance of SharedAsyncLoop.
+    """Returns a singleton instance of SharedAsyncLoop, creating a new instance if None or the previous one is closed.
 
-    Creating a new instance if none exists or if the previous one is closed.
     This function is thread-safe and ensures only one SharedAsyncLoop instance is active at a time.
 
     Returns:
