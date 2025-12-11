@@ -144,11 +144,18 @@ def safe_generation(
         raise RuntimeError(f"Model API returned an HTTP error: {e}") from e
         # NOTE: If too long string is input, sometime returned `exceeded your current quota`
     except ModelHTTPError as e:
+        body = e.body or {}
+        msg = ""
+        if isinstance(body, dict):
+            msg = body.get("message") or body.get("error", {}).get("message") or str(body)
+        else:
+            msg = str(body)
         if any(
-            [
-                "string too long" in e.body["message"],  # type: ignore
-                "exceeds the context window" in e.body["message"],  # type: ignore
-                "maximum context length" in e.body["message"],  # type: ignore
+            s in msg.lower()
+            for s in [
+                "string too long",
+                "exceeds the context window",
+                "maximum context length",
             ]
         ):
             raise MaxTokenError("Input exceeds the model's maximum token limit.") from e
