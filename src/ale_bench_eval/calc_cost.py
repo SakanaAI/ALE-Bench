@@ -4,6 +4,11 @@ from genai_prices import Usage, calc_price
 from genai_prices.types import ModelPrice, Tier, TieredPrices
 
 FALLBACK_DICT = {
+    "gpt-5.2-2025-12-11": ModelPrice(
+        input_mtok=Decimal(175) / Decimal(100),
+        cache_read_mtok=Decimal(175) / Decimal(1000),
+        output_mtok=Decimal(14),
+    ),
     "gpt-5.1-codex-max": ModelPrice(
         input_mtok=Decimal(125) / Decimal(100),
         cache_read_mtok=Decimal(125) / Decimal(1000),
