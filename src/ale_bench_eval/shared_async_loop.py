@@ -41,7 +41,7 @@ class SharedAsyncLoop:
 
         Args:
             coroutine (Coroutine): The coroutine to execute.
-            timeout (float | None, optional): Maximum time in seconds to wait for the result. If None, wait indefinitely.
+            timeout (float, optional): Maximum time in seconds to wait for the result. If None, wait indefinitely.
         Returns:
             T: The result returned by the coroutine.
         Raises:
@@ -77,7 +77,9 @@ class SharedAsyncLoop:
                 if threading.current_thread() is not self._thread and self._thread.is_alive():
                     self._thread.join(timeout=self.SHUTDOWN_TIMEOUT)
                     if self._thread.is_alive():
-                        logging.getLogger(__name__).warning(f"Shared async loop thread did not stop within {self.SHUTDOWN_TIMEOUT}s")
+                        logging.getLogger(__name__).warning(
+                            f"Shared async loop thread did not stop within {self.SHUTDOWN_TIMEOUT}s"
+                        )
             if not self._loop.is_closed():
                 self._loop.close()
             try:
