@@ -80,8 +80,7 @@ SHARED_ASYNC_LOOP_LOCK = threading.Lock()
 
 def shared_async_loop() -> SharedAsyncLoop:
     global SHARED_ASYNC_LOOP
-    if SHARED_ASYNC_LOOP is None or SHARED_ASYNC_LOOP.is_closed():
-        with SHARED_ASYNC_LOOP_LOCK:
-            if SHARED_ASYNC_LOOP is None or SHARED_ASYNC_LOOP.is_closed():
-                SHARED_ASYNC_LOOP = SharedAsyncLoop()
-    return SHARED_ASYNC_LOOP
+    with SHARED_ASYNC_LOOP_LOCK:
+        if SHARED_ASYNC_LOOP is None or SHARED_ASYNC_LOOP.is_closed():
+            SHARED_ASYNC_LOOP = SharedAsyncLoop()
+        return SHARED_ASYNC_LOOP
