@@ -346,28 +346,38 @@ def main(
             results = json.load(f)
     else:
         # Evaluate on problems in parallel
-        with ThreadPoolExecutor(max_workers=max_parallel_problems) as executor:
-            future_to_problem = {
-                executor.submit(
-                    _run_evaluation_task,
-                    prompt_args,
-                    model_name,
-                    model_config,
-                    n_repeated_sampling,
-                    n_self_refine,
-                    problem_id,
-                    lite_version,
-                    num_workers,
-                    n_public_cases,
-                    selection_method,
-                    exp_root,
-                ): problem_id
-                for problem_id in problem_ids
-            }
-            results = {}
+        executor = ThreadPoolExecutor(max_workers=max_parallel_problems)
+        future_to_problem = {
+            executor.submit(
+                _run_evaluation_task,
+                prompt_args,
+                model_name,
+                model_config,
+                n_repeated_sampling,
+                n_self_refine,
+                problem_id,
+                lite_version,
+                num_workers,
+                n_public_cases,
+                selection_method,
+                exp_root,
+            ): problem_id
+            for problem_id in problem_ids
+        }
+        results = {}
+        cancel_futures = False
+        try:
             for future in as_completed(future_to_problem):
                 problem_id, success, message = future.result()
                 results[problem_id] = {"success": success, "message": message}
+        except KeyboardInterrupt:
+            cancel_futures = True
+            print("\nKeyboard interrupt received. Cancelling pending tasks...")
+            for future in future_to_problem:
+                future.cancel()
+            raise
+        finally:
+            executor.shutdown(wait=not cancel_futures, cancel_futures=cancel_futures)
 
         # Summary report
         successful = sum(1 for r in results.values() if r["success"])
