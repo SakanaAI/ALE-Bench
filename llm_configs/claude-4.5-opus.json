@@ -1,0 +1,23 @@
+{
+    "model_name": "anthropic/claude-opus-4.5",
+    "provider": "openrouter",
+    "settings": {
+        "temperature": 1.0,
+        "max_tokens": 32000,
+        "extra_body": {
+            "provider": {
+                "allow_fallbacks": false,
+                "data_collection": "deny",
+                "order": ["anthropic", "google-vertex"],
+                "require_parameters": true
+            },
+            "reasoning": {
+                "enabled": true,
+                "max_tokens": 16000
+            },
+            "usage": {
+                "include": true
+            }
+        }
+    }
+}

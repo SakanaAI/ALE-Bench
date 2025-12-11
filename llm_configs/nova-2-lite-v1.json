@@ -1,0 +1,18 @@
+{
+    "model_name": "amazon/nova-2-lite-v1",
+    "provider": "openrouter",
+    "settings": {
+        "temperature": 1.0,
+        "extra_body": {
+            "provider": {
+                "allow_fallbacks": false,
+                "data_collection": "deny",
+                "order": ["amazon-bedrock"],
+                "require_parameters": true
+            },
+            "usage": {
+                "include": true
+            }
+        }
+    }
+}

@@ -1,0 +1,18 @@
+{
+    "model_name": "mistralai/mistral-large-2512",
+    "provider": "openrouter",
+    "settings": {
+        "temperature": 0.15,
+        "extra_body": {
+            "provider": {
+                "allow_fallbacks": false,
+                "data_collection": "deny",
+                "order": ["mistral"],
+                "require_parameters": true
+            },
+            "usage": {
+                "include": true
+            }
+        }
+    }
+}

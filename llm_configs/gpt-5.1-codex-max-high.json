@@ -1,0 +1,8 @@
+{
+    "model_name": "gpt-5.1-codex-max",
+    "provider": "openai",
+    "settings": {
+        "temperature": 1.0,
+        "openai_reasoning_effort": "high"
+    }
+}
