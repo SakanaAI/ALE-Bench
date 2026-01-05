@@ -72,8 +72,14 @@ FALLBACK_DICT = {
     "deepseek-v3.1-terminus": ModelPrice(input_mtok=Decimal(27) / Decimal(100), output_mtok=Decimal(1)),
     "deepseek-v3.2": ModelPrice(input_mtok=Decimal(27) / Decimal(100), output_mtok=Decimal(42) / Decimal(10)),
     "deepseek-r1-0528": ModelPrice(input_mtok=Decimal(79) / Decimal(100), output_mtok=Decimal(4)),
+    "mimo-v2-flash:free": ModelPrice(input_mtok=Decimal(1) / Decimal(10), output_mtok=Decimal(3) / Decimal(10)),
     "glm-4.5": ModelPrice(input_mtok=Decimal(59) / Decimal(100), output_mtok=Decimal(21) / Decimal(10)),
     "glm-4.6": ModelPrice(
+        input_mtok=Decimal(6) / Decimal(10),
+        output_mtok=Decimal(22) / Decimal(10),
+        cache_read_mtok=Decimal(11) / Decimal(100),
+    ),
+    "glm-4.7": ModelPrice(
         input_mtok=Decimal(6) / Decimal(10),
         output_mtok=Decimal(22) / Decimal(10),
         cache_read_mtok=Decimal(11) / Decimal(100),
@@ -99,6 +105,12 @@ FALLBACK_DICT = {
         input_mtok=Decimal(6) / Decimal(10),
         output_mtok=Decimal(25) / Decimal(10),
         cache_read_mtok=Decimal(15) / Decimal(100),
+    ),
+    "minimax-m2.1": ModelPrice(
+        input_mtok=Decimal(3) / Decimal(10),
+        output_mtok=Decimal(12) / Decimal(10),
+        cache_read_mtok=Decimal(3) / Decimal(100),
+        cache_write_mtok=Decimal(375) / Decimal(1000),
     ),
     "qwen3-235b-a22b-thinking-2507": ModelPrice(
         input_mtok=Decimal(3) / Decimal(10), output_mtok=Decimal(29) / Decimal(10)

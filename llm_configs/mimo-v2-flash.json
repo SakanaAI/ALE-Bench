@@ -1,0 +1,22 @@
+{
+    "model_name": "xiaomi/mimo-v2-flash:free",
+    "provider": "openrouter",
+    "settings": {
+        "temperature": 0.8,
+        "top_p": 0.95,
+        "extra_body": {
+            "provider": {
+                "allow_fallbacks": false,
+                "data_collection": "deny",
+                "order": ["xiaomi/fp8"],
+                "require_parameters": true
+            },
+            "reasoning": {
+                "enabled": true
+            },
+            "usage": {
+                "include": true
+            }
+        }
+    }
+}
