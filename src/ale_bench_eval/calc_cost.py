@@ -9,6 +9,11 @@ FALLBACK_DICT = {
         cache_read_mtok=Decimal(175) / Decimal(1000),
         output_mtok=Decimal(14),
     ),
+    "gpt-5.2-codex": ModelPrice(
+        input_mtok=Decimal(175) / Decimal(100),
+        cache_read_mtok=Decimal(175) / Decimal(1000),
+        output_mtok=Decimal(14),
+    ),
     "gpt-5.1-codex-max": ModelPrice(
         input_mtok=Decimal(125) / Decimal(100),
         cache_read_mtok=Decimal(125) / Decimal(1000),
@@ -105,6 +110,11 @@ FALLBACK_DICT = {
         input_mtok=Decimal(6) / Decimal(10),
         output_mtok=Decimal(25) / Decimal(10),
         cache_read_mtok=Decimal(15) / Decimal(100),
+    ),
+    "kimi-k2.5": ModelPrice(
+        input_mtok=Decimal(6) / Decimal(10),
+        output_mtok=Decimal(3),
+        cache_read_mtok=Decimal(1) / Decimal(10),
     ),
     "minimax-m2.1": ModelPrice(
         input_mtok=Decimal(3) / Decimal(10),

@@ -1,0 +1,20 @@
+{
+    "model_name": "moonshotai/kimi-k2.5",
+    "provider": "openrouter",
+    "settings": {
+        "extra_body": {
+            "provider": {
+                "allow_fallbacks": false,
+                "data_collection": "deny",
+                "order": ["moonshotai"],
+                "require_parameters": true
+            },
+            "reasoning": {
+                "enabled": true
+            },
+            "usage": {
+                "include": true
+            }
+        }
+    }
+}
