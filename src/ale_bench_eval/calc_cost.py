@@ -62,6 +62,14 @@ FALLBACK_DICT = {
         cache_read_mtok=Decimal(5) / Decimal(10),
         output_mtok=Decimal(25),
     ),
+    "claude-opus-4.6": ModelPrice(
+        input_mtok=TieredPrices(base=Decimal(5), tiers=[Tier(start=200000, price=Decimal(10))]),
+        cache_write_mtok=TieredPrices(
+            base=Decimal(625) / Decimal(100), tiers=[Tier(start=200000, price=Decimal(125) / Decimal(10))]
+        ),
+        cache_read_mtok=TieredPrices(base=Decimal(5) / Decimal(10), tiers=[Tier(start=200000, price=Decimal(1))]),
+        output_mtok=TieredPrices(base=Decimal(25), tiers=[Tier(start=200000, price=Decimal(375) / Decimal(10))]),
+    ),
     "grok-4.1-fast": ModelPrice(
         input_mtok=Decimal(2) / Decimal(10),
         cache_read_mtok=Decimal(5) / Decimal(100),
