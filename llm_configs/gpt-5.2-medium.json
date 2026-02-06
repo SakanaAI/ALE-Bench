@@ -1,0 +1,9 @@
+{
+    "model_name": "gpt-5.2-2025-12-11",
+    "provider": "openai",
+    "settings": {
+        "temperature": 1.0,
+        "openai_reasoning_effort": "medium",
+        "openai_reasoning_summary": "detailed"
+    }
+}

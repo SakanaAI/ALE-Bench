@@ -1,10 +1,6 @@
 """ALE-Bench evaluation package."""
 
 import importlib.metadata
-import sys
-
-if sys.version_info < (3, 10):
-    raise RuntimeError("ALE-Bench evaluation requires Python 3.10 or higher.")
 
 try:
     import fire  # noqa: F401
