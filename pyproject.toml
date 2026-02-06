@@ -17,7 +17,7 @@ authors = [
     { name = "Ino-Ichan", email = "sys.b11noway@gmail.com" },
 ]
 readme = "README.md"
-requires-python = ">=3.9,<3.15"
+requires-python = ">=3.10,<3.15"
 license = { file = "LICENSE" }
 keywords = ["benchmark", "algorithmic programming", "atcoder", "AHC", "AI evaluation", "heuristic", "optimization", "estimation"]
 classifiers = [
@@ -37,7 +37,6 @@ dependencies = [
     "ahocorapy",
     "cairosvg",
     "docker",
-    "eval_type_backport; python_version == '3.9'",
     "huggingface_hub",
     "pillow",
     "polars>=1",
@@ -50,11 +49,11 @@ Repository = "https://github.com/SakanaAI/ALE-Bench"
 
 [project.optional-dependencies]
 dev = [
-    "mypy==1.17.1",
-    "pytest==8.4.2",
-    "pytest-mock==3.15.0",
-    "ruff==0.12.12",
-    "types-requests==2.32.4.20250809",
+    "mypy==1.19.1",
+    "pytest==9.0.2",
+    "pytest-mock==3.15.1",
+    "ruff==0.15.0",
+    "types-requests==2.32.4.20260107",
 ]
 eval = [
     "fire>=0.7.0",

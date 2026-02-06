@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from contextlib import AbstractContextManager, nullcontext as does_not_raise
 
 import pytest
