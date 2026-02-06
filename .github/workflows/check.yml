@@ -31,9 +31,9 @@ jobs:
     steps:
     - uses: actions/checkout@v6
 
-    - name: Install cairo on macOS
+    - name: Set library path for Homebrew on macOS
       if: runner.os == 'macOS'
-      run: brew install cairo
+      run: echo "DYLD_FALLBACK_LIBRARY_PATH=$(brew --prefix)/lib" >> "$GITHUB_ENV"
 
     - name: Install uv and set the python version
       uses: astral-sh/setup-uv@v7
