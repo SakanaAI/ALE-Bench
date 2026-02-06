@@ -49,16 +49,19 @@ Repository = "https://github.com/SakanaAI/ALE-Bench"
 [project.optional-dependencies]
 dev = [
     "mypy>=1.19.1",
+    "pandas-stubs>=2.3.3.251201",
     "pytest>=9.0.2",
     "pytest-mock>=3.15.1",
     "ruff>=0.15.0",
+    "types-docker>=7.0.0.20240413",
+    "types-psutil>=7.0.0.20250218",
     "types-requests>=2.32.4.20260107",
 ]
 eval = [
     "fire>=0.7.0",
     "genai-prices>=0.0.47",
     "numpy>=2.0.2",
-    "pandas>=2.3.1",
+    "pandas>=2.3.3",
     "psutil>=7.0.0",
     "pydantic-ai>=1.30.0",
 ]
@@ -82,6 +85,14 @@ warn_redundant_casts = true
 warn_unused_ignores = true
 warn_no_return = true
 warn_unreachable = true
+
+[[tool.mypy.overrides]]
+module = [
+    "cairosvg",
+    "ahocorapy.*",
+    "fire",
+]
+ignore_missing_imports = true
 
 [tool.pytest.ini_options]
 markers = [
