@@ -1,0 +1,21 @@
+{
+    "model_name": "qwen/qwen3.5-plus-02-15",
+    "provider": "openrouter",
+    "settings": {
+        "temperature": 1.0,
+        "extra_body": {
+            "provider": {
+                "allow_fallbacks": false,
+                "data_collection": "deny",
+                "order": ["alibaba"],
+                "require_parameters": true
+            },
+            "reasoning": {
+                "enabled": true
+            },
+            "usage": {
+                "include": true
+            }
+        }
+    }
+}
