@@ -1,0 +1,23 @@
+{
+    "model_name": "anthropic/claude-sonnet-4.6",
+    "provider": "openrouter",
+    "settings": {
+        "temperature": 1.0,
+        "max_tokens": 128000,
+        "extra_body": {
+            "provider": {
+                "allow_fallbacks": false,
+                "data_collection": "deny",
+                "order": ["anthropic"],
+                "require_parameters": true
+            },
+            "reasoning": {
+                "enabled": true
+            },
+            "usage": {
+                "include": true
+            },
+            "verbosity": "high"
+        }
+    }
+}
