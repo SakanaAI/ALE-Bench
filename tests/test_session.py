@@ -19,7 +19,7 @@ from ale_bench.data import (
     Standings,
 )
 from ale_bench.error import AleBenchError
-from ale_bench.result import CaseResult, CodeRunResult, JudgeResult, ResourceUsage
+from ale_bench.result import CaseResult, CodeRunResult, JudgeResult, ResourceUsage, Result
 from ale_bench.session import AleBenchFunction, Session
 
 
@@ -657,6 +657,47 @@ class TestSession:
             assert action_log[0]["elapsed_time"] == pytest.approx(
                 (utc_now - dummy_session.session_started_at).total_seconds()
             )
+
+    def test_estimate_rank_and_performance(self, dummy_session: Session) -> None:
+        private_result = Result(
+            allow_score_non_ac=False,
+            resource_usage=ResourceUsage(),
+            case_results=[
+                CaseResult(
+                    judge_result=JudgeResult.ACCEPTED,
+                    message="",
+                    absolute_score=1000000000,
+                    execution_time=4.9,
+                    memory_usage=16 * 1024 * 1024,
+                ),
+                CaseResult(
+                    judge_result=JudgeResult.ACCEPTED,
+                    message="",
+                    absolute_score=998244353,
+                    execution_time=4.8,
+                    memory_usage=16 * 1024 * 1024,
+                ),
+                CaseResult(
+                    judge_result=JudgeResult.ACCEPTED,
+                    message="",
+                    absolute_score=999999999,
+                    execution_time=4.7,
+                    memory_usage=16 * 1024 * 1024,
+                ),
+            ],
+        )
+        before_resource_usage = dummy_session.current_resource_usage
+        before_action_log = list(dummy_session.action_log)
+        before_last_private_eval_time = dummy_session.last_private_eval_time
+
+        rank, performance, relative_scores = dummy_session.estimate_rank_and_performance(private_result)
+
+        assert rank == 2
+        assert performance == 2800
+        assert relative_scores == [1000000000, 998244353, 999999999]
+        assert dummy_session.current_resource_usage == before_resource_usage
+        assert dummy_session.action_log == before_action_log
+        assert dummy_session.last_private_eval_time == before_last_private_eval_time
 
     def test_save(self, dummy_session: Session) -> None:
         # Case evaluation x 1 (3 cases), Public evaluation x 1

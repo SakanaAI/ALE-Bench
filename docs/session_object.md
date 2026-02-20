@@ -135,6 +135,18 @@ Evaluates the provided code against the predefined set of private test cases. Th
 - `int`: The new performance score.
 
 ---
+### `estimate_rank_and_performance`
+Estimates rank and performance from a private `Result` without running evaluation or mutating the session state.
+
+**Parameters:**
+- `private_result (Result)`: A private evaluation result.
+
+**Returns:**
+- `int`: The estimated rank in the standings.
+- `int`: The estimated performance.
+- `list[int]`: The relative (or per-case) scores used for rank estimation.
+
+---
 ### `save`
 Saves the current state of the session to a JSON file. This allows the session to be paused and resumed later using `ale_bench.restart(filepath)`.
 
