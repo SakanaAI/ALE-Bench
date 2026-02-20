@@ -18,7 +18,7 @@ ENV DEBIAN_FRONTEND=noninteractive \
 
 ARG TARGETARCH
 ARG TARGETVARIANT
-ARG BASH_VERSION=5.3
+ARG BASH_VER=5.3
 ARG PERL_VERSION=5.38.2
 ARG GCC_VERSION=15.2.0
 ARG RUST_VERSION=1.89.0
@@ -58,7 +58,7 @@ RUN set -eux; \
         libffi-dev liblzma-dev uuid-dev tk-dev llvm-bolt libbolt-19-dev \
         libgdbm-dev libgdbm-compat-dev libexpat1-dev \
         libopenblas-dev liblapack-dev libicu-dev \
-        lzma lzma-dev python3 fypp python3-joblib \
+        python3 fypp python3-joblib \
         gfortran gfortran-14 libstdc++-14-dev libeigen3-dev \
         libc6 libgcc-s1 libgssapi-krb5-2 libssl3 libstdc++6 libunwind8 zlib1g \
         opam gettext libpcre2-dev libgeos-dev meson; \
@@ -75,7 +75,7 @@ RUN set -eux; \
 # ---- Bash 5.3 ----
 RUN set -eux; \
     cd /tmp; \
-    curl -fsSLo bash.tar.gz "https://ftp.gnu.org/gnu/bash/bash-${BASH_VERSION}.tar.gz"; \
+    curl -fsSLo bash.tar.gz "https://ftp.gnu.org/gnu/bash/bash-${BASH_VER}.tar.gz"; \
     mkdir bash; \
     tar -C bash --strip-components=1 -xf bash.tar.gz; \
     cd bash; \
@@ -461,14 +461,12 @@ RUN set -eux; \
     curl -fsSLo /usr/local/bin/fpm "https://github.com/fortran-lang/fpm/releases/download/v${FPM_VERSION}/fpm-${FPM_VERSION}-linux-x86_64"; \
     chmod +x /usr/local/bin/fpm
 
-COPY ./fortran_202510_fpm_install.toml /tmp/fortran/fpm.toml
-
 RUN set -eux; \
     mkdir -p /tmp/fortran; \
     cd /tmp/fortran; \
     curl -fsSLo "v${FORTRAN_STDLIB_VERSION}.tar.gz" "https://github.com/fortran-lang/stdlib/archive/refs/tags/v${FORTRAN_STDLIB_VERSION}.tar.gz"; \
     tar -xf v${FORTRAN_STDLIB_VERSION}.tar.gz; \
-    mv fpm.toml stdlib-${FORTRAN_STDLIB_VERSION}/fpm.toml; \
+    printf '\n\n[install]\nlibrary = true\n' >> stdlib-${FORTRAN_STDLIB_VERSION}/fpm.toml; \
     cd /tmp/fortran/stdlib-${FORTRAN_STDLIB_VERSION}; \
     python3 config/fypp_deployment.py; \
     FPM_FC=gfortran FPM_FFLAGS="-O2 -cpp -std=f2023" fpm build --profile release; \

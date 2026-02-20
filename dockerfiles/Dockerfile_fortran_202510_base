@@ -26,14 +26,12 @@ RUN set -eux; \
     curl -fsSLo /usr/local/bin/fpm "https://github.com/fortran-lang/fpm/releases/download/v${FPM_VERSION}/fpm-${FPM_VERSION}-linux-x86_64"; \
     chmod +x /usr/local/bin/fpm
 
-COPY ./fortran_202510_fpm_install.toml /tmp/fortran/fpm.toml
-
 RUN set -eux; \
     mkdir -p /tmp/fortran; \
     cd /tmp/fortran; \
     curl -fsSLo "v${FORTRAN_STDLIB_VERSION}.tar.gz" "https://github.com/fortran-lang/stdlib/archive/refs/tags/v${FORTRAN_STDLIB_VERSION}.tar.gz"; \
     tar -xf v${FORTRAN_STDLIB_VERSION}.tar.gz; \
-    mv fpm.toml stdlib-${FORTRAN_STDLIB_VERSION}/fpm.toml; \
+    printf '\n\n[install]\nlibrary = true\n' >> stdlib-${FORTRAN_STDLIB_VERSION}/fpm.toml; \
     cd /tmp/fortran/stdlib-${FORTRAN_STDLIB_VERSION}; \
     python3 config/fypp_deployment.py; \
     FPM_FC=gfortran FPM_FFLAGS="-O2 -cpp -std=f2023" fpm build --profile release; \

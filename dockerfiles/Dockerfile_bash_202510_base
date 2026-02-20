@@ -10,7 +10,7 @@ ENV DEBIAN_FRONTEND=noninteractive \
     LANG=C.UTF-8 \
     LC_ALL=C.UTF-8
 
-ARG BASH_VERSION=5.3
+ARG BASH_VER=5.3
 
 RUN set -eux; \
     apt-get update; \
@@ -22,7 +22,7 @@ WORKDIR /workdir
 
 RUN set -eux; \
     cd /tmp; \
-    curl -fsSLo bash.tar.gz "https://ftp.gnu.org/gnu/bash/bash-${BASH_VERSION}.tar.gz"; \
+    curl -fsSLo bash.tar.gz "https://ftp.gnu.org/gnu/bash/bash-${BASH_VER}.tar.gz"; \
     mkdir bash; \
     tar -C bash --strip-components=1 -xf bash.tar.gz; \
     cd bash; \
