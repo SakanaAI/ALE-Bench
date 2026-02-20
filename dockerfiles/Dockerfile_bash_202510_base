@@ -23,7 +23,8 @@ WORKDIR /workdir
 RUN set -eux; \
     mkdir -p /tmp/bash; \
     cd /tmp/bash; \
-    curl -fsSL "https://ftp.gnu.org/gnu/bash/bash-${BASH_VERSION}.tar.gz" -o bash.tar.gz; \
+    curl -fSLo bash.tar.gz --retry 5 --retry-all-errors "https://ftp.gnu.org/gnu/bash/bash-${BASH_VERSION}.tar.gz" \
+      || curl -fSLo bash.tar.gz --retry 5 --retry-all-errors "https://ftpmirror.gnu.org/bash/bash-${BASH_VERSION}.tar.gz"; \
     tar -xzf bash.tar.gz; \
     cd "bash-${BASH_VERSION}"; \
     ./configure --enable-largefile --without-bash-malloc; \
