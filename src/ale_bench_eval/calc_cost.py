@@ -25,6 +25,14 @@ FALLBACK_DICT = {
         cache_read_mtok=Decimal(5) / Decimal(100),
         output_mtok=Decimal(3),
     ),
+    "gemini-3.1-pro-preview": ModelPrice(
+        input_mtok=TieredPrices(base=Decimal(2), tiers=[Tier(start=200000, price=Decimal(4))]),
+        output_mtok=TieredPrices(base=Decimal(12), tiers=[Tier(start=200000, price=Decimal(18))]),
+        cache_read_mtok=TieredPrices(
+            base=Decimal(2) / Decimal(10), tiers=[Tier(start=200000, price=Decimal(4) / Decimal(10))]
+        ),
+        cache_write_mtok=Decimal(375) / Decimal(1000),
+    ),
     "claude-sonnet-4": ModelPrice(
         input_mtok=TieredPrices(base=Decimal(3), tiers=[Tier(start=200000, price=Decimal(6))]),
         cache_write_mtok=TieredPrices(
@@ -71,6 +79,16 @@ FALLBACK_DICT = {
         cache_read_mtok=TieredPrices(base=Decimal(5) / Decimal(10), tiers=[Tier(start=200000, price=Decimal(1))]),
         output_mtok=TieredPrices(base=Decimal(25), tiers=[Tier(start=200000, price=Decimal(375) / Decimal(10))]),
     ),
+    "claude-sonnet-4.6": ModelPrice(
+        input_mtok=TieredPrices(base=Decimal(3), tiers=[Tier(start=200000, price=Decimal(6))]),
+        cache_write_mtok=TieredPrices(
+            base=Decimal(375) / Decimal(100), tiers=[Tier(start=200000, price=Decimal(75) / Decimal(10))]
+        ),
+        cache_read_mtok=TieredPrices(
+            base=Decimal(3) / Decimal(10), tiers=[Tier(start=200000, price=Decimal(6) / Decimal(10))]
+        ),
+        output_mtok=TieredPrices(base=Decimal(15), tiers=[Tier(start=200000, price=Decimal(225) / Decimal(10))]),
+    ),
     "grok-4.1-fast": ModelPrice(
         input_mtok=Decimal(2) / Decimal(10),
         cache_read_mtok=Decimal(5) / Decimal(100),
@@ -97,6 +115,11 @@ FALLBACK_DICT = {
         input_mtok=Decimal(6) / Decimal(10),
         output_mtok=Decimal(22) / Decimal(10),
         cache_read_mtok=Decimal(11) / Decimal(100),
+    ),
+    "glm-5": ModelPrice(
+        input_mtok=Decimal(1),
+        output_mtok=Decimal(32) / Decimal(10),
+        cache_read_mtok=Decimal(2) / Decimal(10),
     ),
     "gpt-oss-120b": ModelPrice(input_mtok=Decimal(1) / Decimal(10), output_mtok=Decimal(5) / Decimal(10)),
     "gpt-oss-20b": ModelPrice(input_mtok=Decimal(5) / Decimal(100), output_mtok=Decimal(2) / Decimal(10)),
@@ -131,6 +154,11 @@ FALLBACK_DICT = {
         cache_read_mtok=Decimal(3) / Decimal(100),
         cache_write_mtok=Decimal(375) / Decimal(1000),
     ),
+    "minimax-m2.5": ModelPrice(
+        input_mtok=Decimal(3) / Decimal(10),
+        output_mtok=Decimal(12) / Decimal(10),
+        cache_read_mtok=Decimal(3) / Decimal(100),
+    ),
     "qwen3-235b-a22b-thinking-2507": ModelPrice(
         input_mtok=Decimal(3) / Decimal(10), output_mtok=Decimal(29) / Decimal(10)
     ),
@@ -158,6 +186,15 @@ FALLBACK_DICT = {
     ),
     "qwen3-next-80b-a3b-thinking": ModelPrice(
         input_mtok=Decimal(14) / Decimal(100), output_mtok=Decimal(14) / Decimal(10)
+    ),
+    "qwen3.5-397b-a17b": ModelPrice(input_mtok=Decimal(6) / Decimal(10), output_mtok=Decimal(36) / Decimal(10)),
+    "qwen3.5-plus-02-15": ModelPrice(
+        input_mtok=TieredPrices(
+            base=Decimal(4) / Decimal(10), tiers=[Tier(start=256000, price=Decimal(12) / Decimal(10))]
+        ),
+        output_mtok=TieredPrices(
+            base=Decimal(24) / Decimal(10), tiers=[Tier(start=256000, price=Decimal(72) / Decimal(10))]
+        ),
     ),
 }
 
