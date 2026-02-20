@@ -3,8 +3,6 @@
     ```sh
     git clone https://github.com/SakanaAI/ALE-Bench.git
     cd ALE-Bench
-
-    # Using uv
     uv sync --dev --extra eval
     ```
 
@@ -25,15 +23,15 @@
 - **Python Library Development:**
     ```sh
     # Linting
-    ruff check
+    uv run ruff check
 
     # Formatting
-    ruff format
+    uv run ruff format
 
     # Static Type Checking
-    ty check
+    uv run ty check
 
     # Running Tests
-    pytest
-    pytest -m "not docker"  # Exclude tests requiring Docker
+    uv run pytest
+    uv run pytest -m "not docker"  # Exclude tests requiring Docker
     ```
