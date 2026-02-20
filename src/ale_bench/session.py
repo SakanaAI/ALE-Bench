@@ -418,7 +418,7 @@ class Session:
         )
 
         # Generation and evaluation (postprocessing is done in each function)
-        input_str = self.case_gen(seed, **gen_kwargs)
+        input_str = self.case_gen(seed, gen_kwargs=gen_kwargs)
         result = self.case_eval(
             input_str, code, code_language, judge_version, time_limit, memory_limit, skip_local_visualization
         )

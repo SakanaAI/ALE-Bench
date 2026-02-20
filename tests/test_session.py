@@ -514,6 +514,19 @@ class TestSession:
                 (utc_now - dummy_session.session_started_at).total_seconds()
             )
 
+    def test_case_gen_eval_with_gen_kwargs(self, dummy_session: Session) -> None:
+        dummy_session.case_gen_eval(
+            code="dummy code",
+            code_language="rust",
+            seed=[0, 1, 2],
+            gen_kwargs={"N": 1},
+        )
+        action_log = [json.loads(log) for log in dummy_session.action_log]
+        assert len(action_log) == 2
+        assert action_log[0]["function"] == "case_gen"
+        assert action_log[0]["arguments"] == {"seed": [0, 1, 2], "gen_kwargs": {"N": 1}}
+        assert action_log[1]["function"] == "case_eval"
+
     @pytest.mark.parametrize(
         ("utc_now", "context"),
         [
