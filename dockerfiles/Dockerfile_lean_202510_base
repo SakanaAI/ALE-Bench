@@ -20,7 +20,7 @@ RUN set -eux; \
 
 WORKDIR /workdir
 
-COPY ./lean_202510_Main.lean /workdir/Main.lean
+COPY ./lean_202510_Main.lean /tmp/Main.lean
 COPY ./lean_202510_lakefile.toml.template /tmp/lakefile.toml.template
 
 RUN set -eux; \
@@ -31,6 +31,7 @@ RUN set -eux; \
     lake new atcoder exe; \
     cd atcoder; \
     sed "s|__LEAN_VERSION__|${LEAN_VERSION}|g" /tmp/lakefile.toml.template >> lakefile.toml; \
+    cp /tmp/Main.lean Main.lean; \
     lake exe cache get; \
     lake build; \
-    rm -f .lake/build/bin/atcoder /tmp/lakefile.toml.template
+    rm -f .lake/build/bin/atcoder /tmp/lakefile.toml.template /tmp/Main.lean

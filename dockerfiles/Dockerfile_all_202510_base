@@ -70,7 +70,15 @@ RUN set -eux; \
 WORKDIR /workdir
 
 RUN set -eux; \
-    cp -Trf /usr/include/eigen3 /usr/local/include
+    cp -Trf /usr/include/eigen3 /usr/local/include; \
+    mkdir -p /usr/local/cmake; \
+    cp -f \
+        /usr/share/eigen3/cmake/Eigen3Targets.cmake \
+        /usr/share/eigen3/cmake/Eigen3Config.cmake \
+        /usr/local/cmake; \
+    sed -i \
+        -e 's|include/eigen3|local/include|g' \
+        /usr/local/cmake/Eigen3Targets.cmake
 
 # ---- Bash 5.3 ----
 RUN set -eux; \
@@ -120,7 +128,7 @@ RUN set -eux; \
         --disable-libada \
         --disable-libgm2; \
     make -j"$(nproc)"; \
-    make install-strip; \
+    make install; \
     echo "${GCC_DIR}/lib64" > /etc/ld.so.conf.d/gcc-${GCC_VERSION}.conf; \
     echo "${GCC_DIR}/lib" >> /etc/ld.so.conf.d/gcc-${GCC_VERSION}.conf; \
     ldconfig; \
@@ -205,9 +213,7 @@ RUN set -eux; \
     cd /tmp/range-v3; \
     curl -fsSLo range-v3.tar.gz "https://github.com/ericniebler/range-v3/archive/refs/tags/${RANGE_V3_VERSION}.tar.gz"; \
     tar -xf range-v3.tar.gz; \
-    cp -r "range-v3-${RANGE_V3_VERSION}/include/range" /usr/local/include/; \
-    cp -r "range-v3-${RANGE_V3_VERSION}/include/meta" /usr/local/include/; \
-    cp -r "range-v3-${RANGE_V3_VERSION}/include/concepts" /usr/local/include/; \
+    cp -Trf "range-v3-${RANGE_V3_VERSION}/include" /usr/local/include; \
     rm -rf /tmp/range-v3
 
 RUN set -eux; \
@@ -221,6 +227,7 @@ RUN set -eux; \
         -DCMAKE_INSTALL_PREFIX=/usr/local \
         -DZ3_BUILD_TEST_EXECUTABLES=OFF \
         -DZ3_BUILD_PYTHON_BINDINGS=OFF \
+        -DCMAKE_CXX_FLAGS="-std=gnu++23 -w" \
         -DCMAKE_EXE_LINKER_FLAGS="-fuse-ld=lld" \
         -DCMAKE_SHARED_LINKER_FLAGS="-fuse-ld=lld"; \
     cmake --build build; \
@@ -283,9 +290,29 @@ RUN set -eux; \
         -DCMAKE_EXE_LINKER_FLAGS="-fuse-ld=lld" \
         -DCMAKE_SHARED_LINKER_FLAGS="-fuse-ld=lld" \
         ..; \
-    cmake --build . --config Release; \
     cmake --build . --config Release --target install; \
     rm -rf /tmp/or-tools
+
+RUN set -eux; \
+    g++ bits/std.cc bits/std.compat.cc \
+        -DATCODER \
+        -DONLINE_JUDGE \
+        -O2 \
+        -Wall \
+        -Wextra \
+        -fconstexpr-depth=1024 \
+        -fconstexpr-loop-limit=524288 \
+        -fconstexpr-ops-limit=2097152 \
+        -flto=auto \
+        -fmodules \
+        -ftrivial-auto-var-init=zero \
+        -march=native \
+        -pthread \
+        -std=gnu++23 \
+        "-Wl,--as-needed" \
+        "-L${GCC_DIR}/lib64" \
+        "-Wl,-R${GCC_DIR}/lib64" \
+        -c -fmodule-only -fsearch-include-path
 
 ENV CPATH="/usr/local/include/torch/csrc/api/include:${CPATH}"
 
@@ -534,7 +561,7 @@ RUN set -eux; \
 # ---- Lean 4.22.0 ----
 ENV PATH="/root/.elan/bin:${PATH}"
 
-COPY ./lean_202510_Main.lean /workdir/Main.lean
+COPY ./lean_202510_Main.lean /tmp/Main.lean
 COPY ./lean_202510_lakefile.toml.template /tmp/lakefile.toml.template
 
 RUN set -eux; \
@@ -545,6 +572,7 @@ RUN set -eux; \
     lake new atcoder exe; \
     cd atcoder; \
     sed "s|__LEAN_VERSION__|${LEAN_VERSION}|g" /tmp/lakefile.toml.template >> lakefile.toml; \
+    cp /tmp/Main.lean Main.lean; \
     lake exe cache get; \
     lake build; \
-    rm -f .lake/build/bin/atcoder /tmp/lakefile.toml.template
+    rm -f .lake/build/bin/atcoder /tmp/lakefile.toml.template /tmp/Main.lean
