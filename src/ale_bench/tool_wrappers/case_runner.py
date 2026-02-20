@@ -1,3 +1,5 @@
+"""Execute judge-side tools to compile, run, and score submissions."""
+
 import json
 import math
 import os
@@ -8,7 +10,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
 from pydantic import BaseModel, ConfigDict, Field
-from requests.exceptions import ConnectionError, Timeout
+from requests.exceptions import ConnectionError as RequestsConnectionError, Timeout
 
 import ale_bench.constants
 from ale_bench.code_language import (
@@ -40,7 +42,7 @@ def setup_paths_compile(
     code_language: CodeLanguage,
     judge_version: JudgeVersion,
 ) -> HostPathsCompile:
-    """Setup paths for the compilation step of the submission.
+    """Set up paths for the compilation step of the submission.
 
     Args:
         temp_dir (Path): The temporary directory.
@@ -50,6 +52,7 @@ def setup_paths_compile(
 
     Returns:
         HostPathsCompile: The paths in the compilation step for the runner tool.
+
     """
     code_file = temp_dir / get_submission_file_path(code_language, judge_version)
     code_file.parent.mkdir(parents=True, exist_ok=True)
@@ -69,6 +72,7 @@ def get_compile_volumes(host_paths: HostPathsCompile, temp_dir: Path) -> dict[st
 
     Returns:
         dict[str, dict[str, str]]: The volumes for the compile command with the setup.
+
     """
     return {
         str(host_paths.code_file): {
@@ -76,7 +80,7 @@ def get_compile_volumes(host_paths: HostPathsCompile, temp_dir: Path) -> dict[st
             "mode": "ro",
         },
         str(host_paths.object_file): {
-            "bind": f"/tmp/{host_paths.object_file.relative_to(temp_dir)}",
+            "bind": f"{ale_bench.constants.TMP_DIR}/{host_paths.object_file.relative_to(temp_dir)}",
             "mode": "rw",
         },
     }
@@ -96,6 +100,7 @@ def build_compile_command(
 
     Returns:
         str: The compile command.
+
     """
     compile_command = get_compile_command(code_language, judge_version)
     compile_command += (
@@ -123,7 +128,7 @@ def setup_paths_batch_run(
     input_str: str,
     prefix: str = "",
 ) -> HostPathsBatchRun:
-    """Setup paths for the running step of the submission for batch problems.
+    """Set up paths for the running step of the submission for batch problems.
 
     Args:
         host_paths_compile (HostPathsCompile): The paths in the compilation step for the runner tool.
@@ -133,6 +138,7 @@ def setup_paths_batch_run(
 
     Returns:
         HostPathsBatchRun: The paths for the runner tool.
+
     """
     input_file_name = ale_bench.constants.INPUT_FILE.split("/")[-1]
     input_file = temp_dir / f"{prefix}{input_file_name}"
@@ -162,6 +168,7 @@ def get_batch_run_volumes(host_paths: HostPathsBatchRun, temp_dir: Path) -> dict
 
     Returns:
         dict[str, dict[str, str]]: The volumes for the run command with the setup.
+
     """
     return {
         str(host_paths.code_file): {
@@ -189,6 +196,7 @@ def build_batch_run_command(code_language: CodeLanguage, judge_version: JudgeVer
 
     Returns:
         str: The run command.
+
     """
     run_command = get_run_command(code_language, judge_version)
     run_command += f" < {ale_bench.constants.INPUT_FILE} > {ale_bench.constants.OUTPUT_FILE}"
@@ -202,7 +210,7 @@ def build_batch_run_command(code_language: CodeLanguage, judge_version: JudgeVer
     run_command = (
         f"timeout {time_limit_ceil + 0.2} "
         f"prlimit --cpu={time_limit_ceil + 0.1} {run_command}"
-    )  # NOTE: margin Wall Time: 0.2+α sec, CPU Time: 0.1+α sec
+    )  # NOTE: margin Wall Time: 0.2 sec, margin CPU Time: 0.1 sec
     run_command += "; sync"  # NOTE: Ensure all output is written before the container exits
     return run_command
 
@@ -218,13 +226,14 @@ class HostPathsBatchJudge(BaseModel):
 
 
 def setup_paths_batch_judge(host_paths_batch_run: HostPathsBatchRun) -> HostPathsBatchJudge:
-    """Setup paths for the judging step of the submission for batch problems.
+    """Set up paths for the judging step of the submission for batch problems.
 
     Args:
         host_paths_batch_run (HostPathsBatchRun): The paths for the runner tool.
 
     Returns:
         HostPathsBatchJudge: The paths for the judging step of the submission.
+
     """
     return HostPathsBatchJudge(
         input_file=host_paths_batch_run.input_file,
@@ -242,6 +251,7 @@ def get_batch_judge_volumes(host_paths: HostPathsBatchJudge, tool_dir: Path) -> 
 
     Returns:
         dict[str, dict[str, str]]: The volumes for the judging command with the setup.
+
     """
     return {
         str(host_paths.input_file): {"bind": ale_bench.constants.INPUT_FILE, "mode": "ro"},
@@ -258,11 +268,9 @@ def build_batch_judge_command() -> str:
 
     Returns:
         str: The judging command.
+
     """
-    judge_command = (
-        f"{ale_bench.constants.TESTER_BIN} {ale_bench.constants.INPUT_FILE} {ale_bench.constants.OUTPUT_FILE}"
-    )
-    return judge_command
+    return f"{ale_bench.constants.TESTER_BIN} {ale_bench.constants.INPUT_FILE} {ale_bench.constants.OUTPUT_FILE}"
 
 
 class HostPathsReactiveJudge(BaseModel):
@@ -283,7 +291,7 @@ def setup_paths_reactive_judge(
     input_str: str,
     prefix: str = "",
 ) -> HostPathsReactiveJudge:
-    """Setup paths for the judging step of the submission for reactive problems.
+    """Set up paths for the judging step of the submission for reactive problems.
 
     Args:
         host_paths_compile (HostPathsCompile): The paths in the compilation step for the runner tool.
@@ -293,6 +301,7 @@ def setup_paths_reactive_judge(
 
     Returns:
         HostPathsReactiveJudge: The paths for the runner tool.
+
     """
     input_file_name = ale_bench.constants.INPUT_FILE.split("/")[-1]
     input_file = temp_dir / f"{prefix}{input_file_name}"
@@ -325,6 +334,7 @@ def get_reactive_judge_volumes(
 
     Returns:
         dict[str, dict[str, str]]: The volumes for the run command with the setup.
+
     """
     return {
         str(host_paths.code_file): {
@@ -355,6 +365,7 @@ def build_reactive_judge_command(code_language: CodeLanguage, judge_version: Jud
 
     Returns:
         str: The run command.
+
     """
     run_command = get_run_command(code_language, judge_version)
     run_command += f" < {ale_bench.constants.INPUT_FILE} > {ale_bench.constants.OUTPUT_FILE}"
@@ -368,7 +379,7 @@ def build_reactive_judge_command(code_language: CodeLanguage, judge_version: Jud
     run_command = (
         f"timeout {time_limit_ceil + 0.2} "
         f"prlimit --cpu={time_limit_ceil + 0.1} {run_command}"
-    )  # NOTE: margin Wall Time: 0.2+α sec, CPU Time: 0.1+α sec
+    )  # NOTE: margin Wall Time: 0.2 sec, margin CPU Time: 0.1 sec
     run_command += "; sync"  # NOTE: Ensure all output is written before the container exits
     return run_command
 
@@ -386,16 +397,17 @@ class HostPathsVis(BaseModel):
 def setup_paths_vis(
     host_paths_judge: HostPathsBatchJudge | HostPathsReactiveJudge, temp_dir: Path, problem_id: str, prefix: str = ""
 ) -> HostPathsVis:
-    """Setup paths for the visualization step of the judge.
+    """Set up paths for the visualization step of the judge.
 
     Args:
-        host_paths_run (HostPathsBatchRun | HostPathsReactiveRun): The paths for the judge.
+        host_paths_judge (HostPathsBatchJudge | HostPathsReactiveJudge): The paths for the judge.
         temp_dir (Path): The temporary directory.
         problem_id (str): The problem ID.
         prefix (str): The prefix for the local visualization file. Defaults to "".
 
     Returns:
         HostPathsVis: The paths for the visualization step of the judge.
+
     """
     local_visualization_container = (
         ale_bench.constants.LOCAL_VIS_SVG
@@ -424,14 +436,16 @@ def get_vis_volumes(host_paths: HostPathsVis, tool_dir: Path) -> dict[str, dict[
 
     Raises:
         ValueError: If the local visualization file does not have a valid extension.
+
     """
     if host_paths.local_visualization_file.suffix == ".svg":
         local_visualization_container = ale_bench.constants.LOCAL_VIS_SVG
     elif host_paths.local_visualization_file.suffix == ".html":
         local_visualization_container = ale_bench.constants.LOCAL_VIS_HTML
     else:
-        raise ValueError("The local visualization file must have either .svg or .html extension.")
-    vis_volumes = {
+        msg = "The local visualization file must have either .svg or .html extension."
+        raise ValueError(msg)
+    return {
         str(tool_dir / "tools" / "target" / "release" / "vis"): {
             "bind": ale_bench.constants.VIS_BIN,
             "mode": "ro",
@@ -440,7 +454,6 @@ def get_vis_volumes(host_paths: HostPathsVis, tool_dir: Path) -> dict[str, dict[
         str(host_paths.output_file): {"bind": ale_bench.constants.OUTPUT_FILE, "mode": "ro"},
         str(host_paths.local_visualization_file): {"bind": local_visualization_container, "mode": "rw"},
     }
-    return vis_volumes
 
 
 def build_vis_command() -> str:
@@ -448,9 +461,9 @@ def build_vis_command() -> str:
 
     Returns:
         str: The visualization command.
+
     """
-    vis_command = f"{ale_bench.constants.VIS_BIN} {ale_bench.constants.INPUT_FILE} {ale_bench.constants.OUTPUT_FILE}"
-    return vis_command
+    return f"{ale_bench.constants.VIS_BIN} {ale_bench.constants.INPUT_FILE} {ale_bench.constants.OUTPUT_FILE}"
 
 
 def run_compile_container(
@@ -471,6 +484,7 @@ def run_compile_container(
 
     Returns:
         CaseResult | None: The case result if the compilation fails, otherwise None.
+
     """
     with docker_client() as client:
         container = client.containers.run(
@@ -493,7 +507,7 @@ def run_compile_container(
                 container.wait(timeout=ale_bench.constants.COMPILE_TIMEOUT)
             # NOTE: It will catch ReadTimeout, ConnectTimeout and ConnectionError.
             # NOTE: ConnectionError occurs when the compile code timed out with sleep.
-            except (Timeout, ConnectionError):
+            except (Timeout, RequestsConnectionError):
                 if code_language != CodeLanguage.PYTHON:
                     return CaseResult(
                         input_str=None,
@@ -565,6 +579,7 @@ def run_batch_run_container(
     Returns:
         CaseResult | tuple[float, str]:
             The case result if the run fails, otherwise the execution time in seconds and the standard error.
+
     """
     with docker_client() as client:
         start_at = time.perf_counter()
@@ -603,17 +618,16 @@ def run_batch_run_container(
                 execution_time=min(execution_time_host, time_limit + 0.1),  # NOTE: slight longer than time limit
                 memory_usage=0,
             )
-        else:
-            return CaseResult(
-                input_str=input_str,
-                output_str=None,
-                error_str=stderr if input_str is not None else None,
-                judge_result=JudgeResult.RUNTIME_ERROR,
-                message="Runtime error.",
-                absolute_score=ale_bench.constants.REJECTED_ABSOLUTE_SCORE,
-                execution_time=execution_time_host,
-                memory_usage=0,
-            )
+        return CaseResult(
+            input_str=input_str,
+            output_str=None,
+            error_str=stderr if input_str is not None else None,
+            judge_result=JudgeResult.RUNTIME_ERROR,
+            message="Runtime error.",
+            absolute_score=ale_bench.constants.REJECTED_ABSOLUTE_SCORE,
+            execution_time=execution_time_host,
+            memory_usage=0,
+        )
     return execution_time_host, stderr  # Run succeeded, return the execution time and stderr
 
 
@@ -637,6 +651,7 @@ def run_batch_judge_container(
 
     Returns:
         CaseResult | int: The case result if the judge fails, otherwise the score.
+
     """
     with docker_client() as client:
         container = client.containers.run(
@@ -697,8 +712,7 @@ def run_batch_judge_container(
             execution_time=execution_time_host,
             memory_usage=0,
         )
-    score = int(score_match.group(1))
-    return score  # Return the score as an integer
+    return int(score_match.group(1))
 
 
 def run_reactive_judge_container(
@@ -724,6 +738,7 @@ def run_reactive_judge_container(
     Returns:
         CaseResult | tuple[float, int]: The case result if the run fails,
             otherwise the execution time in seconds, the score and the standard error.
+
     """
     with docker_client() as client:
         start_at = time.perf_counter()
@@ -763,17 +778,16 @@ def run_reactive_judge_container(
                 execution_time=min(execution_time_host, time_limit + 0.1),  # NOTE: slight longer than time limit
                 memory_usage=0,
             )
-        else:
-            return CaseResult(
-                input_str=input_str,
-                output_str=None,
-                error_str=stderr if input_str is not None else None,
-                judge_result=JudgeResult.RUNTIME_ERROR,
-                message="Runtime error.",
-                absolute_score=ale_bench.constants.REJECTED_ABSOLUTE_SCORE,
-                execution_time=execution_time_host,
-                memory_usage=0,
-            )
+        return CaseResult(
+            input_str=input_str,
+            output_str=None,
+            error_str=stderr if input_str is not None else None,
+            judge_result=JudgeResult.RUNTIME_ERROR,
+            message="Runtime error.",
+            absolute_score=ale_bench.constants.REJECTED_ABSOLUTE_SCORE,
+            execution_time=execution_time_host,
+            memory_usage=0,
+        )
     stderr_last_line = stderr.splitlines()[-1]
     score_match = re.match(r"Score = (\d+)", stderr_last_line)
     if score_match is None:
@@ -797,6 +811,7 @@ def run_vis_container(vis_command: str, vis_volumes: dict[str, dict[str, str]]) 
     Args:
         vis_command (str): The visualization command.
         vis_volumes (dict[str, dict[str, str]]): The volumes for the visualization command with the setup.
+
     """
     with docker_client() as client:
         container = client.containers.run(
@@ -817,13 +832,15 @@ def run_vis_container(vis_command: str, vis_volumes: dict[str, dict[str, str]]) 
         try:
             try:
                 container.wait(timeout=ale_bench.constants.VISUALIZE_TIMEOUT)
-            except Exception:
-                raise RuntimeError("Timeout while running the visualization command. Something went wrong.")
+            except Exception as e:
+                msg = "Timeout while running the visualization command. Something went wrong."
+                raise RuntimeError(msg) from e
             exit_code = container.attrs["State"]["ExitCode"]
         finally:
             container.remove(force=True)
     if exit_code != 0:
-        raise RuntimeError("Failed to run the visualization command. Something went wrong.")
+        msg = "Failed to run the visualization command. Something went wrong."
+        raise RuntimeError(msg)
 
 
 def parse_profiles(
@@ -835,8 +852,7 @@ def parse_profiles(
     output_str: str | None,
     error_str: str | None,
 ) -> CaseResult | tuple[float, int]:
-    """
-    Parse the profiles content and check for time limit, memory limit, and exit status.
+    """Parse the profiles content and check for time limit, memory limit, and exit status.
 
     Args:
         time_limit (float): The time limit in seconds.
@@ -849,8 +865,11 @@ def parse_profiles(
 
     Returns:
         CaseResult | tuple[float, int]: The case result if there is an error, otherwise (execution_time, memory_usage).
+
     """
-    assert execution_time_host >= 0.0, "execution_time_host must be non-negative"
+    if execution_time_host < 0.0:
+        msg = "execution_time_host must be non-negative"
+        raise ValueError(msg)
     # Check if the profiles content is empty or if it indicates a timeout
     is_tle = False
     if profiles_content == "":
@@ -865,18 +884,18 @@ def parse_profiles(
                 execution_time=min(execution_time_host, time_limit + 0.1),  # NOTE: slight longer than time limit
                 memory_usage=0,
             )
-        else:  # NOTE: Error in running the code
-            return CaseResult(
-                input_str=input_str,
-                output_str=output_str,
-                error_str=error_str,
-                judge_result=JudgeResult.RUNTIME_ERROR,
-                message="Runtime error.",
-                absolute_score=ale_bench.constants.REJECTED_ABSOLUTE_SCORE,
-                execution_time=execution_time_host,
-                memory_usage=0,
-            )
-    elif profiles_content.startswith("Command terminated by signal 9"):
+        # NOTE: Error in running the code
+        return CaseResult(
+            input_str=input_str,
+            output_str=output_str,
+            error_str=error_str,
+            judge_result=JudgeResult.RUNTIME_ERROR,
+            message="Runtime error.",
+            absolute_score=ale_bench.constants.REJECTED_ABSOLUTE_SCORE,
+            execution_time=execution_time_host,
+            memory_usage=0,
+        )
+    if profiles_content.startswith("Command terminated by signal 9"):
         # NOTE: Sigkill is sent by `prlimit` and included to the profiles file
         profiles_content = profiles_content.split("\n", 1)[1]  # Remove the first line
         is_tle = True
@@ -927,7 +946,7 @@ def parse_profiles(
             execution_time=min(execution_time, time_limit + 0.1),  # NOTE: slight longer than time limit
             memory_usage=memory_usage,
         )
-    elif execution_time > time_limit or is_tle:
+    if execution_time > time_limit or is_tle:
         return CaseResult(
             input_str=input_str,
             output_str=output_str,
@@ -938,7 +957,7 @@ def parse_profiles(
             execution_time=min(execution_time, time_limit + 0.1),  # NOTE: slight longer than time limit
             memory_usage=memory_usage,
         )
-    elif memory_usage > memory_limit:
+    if memory_usage > memory_limit:
         return CaseResult(
             input_str=input_str,
             output_str=output_str,
@@ -971,6 +990,7 @@ def case_iter_func(
     reactive_judge_command: str,
     vis_command: str,
 ) -> CaseResult:
+    """Run a single case end-to-end and return its judge result."""
     result_input_str = input_str if return_details else None
     host_paths_judge: HostPathsBatchJudge | HostPathsReactiveJudge
     execution_time_host = -1.0
@@ -984,7 +1004,9 @@ def case_iter_func(
         )
         if isinstance(run_result, CaseResult):
             return run_result
-        assert isinstance(run_result, tuple), "Run result must be a tuple"
+        if not isinstance(run_result, tuple):
+            msg = "Run result must be a tuple"
+            raise TypeError(msg)
         execution_time_host, stderr = run_result
         result_output_str = host_paths_run.output_file.read_text() if return_details else None
         result_error_str = stderr if return_details else None
@@ -1001,7 +1023,9 @@ def case_iter_func(
         )
         if isinstance(profiles_result, CaseResult):
             return profiles_result  # NOTE: Parsing profiles failed, return the result
-        assert isinstance(profiles_result, tuple), "Profiles result must be a tuple"
+        if not isinstance(profiles_result, tuple):
+            msg = "Profiles result must be a tuple"
+            raise TypeError(msg)
         execution_time, memory_usage = profiles_result
         # Calculate score by the input and output files
         host_paths_judge = setup_paths_batch_judge(host_paths_run)
@@ -1016,7 +1040,9 @@ def case_iter_func(
         )
         if isinstance(batch_judge_result, CaseResult):
             return batch_judge_result
-        assert isinstance(batch_judge_result, int), "Judge result must be an integer"
+        if not isinstance(batch_judge_result, int):
+            msg = "Judge result must be an integer"
+            raise TypeError(msg)
         absolute_score = batch_judge_result
     elif problem_type == ProblemType.REACTIVE:
         host_paths_judge = setup_paths_reactive_judge(
@@ -1042,7 +1068,9 @@ def case_iter_func(
             result_output_str = reactive_judge_result.output_str  # already processed
             result_error_str = reactive_judge_result.error_str  # already processed
         else:
-            assert isinstance(reactive_judge_result, tuple), "Judge result must be a tuple"
+            if not isinstance(reactive_judge_result, tuple):
+                msg = "Judge result must be a tuple"
+                raise TypeError(msg)
             execution_time_host, absolute_score, stderr = reactive_judge_result
             result_output_str = host_paths_judge.output_file.read_text() if return_details else None
             result_error_str = stderr if return_details else None
@@ -1059,7 +1087,9 @@ def case_iter_func(
         )
         if isinstance(profiles_result, CaseResult):
             return profiles_result  # NOTE: Parsing profiles failed, return the result
-        assert isinstance(profiles_result, tuple), "Profiles result must be a tuple"
+        if not isinstance(profiles_result, tuple):
+            msg = "Profiles result must be a tuple"
+            raise TypeError(msg)
         execution_time, memory_usage = profiles_result
         if wo_profile_result is not None:
             return CaseResult(
@@ -1073,7 +1103,8 @@ def case_iter_func(
                 memory_usage=memory_usage,
             )
     else:
-        raise ValueError(f"Invalid problem type: {problem_type}")
+        msg = f"Invalid problem type: {problem_type}"
+        raise ValueError(msg)
 
     # Output the final state and state history if requested
     local_visualization = None
@@ -1086,7 +1117,8 @@ def case_iter_func(
         svg_text = host_paths_vis.local_visualization_file.read_text()
         svg_text = svg_text.replace("\n", "").removeprefix("<html><body>").removesuffix("</body></html>")
         if svg_text == "":
-            raise RuntimeError("The local visualization file is empty. Something went wrong.")
+            msg = "The local visualization file is empty. Something went wrong."
+            raise RuntimeError(msg)
         local_visualization = read_svg(svg_text)
     # Add the result
     return CaseResult(
@@ -1134,6 +1166,7 @@ def run_cases(
 
     Returns:
         list[CaseResult]: The list of case results.
+
     """
     # Temporary directory
     with tempfile.TemporaryDirectory() as temp_dir_str:

@@ -1,3 +1,5 @@
+"""Package-wide constants used by ALE-Bench."""
+
 from pathlib import Path
 
 # Default cache directory
@@ -70,18 +72,19 @@ NO_EXAMPLE_INOUT = {"ahc003", "future-contest-2022-qual"}
 # File names in the Docker container
 WORK_DIR = "/workdir"
 JUDGE_DIR = "/judge"
+TMP_DIR = str(Path("/", "tmp"))
 
 GEN_BIN = f"{JUDGE_DIR}/target/release/gen"
 TESTER_BIN = f"{JUDGE_DIR}/target/release/tester"
 VIS_BIN = f"{JUDGE_DIR}/target/release/vis"
 VIS_SERVER_DIR = "/usr/local/apache2/htdocs"
 
-SEEDS_FILE = "/tmp/seeds.txt"
+SEEDS_FILE = f"{TMP_DIR}/seeds.txt"
 IN_DIR = f"{WORK_DIR}/in"
 
-INPUT_FILE = "/tmp/input.txt"
-OUTPUT_FILE = "/tmp/output.txt"
-PROFILES_FILE = "/tmp/profiles.json"
+INPUT_FILE = f"{TMP_DIR}/input.txt"
+OUTPUT_FILE = f"{TMP_DIR}/output.txt"
+PROFILES_FILE = f"{TMP_DIR}/profiles.json"
 LOCAL_VIS_SVG = f"{WORK_DIR}/out.svg"
 LOCAL_VIS_HTML = f"{WORK_DIR}/vis.html"
 

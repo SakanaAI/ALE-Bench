@@ -1,10 +1,6 @@
 """ALE-Bench evaluation package."""
 
 import importlib.metadata
-import sys
-
-if sys.version_info < (3, 9):
-    raise RuntimeError("ALE-Bench evaluation requires Python 3.9 or higher.")
 
 try:
     __version__ = importlib.metadata.version("ale_bench")

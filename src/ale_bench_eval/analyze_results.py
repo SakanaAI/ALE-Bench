@@ -7,8 +7,7 @@ import pandas as pd
 
 
 def aggregate_results(execution_results: dict[str, dict[str, Any]], root_path: Path) -> dict[str, Any]:
-    """
-    Aggregate evaluation results across all problems to compute statistics.
+    """Aggregate evaluation results across all problems to compute statistics.
 
     Args:
         execution_results: Results from parallel execution (success/failure status)
@@ -16,6 +15,7 @@ def aggregate_results(execution_results: dict[str, dict[str, Any]], root_path: P
 
     Returns:
         dictionary containing aggregated statistics for each evaluation method
+
     """
     print("📊 Aggregating results across all problems...")
 
@@ -24,7 +24,7 @@ def aggregate_results(execution_results: dict[str, dict[str, Any]], root_path: P
     experiment_settings = {}
     if settings_path.exists():
         try:
-            with open(settings_path, "r") as f:
+            with settings_path.open() as f:
                 experiment_settings = json.load(f)
         except Exception as e:
             print(f"⚠️  Warning: Could not load experiment settings: {e}")
@@ -47,7 +47,7 @@ def aggregate_results(execution_results: dict[str, dict[str, Any]], root_path: P
             continue
 
         try:
-            with open(final_results_path, "r") as f:
+            with final_results_path.open() as f:
                 result_data = json.load(f)
                 result_data["problem_id"] = problem_id
                 problem_results.append(result_data)
@@ -61,7 +61,7 @@ def aggregate_results(execution_results: dict[str, dict[str, Any]], root_path: P
             print(f"⚠️  Warning: Missing total_cost.json for {problem_id}")
 
         try:
-            with open(total_cost_path, "r") as f:
+            with total_cost_path.open() as f:
                 total_cost_data = json.load(f)
                 cost_results_dict[problem_id] = total_cost_data
         except Exception as e:
@@ -290,7 +290,7 @@ def estimate_total_cost(
     n_max_refine: int | None = None,
 ) -> tuple[float, float]:
     """Estimate the cost of the evaluation."""
-    with open(path_to_result, "r") as f:
+    with path_to_result.open() as f:
         result_json = json.load(f)
 
     total_tokens = 0

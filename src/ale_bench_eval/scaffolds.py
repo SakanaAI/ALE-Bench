@@ -37,20 +37,21 @@ def run_repeated_sampling(
     if (save_info.results / results_filename).exists():
         results_repeated_sampling_raw = save_info.load_results(results_filename)
         results_repeated_sampling = {int(k): v for k, v in results_repeated_sampling_raw.items()}
-        save_info.logger.info(f"Loaded {len(results_repeated_sampling)} results from {results_filename}")
+        save_info.logger.info("Loaded %s results from %s", len(results_repeated_sampling), results_filename)
     else:
         results_repeated_sampling = {}
-        save_info.logger.info(f"No results found for {results_filename}, starting from scratch")
+        save_info.logger.info("No results found for %s, starting from scratch", results_filename)
 
     missing_indices = [i for i in range(config.n_repeated_sampling) if i not in results_repeated_sampling]
     if len(missing_indices) == 0:
         save_info.logger.info(
-            f"Skipping repeated sampling because already generated {config.n_repeated_sampling} results"
+            "Skipping repeated sampling because already generated %s results",
+            config.n_repeated_sampling,
         )
         return results_repeated_sampling
 
     for i in missing_indices:
-        save_info.logger.info(f"Repeated sampling {i + 1}/{config.n_repeated_sampling}")
+        save_info.logger.info("Repeated sampling %s/%s", i + 1, config.n_repeated_sampling)
         is_context_length_overflow = False
         try:
             response = safe_generation(
@@ -63,8 +64,8 @@ def run_repeated_sampling(
             code_language, code = get_code_from_response(response.output, config.prompt_args.code_language)
         # NOTE: We don't expect MaxTokenError here for repeated sampling
         # NOTE: The model should be able to handle the prompt at this point
-        except Exception as e:
-            save_info.logger.error(f"Error for repeated sampling {i}: {e}")
+        except Exception:
+            save_info.logger.exception("Error for repeated sampling %s", i)
             continue  # skip this iteration and do not save results
 
         overall_absolute_score = get_worst_score(session.problem.metadata.score_type)
@@ -88,10 +89,10 @@ def run_repeated_sampling(
                     if public_result.overall_judge_result == JudgeResult.ACCEPTED
                     else get_worst_score(session.problem.metadata.score_type)
                 )
-                save_info.logger.info(f"Overall absolute score: {overall_absolute_score}")
+                save_info.logger.info("Overall absolute score: %s", overall_absolute_score)
                 save_info.save_ale_bench_results(f"repeated_sampling_results_{i}.json", public_result)
             except Exception as e:
-                save_info.logger.info(f"Code evaluation failed for sample {i}: {e}")
+                save_info.logger.info("Code evaluation failed for sample %s: %s", i, e)
             finally:
                 # If code or code_language is empty, set them to originally empty values
                 if is_code_empty:
@@ -99,25 +100,16 @@ def run_repeated_sampling(
                     if is_code_language_empty:
                         code_language = ""
 
+        usage = response.usage() if response is not None else None
         results_repeated_sampling[i] = {
             "code_language": code_language,
             "code": code,
             "overall_absolute_score": overall_absolute_score,
             "is_context_length_overflow": is_context_length_overflow,
-            "input_tokens": (
-                int(response.usage().input_tokens) if response is not None and response.usage() is not None else None
-            ),
-            "output_tokens": (
-                int(response.usage().output_tokens) if response is not None and response.usage() is not None else None
-            ),
-            "total_tokens": (
-                int(response.usage().total_tokens) if response is not None and response.usage() is not None else None
-            ),
-            "cost": (
-                calc_cost(response.usage(), model_config["model_name"])  # type: ignore
-                if response is not None and response.usage() is not None
-                else None
-            ),
+            "input_tokens": int(usage.input_tokens) if usage is not None else None,
+            "output_tokens": int(usage.output_tokens) if usage is not None else None,
+            "total_tokens": int(usage.total_tokens) if usage is not None else None,
+            "cost": calc_cost(usage, model_config["model_name"]) if usage is not None else None,
         }
 
         # Save intermediate results
@@ -127,7 +119,8 @@ def run_repeated_sampling(
 
     # Check if we have any successful results
     if not results_repeated_sampling:
-        raise RuntimeError("No successful repeated sampling results generated")
+        msg = "No successful repeated sampling results generated"
+        raise RuntimeError(msg)
 
     return results_repeated_sampling
 
@@ -155,31 +148,33 @@ def run_self_refinement(
         max_result_index = max(results_self_refine.keys())
         if results_self_refine[max_result_index]["is_context_length_overflow"]:
             save_info.logger.info(
-                f"Already found a context length overflow for self-refine {max_result_index}, returning the results"
+                "Already found a context length overflow for self-refine %s, returning the results",
+                max_result_index,
             )
             return results_self_refine
         message_history = save_info.load_conversations(conversations_filename).all_messages()
         public_result = save_info.load_ale_bench_results(
             f"self_refine_results_{len(results_self_refine) - 1}.json"  # exclude the initial repeated sampling result
         )
-        save_info.logger.info(f"Loaded {len(results_self_refine)} results from {results_filename}")
+        save_info.logger.info("Loaded %s results from %s", len(results_self_refine), results_filename)
     else:
-        save_info.logger.info(f"No results found for {results_filename}, starting from scratch")
+        save_info.logger.info("No results found for %s, starting from scratch", results_filename)
         results_self_refine = {0: initial_result}
         message_history = initial_message_history
         public_result = initial_public_result
 
     initial_index = len(results_self_refine)
     if set(results_self_refine.keys()) != set(range(initial_index)):
-        raise ValueError("Results keys must be continuous from 0 to n-1")
+        msg = "Results keys must be continuous from 0 to n-1"
+        raise ValueError(msg)
     if initial_index >= config.n_self_refine:
         if not (save_info.results / results_filename).exists():  # NOTE: n_self_refine=1
             save_info.save_results(results_filename, {str(k): v for k, v in results_self_refine.items()})
-        save_info.logger.info(f"Skipping self-refinement because already generated {initial_index} results")
+        save_info.logger.info("Skipping self-refinement because already generated %s results", initial_index)
         return results_self_refine
 
     for i in range(initial_index, config.n_self_refine):
-        save_info.logger.info(f"Self-refine {i + 1}/{config.n_self_refine}")
+        save_info.logger.info("Self-refine %s/%s", i + 1, config.n_self_refine)
         is_context_length_overflow = False
         try:
             response = safe_generation(
@@ -191,14 +186,15 @@ def run_self_refinement(
             )
             code_language, code = get_code_from_response(response.output, config.prompt_args.code_language)
         except MaxTokenError as e:
-            save_info.logger.info(f"Context length overflow for self-refine {i}: {e}")
+            save_info.logger.info("Context length overflow for self-refine %s: %s", i, e)
             response = None
             code_language = ""
             code = ""
             is_context_length_overflow = True
         except Exception as e:
-            save_info.logger.info(f"Error for self-refine {i}: {e}")
-            raise ValueError(f"Error during self-refinement {i}: {e}")
+            save_info.logger.info("Error for self-refine %s: %s", i, e)
+            msg = f"Error during self-refinement {i}: {e}"
+            raise ValueError(msg) from e
 
         overall_absolute_score = get_worst_score(session.problem.metadata.score_type)
         if response is not None:
@@ -221,10 +217,10 @@ def run_self_refinement(
                     if public_result.overall_judge_result == JudgeResult.ACCEPTED
                     else get_worst_score(session.problem.metadata.score_type)
                 )
-                save_info.logger.info(f"Overall absolute score: {overall_absolute_score}")
+                save_info.logger.info("Overall absolute score: %s", overall_absolute_score)
                 save_info.save_ale_bench_results(f"self_refine_results_{i}.json", public_result)
             except Exception as e:
-                save_info.logger.info(f"Code evaluation failed for refinement {i}: {e}")
+                save_info.logger.info("Code evaluation failed for refinement %s: %s", i, e)
                 public_result = None
             finally:
                 # If code or code_language is empty, set them to originally empty values
@@ -234,25 +230,16 @@ def run_self_refinement(
                     if is_code_language_empty:
                         code_language = ""
 
+        usage = response.usage() if response is not None else None
         results_self_refine[i] = {
             "code_language": code_language,
             "code": code,
             "overall_absolute_score": overall_absolute_score,
             "is_context_length_overflow": is_context_length_overflow,
-            "input_tokens": (
-                int(response.usage().input_tokens) if response is not None and response.usage() is not None else None
-            ),
-            "output_tokens": (
-                int(response.usage().output_tokens) if response is not None and response.usage() is not None else None
-            ),
-            "total_tokens": (
-                int(response.usage().total_tokens) if response is not None and response.usage() is not None else None
-            ),
-            "cost": (
-                calc_cost(response.usage(), model_config["model_name"])  # type: ignore
-                if response is not None and response.usage() is not None
-                else None
-            ),
+            "input_tokens": int(usage.input_tokens) if usage is not None else None,
+            "output_tokens": int(usage.output_tokens) if usage is not None else None,
+            "total_tokens": int(usage.total_tokens) if usage is not None else None,
+            "cost": calc_cost(usage, model_config["model_name"]) if usage is not None else None,
         }
 
         # Save intermediate results
@@ -262,13 +249,14 @@ def run_self_refinement(
 
         # End self refine if context length overflow
         if response is None:
-            save_info.logger.info(f"Context length overflow for self-refine {i}, stopping self-refinement")
+            save_info.logger.info("Context length overflow for self-refine %s, stopping self-refinement", i)
             break
 
         message_history = response.all_messages()
 
     # Check if we have any successful refinement results
     if not results_self_refine:
-        raise RuntimeError("No successful self-refinement results generated")
+        msg = "No successful self-refinement results generated"
+        raise RuntimeError(msg)
 
     return results_self_refine

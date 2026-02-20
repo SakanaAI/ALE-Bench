@@ -40,23 +40,20 @@ dependencies = [
     "pillow",
     "polars>=1",
     "pydantic>=2",
-    "typing-extensions",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.0.2",
+    "pytest-mock>=3.15.1",
+    "ruff>=0.15.2",
+    "ty>=0.0.17",
 ]
 
 [project.urls]
 Repository = "https://github.com/SakanaAI/ALE-Bench"
 
 [project.optional-dependencies]
-dev = [
-    "mypy>=1.19.1",
-    "pandas-stubs>=2.3.3.251201",
-    "pytest>=9.0.2",
-    "pytest-mock>=3.15.1",
-    "ruff>=0.15.0",
-    "types-docker>=7.0.0.20240413",
-    "types-psutil>=7.0.0.20250218",
-    "types-requests>=2.32.4.20260107",
-]
 eval = [
     "fire>=0.7.0",
     "genai-prices>=0.0.47",
@@ -68,31 +65,6 @@ eval = [
 
 [tool.uv-dynamic-versioning]
 fallback-version = "0.0.0"
-
-[tool.mypy]
-exclude = [
-    "^src/ale_bench_eval/codes/.*\\.py$",
-    "^tests/judge/codes/.*\\.py$",
-]
-warn_return_any = true
-warn_unused_configs = true
-disallow_untyped_defs = true
-disallow_incomplete_defs = true
-check_untyped_defs = true
-disallow_untyped_decorators = true
-no_implicit_optional = true
-warn_redundant_casts = true
-warn_unused_ignores = true
-warn_no_return = true
-warn_unreachable = true
-
-[[tool.mypy.overrides]]
-module = [
-    "cairosvg",
-    "ahocorapy.*",
-    "fire",
-]
-ignore_missing_imports = true
 
 [tool.pytest.ini_options]
 markers = [
@@ -107,7 +79,6 @@ extend-exclude = [
     "src/ale_bench_eval/prompts/texts.py",
     "tests/judge/codes",
 ]
-fix = true
 line-length = 120
 
 [tool.ruff.format]
@@ -115,10 +86,82 @@ quote-style = "double"
 
 [tool.ruff.lint]
 select = [
-    "E",
-    "F",
-    "W",
-    "I",
+    "E",       # errors
+    "W",       # warnings
+    "F",       # pyflakes
+    "I",       # isort
+    "N",       # pep8-naming
+    "YTT",     # flake8-2020
+    "ANN",     # flake8-annotations
+    "ASYNC",   # flake8-async
+    "S",       # flake8-bandit
+    "BLE",     # flake8-blind-except
+    "FBT",     # flake8-boolean-trap
+    "B",       # flake8-bugbear
+    "A",       # flake8-builtins
+    "COM",     # flake8-commas
+    "C4",      # flake8-comprehensions
+    "DTZ",     # flake8-datetimez
+    "T10",     # flake8-debugger
+    "EM",      # flake8-errmsg
+    "EXE",     # flake8-executable
+    "FA",      # flake8-future-annotations
+    "INT",     # flake8-gettext
+    "ISC",     # flake8-implicit-str-concat
+    "ICN",     # flake8-import-conventions
+    "LOG",     # flake8-logging
+    "G",       # flake8-logging-format
+    "INP",     # implicit-namespace-package
+    "PIE",     # flake8-pie
+    "T20",     # flake8-print
+    "PYI",     # flake8-pyi
+    "PT",      # flake8-pytest-style
+    "Q",       # flake8-quotes
+    "RSE",     # flake8-raise
+    "RET",     # flake8-return
+    "SLF",     # flake8-self
+    "SIM",     # flake8-simplify
+    "SLOT",    # flake8-slots
+    "TID",     # flake8-tidy-imports
+    "TC",      # flake8-type-checking
+    "ARG",     # flake8-unused-arguments
+    "PTH",     # flake8-use-pathlib
+    "FLY",     # flynt (f-string)
+    "PERF",    # perflint
+    "D",       # pydocstyle
+    "PGH",     # pygrep-hooks
+    "PL",      # pylint (convention/error/refactor/warning)
+    "UP",      # pyupgrade
+    "FURB",    # refurb
+    "RUF",     # ruff-specific
+    "TRY",     # tryceratops
+]
+ignore = [
+    "BLE001",  # allow broad except
+    "COM812",  # trailing comma (conflicts with ruff formatter)
+    "D203",    # blank line before class docstring (incompatible with D211)
+    "D213",    # multi-line summary on second line (incompatible with D212)
+    "FBT001",  # allow positional boolean arguments for API compatibility
+    "FBT002",  # allow boolean default positional arguments for API compatibility
+    "ISC001",  # implicit string concat (conflicts with ruff formatter)
+    "PLR0911", # too many return statements
+    "PLR0912", # too many branches
+    "PLR0913", # too many arguments
+    "PLR0915", # too many statements
+]
+
+[tool.ruff.lint.per-file-ignores]
+"src/ale_bench_eval/**/*.py" = [
+    "D",       # docstrings not required in evaluation code
+    "T201",    # print is fine in evaluation code
+]
+"tests/**/*.py" = [
+    "ARG",     # unused arguments (fixtures etc.)
+    "D",       # docstrings not required in tests
+    "INP001",  # implicit namespace package is fine in tests
+    "PLR2004", # magic values are fine in tests
+    "S101",    # assert is expected in tests
+    "SLF001",  # private member access for testing internals
 ]
 
 [tool.ruff.lint.isort]
@@ -137,3 +180,9 @@ section-order = [
     "local-folder"
 ]
 split-on-trailing-comma = true
+
+[tool.ty.src]
+exclude = [
+    "src/ale_bench_eval/codes/**",
+    "tests/judge/codes/**",
+]

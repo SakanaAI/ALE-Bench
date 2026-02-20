@@ -19,11 +19,11 @@ from ale_bench.data import (
     Standings,
 )
 from ale_bench.error import AleBenchError
-from ale_bench.result import CaseResult, CodeRunResult, JudgeResult, ResourceUsage
+from ale_bench.result import CaseResult, CodeRunResult, JudgeResult, ResourceUsage, Result
 from ale_bench.session import AleBenchFunction, Session
 
 
-@pytest.fixture(scope="function")
+@pytest.fixture
 def ale_bench_session_mocker(mocker: MockerFixture) -> None:
     mocker.patch(
         "ale_bench.session.run_code",
@@ -61,9 +61,14 @@ def ale_bench_session_mocker(mocker: MockerFixture) -> None:
     mocker.patch("ale_bench.session.local_visualization", return_value=[None])
 
 
-@pytest.fixture(scope="function")
-def dummy_session(ale_bench_session_mocker: None) -> Session:
-    session = Session(
+@pytest.fixture
+def dummy_tool_dir(tmp_path: Path) -> Path:
+    return tmp_path / "dummy"
+
+
+@pytest.fixture
+def dummy_session(ale_bench_session_mocker: None, dummy_tool_dir: Path) -> Session:
+    return Session(
         problem=Problem(
             metadata=ProblemMetaData(
                 problem_id="ahc001",
@@ -87,7 +92,7 @@ def dummy_session(ale_bench_session_mocker: None) -> Session:
         private_seeds=[3, 4, 5],
         standings=Standings(standings_scores=[(1, 3000000000), (2, 2700000000), (3, 2400000000), (4, 0)]),
         rank_performance_map=RankPerformanceMap(raw_data=[(1, 3200), (2, 2800), (3, 2400), (4, 100)]),
-        tool_dir=Path("/tmp/dummy"),
+        tool_dir=dummy_tool_dir,
         use_same_time_scale=True,
         maximum_resource_usage=ResourceUsage(
             num_case_gen=5,
@@ -100,7 +105,6 @@ def dummy_session(ale_bench_session_mocker: None) -> Session:
         num_workers=1,
         visualization_server_port=None,
     )
-    return session
 
 
 class TestSession:
@@ -109,7 +113,7 @@ class TestSession:
         assert repr(dummy_session) == "Session(problem_id=ahc001)"
 
     @pytest.mark.parametrize(
-        "current_resource_usage,utc_now,context",
+        ("current_resource_usage", "utc_now", "context"),
         [
             pytest.param(
                 ResourceUsage(), dt.datetime(2000, 1, 1, 0, 30, tzinfo=dt.timezone.utc), does_not_raise(), id="ok"
@@ -190,7 +194,7 @@ class TestSession:
             )
 
     @pytest.mark.parametrize(
-        "current_resource_usage,utc_now,context",
+        ("current_resource_usage", "utc_now", "context"),
         [
             pytest.param(
                 ResourceUsage(), dt.datetime(2000, 1, 1, 0, 30, tzinfo=dt.timezone.utc), does_not_raise(), id="ok"
@@ -264,7 +268,7 @@ class TestSession:
             )
 
     @pytest.mark.parametrize(
-        "current_resource_usage,utc_now,context",
+        ("current_resource_usage", "utc_now", "context"),
         [
             pytest.param(
                 ResourceUsage(), dt.datetime(2000, 1, 1, 0, 30, tzinfo=dt.timezone.utc), does_not_raise(), id="ok"
@@ -373,7 +377,7 @@ class TestSession:
             )
 
     @pytest.mark.parametrize(
-        "current_resource_usage,utc_now,context",
+        ("current_resource_usage", "utc_now", "context"),
         [
             pytest.param(
                 ResourceUsage(), dt.datetime(2000, 1, 1, 0, 30, tzinfo=dt.timezone.utc), does_not_raise(), id="ok"
@@ -510,8 +514,21 @@ class TestSession:
                 (utc_now - dummy_session.session_started_at).total_seconds()
             )
 
+    def test_case_gen_eval_with_gen_kwargs(self, dummy_session: Session) -> None:
+        dummy_session.case_gen_eval(
+            code="dummy code",
+            code_language="rust",
+            seed=[0, 1, 2],
+            gen_kwargs={"N": 1},
+        )
+        action_log = [json.loads(log) for log in dummy_session.action_log]
+        assert len(action_log) == 2
+        assert action_log[0]["function"] == "case_gen"
+        assert action_log[0]["arguments"] == {"seed": [0, 1, 2], "gen_kwargs": {"N": 1}}
+        assert action_log[1]["function"] == "case_eval"
+
     @pytest.mark.parametrize(
-        "utc_now,context",
+        ("utc_now", "context"),
         [
             pytest.param(dt.datetime(2000, 1, 1, 0, 30, tzinfo=dt.timezone.utc), does_not_raise(), id="ok"),
             pytest.param(
@@ -542,7 +559,7 @@ class TestSession:
             )
 
     @pytest.mark.parametrize(
-        "current_resource_usage,utc_now,context",
+        ("current_resource_usage", "utc_now", "context"),
         [
             pytest.param(
                 ResourceUsage(), dt.datetime(2000, 1, 1, 0, 30, tzinfo=dt.timezone.utc), does_not_raise(), id="ok"
@@ -609,7 +626,7 @@ class TestSession:
             )
 
     @pytest.mark.parametrize(
-        "current_resource_usage,utc_now,context",
+        ("current_resource_usage", "utc_now", "context"),
         [
             pytest.param(
                 ResourceUsage(), dt.datetime(2000, 1, 1, 0, 30, tzinfo=dt.timezone.utc), does_not_raise(), id="ok"
@@ -653,6 +670,47 @@ class TestSession:
             assert action_log[0]["elapsed_time"] == pytest.approx(
                 (utc_now - dummy_session.session_started_at).total_seconds()
             )
+
+    def test_estimate_rank_and_performance(self, dummy_session: Session) -> None:
+        private_result = Result(
+            allow_score_non_ac=False,
+            resource_usage=ResourceUsage(),
+            case_results=[
+                CaseResult(
+                    judge_result=JudgeResult.ACCEPTED,
+                    message="",
+                    absolute_score=1000000000,
+                    execution_time=4.9,
+                    memory_usage=16 * 1024 * 1024,
+                ),
+                CaseResult(
+                    judge_result=JudgeResult.ACCEPTED,
+                    message="",
+                    absolute_score=998244353,
+                    execution_time=4.8,
+                    memory_usage=16 * 1024 * 1024,
+                ),
+                CaseResult(
+                    judge_result=JudgeResult.ACCEPTED,
+                    message="",
+                    absolute_score=999999999,
+                    execution_time=4.7,
+                    memory_usage=16 * 1024 * 1024,
+                ),
+            ],
+        )
+        before_resource_usage = dummy_session.current_resource_usage
+        before_action_log = list(dummy_session.action_log)
+        before_last_private_eval_time = dummy_session.last_private_eval_time
+
+        rank, performance, relative_scores = dummy_session.estimate_rank_and_performance(private_result)
+
+        assert rank == 2
+        assert performance == 2800
+        assert relative_scores == [1000000000, 998244353, 999999999]
+        assert dummy_session.current_resource_usage == before_resource_usage
+        assert dummy_session.action_log == before_action_log
+        assert dummy_session.last_private_eval_time == before_last_private_eval_time
 
     def test_save(self, dummy_session: Session) -> None:
         # Case evaluation x 1 (3 cases), Public evaluation x 1
@@ -727,24 +785,24 @@ class TestSession:
 
     def test_private_seeds(self, dummy_session: Session) -> None:
         with pytest.raises(AleBenchError, match=r"Accessing private seeds is not allowed\."):
-            dummy_session.private_seeds
+            _ = dummy_session.private_seeds
 
     def test_num_private_cases(self, dummy_session: Session) -> None:
         assert dummy_session.num_private_cases == 3
 
     def test_standings(self, dummy_session: Session) -> None:
         with pytest.raises(AleBenchError, match=r"Accessing standings is not allowed\."):
-            dummy_session.standings
+            _ = dummy_session.standings
 
     def test_rank_performance_map(self, dummy_session: Session) -> None:
         with pytest.raises(AleBenchError, match=r"Accessing rank performance map is not allowed\."):
-            dummy_session.rank_performance_map
+            _ = dummy_session.rank_performance_map
 
-    def test_tool_dir(self, dummy_session: Session) -> None:
-        assert dummy_session.tool_dir == Path("/tmp/dummy")
+    def test_tool_dir(self, dummy_session: Session, dummy_tool_dir: Path) -> None:
+        assert dummy_session.tool_dir == dummy_tool_dir
 
-    def test_rust_src_dir(self, dummy_session: Session) -> None:
-        assert dummy_session.rust_src_dir == Path("/tmp/dummy/tools/src")
+    def test_rust_src_dir(self, dummy_session: Session, dummy_tool_dir: Path) -> None:
+        assert dummy_session.rust_src_dir == dummy_tool_dir / "tools/src"
 
     def test_use_same_time_scale(self, dummy_session: Session) -> None:
         assert dummy_session.use_same_time_scale is True
@@ -839,7 +897,7 @@ class TestSession:
         assert dummy_session.session_started_at == dt.datetime(2000, 1, 1, 0, 0, tzinfo=dt.timezone.utc)
 
     @pytest.mark.parametrize(
-        "utc_now,expected",
+        ("utc_now", "expected"),
         [
             pytest.param(
                 dt.datetime(1999, 12, 31, 23, 59, tzinfo=dt.timezone.utc),
@@ -882,7 +940,7 @@ class TestSession:
         assert dummy_session.session_remaining_time == expected
 
     @pytest.mark.parametrize(
-        "utc_now,context",
+        ("utc_now", "context"),
         [
             pytest.param(
                 dt.datetime(1999, 12, 31, 23, 59, tzinfo=dt.timezone.utc), does_not_raise(), id="session_not_started"
@@ -928,10 +986,10 @@ class TestSession:
         with pytest.raises(
             AleBenchError, match=r"Exceeded the maximum resource usage for the `private_eval` function\."
         ):
-            dummy_session.session_finished
+            _ = dummy_session.session_finished
 
     @pytest.mark.parametrize(
-        "function_type,current_resource_usage,utc_now,context",
+        ("function_type", "current_resource_usage", "utc_now", "context"),
         [
             pytest.param(
                 AleBenchFunction.CODE_RUN,
@@ -1257,7 +1315,7 @@ class TestSession:
             assert dummy_session._check_within_resource_usage_before(function_type) is True
 
     @pytest.mark.parametrize(
-        "function_type,current_resource_usage,utc_now,context",
+        ("function_type", "current_resource_usage", "utc_now", "context"),
         [
             pytest.param(
                 AleBenchFunction.CODE_RUN,
@@ -1501,7 +1559,7 @@ class TestSession:
             assert dummy_session._check_within_resource_usage_after(function_type) is True
 
     @pytest.mark.parametrize(
-        "seed,gen_kwargs,expected,context",
+        ("seed", "gen_kwargs", "expected", "context"),
         [
             pytest.param(None, None, ([0], {}), does_not_raise(), id="default"),
             pytest.param(0, {}, ([0], {}), does_not_raise(), id="ok_scalar"),
@@ -1547,7 +1605,7 @@ class TestSession:
             assert arguments == expected
 
     @pytest.mark.parametrize(
-        "input_str,output_str,expected,context",
+        ("input_str", "output_str", "expected", "context"),
         [
             pytest.param(
                 "dummy input",
@@ -1645,7 +1703,7 @@ class TestSession:
             assert arguments == expected
 
     @pytest.mark.parametrize(
-        "input_str,code,code_language,judge_version,time_limit,memory_limit,expected,context",
+        ("input_str", "code", "code_language", "judge_version", "time_limit", "memory_limit", "expected", "context"),
         [
             pytest.param(
                 "dummy input",
@@ -2058,7 +2116,7 @@ class TestSession:
             assert arguments == expected
 
     @pytest.mark.parametrize(
-        "input_str,code,code_language,judge_version,time_limit,memory_limit,expected,context",
+        ("input_str", "code", "code_language", "judge_version", "time_limit", "memory_limit", "expected", "context"),
         [
             pytest.param(
                 None,

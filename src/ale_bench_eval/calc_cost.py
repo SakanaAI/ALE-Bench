@@ -2,6 +2,7 @@ from decimal import Decimal
 
 from genai_prices import Usage, calc_price
 from genai_prices.types import ModelPrice, Tier, TieredPrices
+from pydantic_ai.usage import RunUsage
 
 FALLBACK_DICT = {
     "gpt-5.2-2025-12-11": ModelPrice(
@@ -161,16 +162,31 @@ FALLBACK_DICT = {
 }
 
 
-def calc_cost(usage: Usage, model_name: str) -> float:
-    model_name = model_name.rsplit("/")[-1]  # Use the model name without the provider prefix
+def calc_cost(usage: Usage | RunUsage, model_name: str) -> float:
+    usage_for_price = (
+        usage
+        if isinstance(usage, Usage)
+        else Usage(
+            input_tokens=usage.input_tokens,
+            cache_write_tokens=usage.cache_write_tokens,
+            cache_read_tokens=usage.cache_read_tokens,
+            output_tokens=usage.output_tokens,
+            input_audio_tokens=usage.input_audio_tokens,
+            cache_audio_read_tokens=usage.cache_audio_read_tokens,
+            output_audio_tokens=usage.output_audio_tokens,
+        )
+    )
+    model_name = model_name.rsplit("/", maxsplit=1)[-1]  # Use the model name without the provider prefix
     if model_name in FALLBACK_DICT:
         model_price = FALLBACK_DICT[model_name]
-        return float(model_price.calc_price(usage)["total_price"])
+        return float(model_price.calc_price(usage_for_price)["total_price"])
 
     try:
-        total_price = float(calc_price(usage, model_ref=model_name).total_price)
-        if total_price > 0.0:
-            return total_price
-        raise LookupError("Something wrong with the retrieved price. Calculated price is zero.")
-    except LookupError:
-        raise LookupError(f"Model price not found for {model_name}")
+        total_price = float(calc_price(usage_for_price, model_ref=model_name).total_price)
+    except LookupError as e:
+        msg = f"Model price not found for {model_name}"
+        raise LookupError(msg) from e
+    if total_price > 0.0:
+        return total_price
+    msg = "Something wrong with the retrieved price. Calculated price is zero."
+    raise LookupError(msg)

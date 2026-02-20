@@ -1,5 +1,8 @@
+"""General utility helpers for filesystem, docker, and parsing."""
+
 import base64
 import io
+import logging
 import os
 import random
 import shutil
@@ -7,7 +10,7 @@ import socket
 from collections.abc import Generator
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Literal
+from typing import Literal, overload
 
 import cairosvg
 import docker
@@ -15,6 +18,8 @@ from PIL import Image
 from ahocorapy.keywordtree import KeywordTree
 
 from ale_bench.constants import DEFAULT_CACHE_DIR
+
+logger = logging.getLogger(__name__)
 
 
 # Docker
@@ -24,6 +29,7 @@ def docker_client() -> Generator[docker.DockerClient, None, None]:
 
     Yields:
         docker.DockerClient: The Docker client.
+
     """
     client = docker.from_env()
     try:
@@ -38,19 +44,19 @@ def get_cache_dir() -> Path:
 
     Returns:
         Path: The cache directory.
+
     """
     cache_dir_str = os.environ.get("ALE_BENCH_CACHE", None)
     if cache_dir_str is None:
         return DEFAULT_CACHE_DIR
-    else:
-        return Path(cache_dir_str).expanduser().resolve()
+    return Path(cache_dir_str).expanduser().resolve()
 
 
 def clear_cache() -> None:
     """Clear the cache directory for ALE-Bench."""
     cache_dir = get_cache_dir()
     if cache_dir.is_dir():
-        print(f"Clearing cache directory: {cache_dir}")
+        logger.info("Clearing cache directory: %s", cache_dir)
         shutil.rmtree(cache_dir)
 
 
@@ -60,13 +66,14 @@ def get_local_data_dir() -> Path | None:
 
     Returns:
         Path | None: The local data directory. Returns None if not set.
+
     """
     data_dir_str = os.environ.get("ALE_BENCH_DATA", None)
     if data_dir_str is None:
         return None
     data_dir = Path(data_dir_str).expanduser().resolve()
     if not data_dir.is_dir():
-        print(f"Data directory does not exist: {data_dir}")
+        logger.warning("Data directory does not exist: %s", data_dir)
         return None
     return data_dir
 
@@ -83,16 +90,18 @@ def dir_tree(
 
     Yields:
         str: The tree structure of the directory.
+
     """
     if not dir_path.is_dir():
-        raise ValueError(f"{dir_path} is not a directory.")
+        msg = f"{dir_path} is not a directory."
+        raise ValueError(msg)
     tee = "├── "
     last = "└── "
     branch = "│   "
     space = "    "
     contents = list(dir_path.iterdir())
     pointers = [tee] * (len(contents) - 1) + [last]
-    for pointer, path in zip(pointers, contents):
+    for pointer, path in zip(pointers, contents, strict=True):
         yield prefix + pointer + path.name
         if path.is_dir():
             extension = branch if pointer == tee else space
@@ -104,9 +113,10 @@ def print_dir_tree(dir_path: Path) -> None:
 
     Args:
         dir_path (Path): The path to the directory.
+
     """
     for line in dir_tree(dir_path):
-        print(line)
+        print(line)  # noqa: T201
 
 
 # Problem
@@ -118,6 +128,7 @@ def text_image_contents_to_openai(contents: list[str | Image.Image]) -> list[dic
 
     Returns:
         list[dict[str, str]]: The converted contents.
+
     """
     openai_contents: list[dict[str, str | dict[str, str]]] = []
     for content in contents:
@@ -131,8 +142,39 @@ def text_image_contents_to_openai(contents: list[str | Image.Image]) -> list[dic
                 }
             )
         else:
-            raise ValueError("The content is not a str or a PIL.Image.Image.")
+            msg = "The content is not a str or a PIL.Image.Image."
+            raise TypeError(msg)
     return openai_contents
+
+
+@overload
+def parse_statement(
+    statement: str,
+    images: dict[str, Image.Image | list[Image.Image]],
+    ignore_video: bool = False,
+    extract_video_frame: Literal["first", "last", "all"] = "all",
+    return_openai: Literal[False] = False,
+) -> list[str | Image.Image]: ...
+
+
+@overload
+def parse_statement(
+    statement: str,
+    images: dict[str, Image.Image | list[Image.Image]],
+    ignore_video: bool = False,
+    extract_video_frame: Literal["first", "last", "all"] = "all",
+    return_openai: Literal[True] = True,
+) -> list[dict[str, str | dict[str, str]]]: ...
+
+
+@overload
+def parse_statement(
+    statement: str,
+    images: dict[str, Image.Image | list[Image.Image]],
+    ignore_video: bool = False,
+    extract_video_frame: Literal["first", "last", "all"] = "all",
+    return_openai: bool = False,
+) -> list[str | Image.Image] | list[dict[str, str | dict[str, str]]]: ...
 
 
 def parse_statement(
@@ -143,6 +185,7 @@ def parse_statement(
     return_openai: bool = False,
 ) -> list[str | Image.Image] | list[dict[str, str | dict[str, str]]]:
     """Parse the problem statement and images and return a list of contents.
+
     Images are interleaved with the text in the statement.
 
     Args:
@@ -158,11 +201,12 @@ def parse_statement(
     Returns:
         list[str | Image.Image] | list[dict[str, str | dict[str, str]]]:
             A list of contents, where each content is either a text or an image.
+
     """
     # Search for image names in the statement by using Aho-Corasick algorithm
     kwtree = KeywordTree(case_insensitive=False)
-    for image_name in images:
-        if isinstance(images[image_name], list) and ignore_video:
+    for image_name, image_value in images.items():
+        if isinstance(image_value, list) and ignore_video:
             continue  # Ignore video
         kwtree.add(image_name)
     kwtree.finalize()
@@ -183,15 +227,16 @@ def parse_statement(
         contents.append(statement[current_idx:idx])
         image = images[matched_image]
         if isinstance(image, list):
+            video_frames: list[Image.Image] = [frame for frame in image if isinstance(frame, Image.Image)]
             if extract_video_frame == "first":
-                contents.append(image[0])
+                contents.append(video_frames[0])
             elif extract_video_frame == "last":
-                contents.append(image[-1])
+                contents.append(video_frames[-1])
             elif extract_video_frame == "all":
-                for frame in image:
-                    contents.append(frame)
+                contents.extend(video_frames)
             else:
-                raise ValueError(f"`extract_video_frame` must be 'first', 'last', or 'all'. Got: {extract_video_frame}")
+                msg = f"`extract_video_frame` must be 'first', 'last', or 'all'. Got: {extract_video_frame}"
+                raise ValueError(msg)
         else:
             contents.append(image)
         current_idx = idx + len(matched_image)
@@ -216,6 +261,7 @@ def find_free_port(min_port: int = 9000, max_port: int = 65535) -> int:
 
     Raises:
         RuntimeError: If no free port is found in the specified range.
+
     """
     ports = list(range(min_port, max_port + 1))
     random.shuffle(ports)
@@ -223,10 +269,12 @@ def find_free_port(min_port: int = 9000, max_port: int = 65535) -> int:
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
             try:
                 sock.bind(("", port))
-                return port
             except OSError:
                 continue
-    raise RuntimeError(f"No free ports found in range {min_port}-{max_port}.")
+            else:
+                return port
+    msg = f"No free ports found in range {min_port}-{max_port}."
+    raise RuntimeError(msg)
 
 
 # Image
@@ -238,6 +286,7 @@ def base64_to_pil(base64_str: str) -> Image.Image:
 
     Returns:
         Image.Image: The PIL image.
+
     """
     image_data = base64.b64decode(base64_str)
     image = Image.open(io.BytesIO(image_data))
@@ -253,6 +302,7 @@ def pil_to_base64(image: Image.Image, image_format: Literal["JPEG", "PNG"] = "PN
 
     Returns:
         str: The base64 string of the image.
+
     """
     buffer = io.BytesIO()
     image.save(buffer, format=image_format)
@@ -267,6 +317,7 @@ def pil_to_base64jpeg(image: Image.Image) -> str:
 
     Returns:
         str: The base64 string of the JPEG image.
+
     """
     return pil_to_base64(image.convert("RGB"), image_format="JPEG")
 
@@ -284,9 +335,11 @@ def read_svg(svg_text: str, size: int | tuple[int, int] = 1000) -> Image.Image:
 
     Raises:
         ValueError: If the SVG text is empty.
+
     """
     if len(svg_text) == 0:
-        raise ValueError("SVG text is empty.")
+        msg = "SVG text is empty."
+        raise ValueError(msg)
     if isinstance(size, int):
         size = (size, size)
     width, height = size

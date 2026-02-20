@@ -1,3 +1,5 @@
+"""Run compiled/interpreted user code inside the judge container."""
+
 import enum
 import json
 import os
@@ -5,7 +7,7 @@ import tempfile
 import time
 from pathlib import Path
 
-from requests.exceptions import ConnectionError, Timeout
+from requests.exceptions import ConnectionError as RequestsConnectionError, Timeout
 
 import ale_bench.constants
 from ale_bench.code_language import (
@@ -54,6 +56,7 @@ def run_compile_container(
 
     Returns:
         CodeRunResult | None: The case result if the compilation fails, otherwise None.
+
     """
     with docker_client() as client:
         container = client.containers.run(
@@ -74,7 +77,7 @@ def run_compile_container(
         try:
             try:
                 container.wait(timeout=ale_bench.constants.COMPILE_TIMEOUT)
-            except (Timeout, ConnectionError):
+            except (Timeout, RequestsConnectionError):
                 if code_language != CodeLanguage.PYTHON:
                     return CodeRunResult(
                         stdin="",
@@ -137,6 +140,7 @@ def run_run_container(
     Returns:
         CodeRunResult | tuple[float, str]:
             The case result if the run fails, otherwise the execution time in seconds and the standard error.
+
     """
     with docker_client() as client:
         start_at = time.perf_counter()
@@ -173,15 +177,14 @@ def run_run_container(
                 execution_time=min(execution_time_host, time_limit + 0.1),  # NOTE: slight longer than time limit
                 memory_usage=0,
             )
-        else:
-            return CodeRunResult(
-                stdin=stdin,
-                stdout="",
-                stderr=stderr,
-                exit_status=exit_code,
-                execution_time=execution_time_host,
-                memory_usage=0,
-            )
+        return CodeRunResult(
+            stdin=stdin,
+            stdout="",
+            stderr=stderr,
+            exit_status=exit_code,
+            execution_time=execution_time_host,
+            memory_usage=0,
+        )
     return execution_time_host, stderr  # Run succeeded, return the execution time and stderr
 
 
@@ -194,8 +197,7 @@ def parse_profiles(
     stdout: str,
     stderr: str,
 ) -> CodeRunResult | tuple[float, int]:
-    """
-    Parse the profiles content and check for time limit, memory limit, and exit status.
+    """Parse the profiles content and check for time limit, memory limit, and exit status.
 
     Args:
         time_limit (float): The time limit in seconds.
@@ -209,8 +211,11 @@ def parse_profiles(
     Returns:
         CodeRunResult | tuple[float, int]:
             The code run result if there is an error, otherwise (execution_time, memory_usage).
+
     """
-    assert execution_time_host >= 0.0, "execution_time_host must be non-negative"
+    if execution_time_host < 0.0:
+        msg = "execution_time_host must be non-negative"
+        raise ValueError(msg)
     # Check if the profiles content is empty or if it indicates a timeout
     is_tle = False
     if profiles_content == "":
@@ -223,16 +228,16 @@ def parse_profiles(
                 execution_time=min(execution_time_host, time_limit + 0.1),  # NOTE: slight longer than time limit
                 memory_usage=0,
             )
-        else:  # NOTE: Error in running the code
-            return CodeRunResult(
-                stdin=stdin,
-                stdout=stdout,
-                stderr=stderr,
-                exit_status=ExitStatus.RUNTIME_ERROR.value,
-                execution_time=execution_time_host,
-                memory_usage=0,
-            )
-    elif profiles_content.startswith("Command terminated by signal 9"):
+        # NOTE: Error in running the code
+        return CodeRunResult(
+            stdin=stdin,
+            stdout=stdout,
+            stderr=stderr,
+            exit_status=ExitStatus.RUNTIME_ERROR.value,
+            execution_time=execution_time_host,
+            memory_usage=0,
+        )
+    if profiles_content.startswith("Command terminated by signal 9"):
         # NOTE: Sigkill is sent by `prlimit` and included to the profiles file
         profiles_content = profiles_content.split("\n", 1)[1]  # Remove the first line
         is_tle = True
@@ -277,7 +282,7 @@ def parse_profiles(
             execution_time=min(execution_time, time_limit + 0.1),  # NOTE: slight longer than time limit
             memory_usage=memory_usage,
         )
-    elif execution_time > time_limit or is_tle:
+    if execution_time > time_limit or is_tle:
         return CodeRunResult(
             stdin=stdin,
             stdout=stdout,
@@ -286,7 +291,7 @@ def parse_profiles(
             execution_time=min(execution_time, time_limit + 0.1),  # NOTE: slight longer than time limit
             memory_usage=memory_usage,
         )
-    elif memory_usage > memory_limit:
+    if memory_usage > memory_limit:
         return CodeRunResult(
             stdin=stdin,
             stdout=stdout,
@@ -319,6 +324,7 @@ def run_code(
 
     Returns:
         CodeRunResult: The result of the code execution.
+
     """
     with tempfile.TemporaryDirectory() as temp_dir_str:
         temp_dir = Path(temp_dir_str)
@@ -344,7 +350,9 @@ def run_code(
         run_result = run_run_container(code_language, judge_version, time_limit, run_volumes, run_command, stdin)
         if isinstance(run_result, CodeRunResult):
             return run_result
-        assert isinstance(run_result, tuple), "Run result must be a tuple"
+        if not isinstance(run_result, tuple):
+            msg = "Run result must be a tuple"
+            raise TypeError(msg)
         execution_time_host, stderr = run_result
         stdout = host_paths_run.output_file.read_text()
         # Parse the profiles file
@@ -360,7 +368,9 @@ def run_code(
         )
         if isinstance(profiles_result, CodeRunResult):
             return profiles_result  # NOTE: Parsing profiles failed, return the result
-        assert isinstance(profiles_result, tuple), "Profiles result must be a tuple"
+        if not isinstance(profiles_result, tuple):
+            msg = "Profiles result must be a tuple"
+            raise TypeError(msg)
         execution_time, memory_usage = profiles_result
 
         return CodeRunResult(

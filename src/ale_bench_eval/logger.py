@@ -25,28 +25,28 @@ def get_now_utc_string() -> str:
 
 
 class CustomJSONEncoder(json.JSONEncoder):
-    def default(self, obj: Any) -> Any:
-        match obj:
+    def default(self, o: object) -> object:
+        match o:
             case bytes():
                 return {
                     "__type__": "bytes",
                     "encoding": "base64",
-                    "data": base64.b64encode(obj).decode("ascii"),
+                    "data": base64.b64encode(o).decode("ascii"),
                 }
             case datetime.datetime():
-                return {"__type__": "datetime", "data": obj.isoformat()}
-        return super().default(obj)
+                return {"__type__": "datetime", "data": o.isoformat()}
+        return super().default(o)
 
 
 class CustomJSONDecoder(json.JSONDecoder):
-    def __init__(self, *args, **kwargs) -> None:  # type: ignore
-        super().__init__(object_hook=self.object_hook, *args, **kwargs)
+    def __init__(self) -> None:
+        super().__init__(object_hook=self.object_hook)
 
-    def object_hook(self, obj: Any) -> Any:
+    def object_hook(self, obj: object) -> object:
         match obj:
-            case {"__type__": "bytes", "encoding": "base64", "data": data}:
+            case {"__type__": "bytes", "encoding": "base64", "data": str(data)}:
                 return base64.b64decode(data)
-            case {"__type__": "datetime", "data": data}:
+            case {"__type__": "datetime", "data": str(data)}:
                 return datetime.datetime.fromisoformat(data)
         return obj
 
@@ -74,14 +74,17 @@ class Logger:
 
         self.logger = logging.LoggerAdapter(base_logger, {"problem_id": problem_id})
 
-    def info(self, message: object) -> None:
-        self.logger.info(message)
+    def info(self, message: object, *args: object) -> None:
+        self.logger.info(message, *args)
 
-    def warning(self, message: object) -> None:
-        self.logger.warning(message)
+    def warning(self, message: object, *args: object) -> None:
+        self.logger.warning(message, *args)
 
-    def error(self, message: object) -> None:
-        self.logger.error(message)
+    def error(self, message: object, *args: object) -> None:
+        self.logger.error(message, *args)
+
+    def exception(self, message: object, *args: object) -> None:
+        self.logger.exception(message, *args)
 
 
 # NOTE: AgentRunResult is a dataclass, which does not support recursive deserialization
@@ -107,26 +110,27 @@ class SaveInfo:
 
     def save_conversations(self, filename: str, agent_run_result: AgentRunResult) -> None:
         """Save conversations to JSON file."""
-        with open(self.conversations / filename, "w") as f:
+        with (self.conversations / filename).open("w") as f:
             json.dump(dataclasses.asdict(agent_run_result), f, cls=CustomJSONEncoder)
 
     def load_conversations(self, filename: str) -> AgentRunResult:
         """Load conversations from JSON file."""
-        with open(self.conversations / filename, "r") as f:
+        with (self.conversations / filename).open() as f:
             data = json.load(f, cls=CustomJSONDecoder)
         return AgentRunResultWrapper.model_validate({"value": data}).value
 
     def save_results(self, filename: str, results: dict[str, Any]) -> None:
         """Save results to JSON file."""
-        with open(self.results / filename, "w") as f:
+        with (self.results / filename).open("w") as f:
             json.dump(results, f)
 
     def load_results(self, filename: str) -> dict[str, Any]:
         """Load results from JSON file."""
-        with open(self.results / filename, "r") as f:
+        with (self.results / filename).open() as f:
             result = json.load(f)
         if not isinstance(result, dict):
-            raise ValueError(f"Invalid result format: {type(result)}")
+            msg = f"Invalid result format: {type(result)}"
+            raise TypeError(msg)
         return result
 
     def save_ale_bench_results(self, filename: str, results: AleBenchResult) -> None:
@@ -138,12 +142,12 @@ class SaveInfo:
                 case_results=results.case_results,
             )
         )
-        with open(self.ale_bench_results / filename, "w") as f:
+        with (self.ale_bench_results / filename).open("w") as f:
             json.dump(serialized_results.model_dump(), f)
 
     def load_ale_bench_results(self, filename: str) -> AleBenchResult:
         """Load results from JSON file."""
-        with open(self.ale_bench_results / filename, "r") as f:
+        with (self.ale_bench_results / filename).open() as f:
             ale_bench_result = json.load(f)
         return AleBenchResult(
             allow_score_non_ac=self.problem_id in ALLOW_SCORE_NON_AC_PRIVATE,

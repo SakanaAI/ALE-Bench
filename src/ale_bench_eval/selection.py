@@ -1,8 +1,30 @@
-from typing import Any, Literal
+from typing import Any, Literal, TypeGuard
 
 import numpy as np
 
 from ale_bench.data import ScoreType
+
+CodeLanguage = Literal["any", "python", "cpp17", "cpp20", "cpp23", "rust", ""]
+VALID_CODE_LANGUAGES = {"any", "python", "cpp17", "cpp20", "cpp23", "rust", ""}
+
+
+def is_code_language(value: str) -> TypeGuard[CodeLanguage]:
+    return value in VALID_CODE_LANGUAGES
+
+
+def get_solution_info(target_result: dict[str, Any]) -> tuple[CodeLanguage, str]:
+    raw_code_language = target_result.get("code_language")
+    if not isinstance(raw_code_language, str):
+        msg = f"Invalid code language type: {type(raw_code_language)}"
+        raise TypeError(msg)
+    if not is_code_language(raw_code_language):
+        msg = f"Invalid code language: {raw_code_language}"
+        raise ValueError(msg)
+    raw_code = target_result.get("code")
+    if not isinstance(raw_code, str):
+        msg = f"Invalid code type: {type(raw_code)}"
+        raise TypeError(msg)
+    return raw_code_language, raw_code
 
 
 def get_worst_score(score_type: ScoreType) -> int:
@@ -14,9 +36,8 @@ def select_solution_from_repeated_sampling(
     n_repeated_sampling: int,
     selection_method: Literal["best", "median"] = "median",
     score_type: ScoreType = ScoreType.MINIMIZE,
-) -> tuple[str, str, int]:
-    """
-    Select a solution from repeated sampling results based on the specified method.
+) -> tuple[CodeLanguage, str, int]:
+    """Select a solution from repeated sampling results based on the specified method.
 
     Args:
         results_repeated_sampling: dictionary of sampling results indexed by iteration.
@@ -26,9 +47,11 @@ def select_solution_from_repeated_sampling(
 
     Returns:
         tuple of (selected_code_language, selected_code, selected_index)
+
     """
     if not results_repeated_sampling:
-        raise ValueError("No results to select from")
+        msg = "No results to select from"
+        raise ValueError(msg)
 
     worst_score = get_worst_score(score_type)
     # Create sorted list of (index, score) tuples
@@ -60,15 +83,15 @@ def select_solution_from_repeated_sampling(
         elif score_type == ScoreType.MAXIMIZE:
             array_idx = np.argmax(scores)
     else:
-        raise ValueError(f"Unknown selection method: {selection_method}")
+        msg = f"Unknown selection method: {selection_method}"
+        raise ValueError(msg)
 
     # Get the actual index in the original results dictionary
-    target_index = indices[array_idx]
+    target_index = int(indices[array_idx])
 
     # Return selected solution details
     target_result = results_repeated_sampling[target_index]
-    target_code_language = target_result["code_language"]
-    target_code = target_result["code"]
+    target_code_language, target_code = get_solution_info(target_result)
 
     return target_code_language, target_code, target_index
 
@@ -77,9 +100,8 @@ def select_solution_from_self_refine(
     results_self_refine: dict[int, dict[str, Any]],
     score_type: ScoreType = ScoreType.MINIMIZE,
     n_max_refine: int | None = None,
-) -> tuple[str, str, int]:
-    """
-    Select a solution from self-refine results based on the specified method.
+) -> tuple[CodeLanguage, str, int]:
+    """Select a solution from self-refine results based on the specified method.
     Chose the best solution based on the absolute score.
 
     Args:
@@ -89,6 +111,7 @@ def select_solution_from_self_refine(
 
     Returns:
         tuple of (selected_code_language, selected_code, selected_index)
+
     """
     worst_score = get_worst_score(score_type)
     # Create sorted list of (index, score) tuples
@@ -118,7 +141,6 @@ def select_solution_from_self_refine(
 
     # Return selected solution details
     target_result = results_self_refine[target_index]
-    target_code_language = target_result["code_language"]
-    target_code = target_result["code"]
+    target_code_language, target_code = get_solution_info(target_result)
 
     return target_code_language, target_code, target_index

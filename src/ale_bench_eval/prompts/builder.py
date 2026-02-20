@@ -43,20 +43,21 @@ def create_system_message(args: PromptArgs) -> str:
 def merge_text_contents(
     contents: list[str | Image.Image | BinaryContent],
 ) -> list[str | Image.Image | BinaryContent]:
-    merged_contents = []
-    current_content: str | Image.Image | BinaryContent = contents[0]
-    for content in contents[1:]:
+    merged_contents: list[str | Image.Image | BinaryContent] = []
+    current_text = ""
+    for content in contents:
         if isinstance(content, str):
-            current_content += content  # type: ignore
+            current_text += content
         elif isinstance(content, (Image.Image, BinaryContent)):
-            if current_content != "":
-                merged_contents.append(current_content)
-                current_content = ""
+            if current_text:
+                merged_contents.append(current_text)
+                current_text = ""
             merged_contents.append(content)
         else:
-            raise ValueError(f"Invalid content type: {type(content)}")
-    if current_content != "":
-        merged_contents.append(current_content)
+            msg = f"Invalid content type: {type(content)}"
+            raise TypeError(msg)
+    if current_text:
+        merged_contents.append(current_text)
     return merged_contents
 
 
@@ -106,7 +107,7 @@ def create_initial_message(
     )
     if args.use_image:
         contents.extend(
-            parse_statement(problem.statement, problem.statement_images)  # type: ignore
+            parse_statement(problem.statement, problem.statement_images)
             if args.prompt_language == "en"
             else parse_statement(problem.statement_ja, problem.statement_images)
         )
@@ -122,11 +123,10 @@ def no_code_block_message(args: PromptArgs) -> str:
             language_strings=CODE_LANGUAGE_STRING_ANY,
             code_blocks=CODE_BLOCK_STRING_ANY,
         )
-    else:
-        return NO_CODE_BLOCK_SPECIFIC_PROMPT[args.prompt_language].substitute(
-            language=CODE_LANGUAGE_STRING[args.code_language],
-            code_block=CODE_BLOCK_STRING[args.code_language],
-        )
+    return NO_CODE_BLOCK_SPECIFIC_PROMPT[args.prompt_language].substitute(
+        language=CODE_LANGUAGE_STRING[args.code_language],
+        code_block=CODE_BLOCK_STRING[args.code_language],
+    )
 
 
 def case_result_feedback(case_idx: int, case_result: CaseResult) -> str:
@@ -166,13 +166,12 @@ def create_feedback_message(args: PromptArgs, public_result: Result | None) -> l
                 code_blocks=CODE_BLOCK_STRING_ANY,
             )
         ]
-    else:
-        return [
-            FEEDBACK_PROMPT[args.prompt_language].substitute(feedback=feedback)
-            + REFINE_SPECIFIC_PROMPT[args.prompt_language].substitute(
-                code_block=CODE_BLOCK_STRING[args.code_language],
-            )
-        ]
+    return [
+        FEEDBACK_PROMPT[args.prompt_language].substitute(feedback=feedback)
+        + REFINE_SPECIFIC_PROMPT[args.prompt_language].substitute(
+            code_block=CODE_BLOCK_STRING[args.code_language],
+        )
+    ]
 
 
 def get_code_from_response(response: str, code_language: str) -> tuple[str, str]:

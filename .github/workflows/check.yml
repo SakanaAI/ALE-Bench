@@ -43,7 +43,7 @@ jobs:
         version: 0.10.0
 
     - name: Install the project
-      run: uv sync --extra dev --extra eval
+      run: uv sync --dev --extra eval
 
     - name: Lint code with Ruff
       run: uv run ruff check --output-format=github
@@ -51,8 +51,8 @@ jobs:
     - name: Check code formatting with Ruff
       run: uv run ruff format --diff
 
-    - name: Run type checks with mypy
-      run: uv run mypy --strict src/ale_bench src/ale_bench_eval tests
+    - name: Run type checks with ty
+      run: uv run ty check src tests
 
     - name: Run tests
       run: uv run pytest -m "not docker and not slow"

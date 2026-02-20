@@ -1,3 +1,5 @@
+"""Create visualizations (local version) from judge outputs."""
+
 import tempfile
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
@@ -32,6 +34,7 @@ def setup_local_visualization_paths(
 
     Returns:
         HostPathsVis: An object containing paths for visualization.
+
     """
     input_file_ext = ale_bench.constants.INPUT_FILE.split(".")[-1]
     input_file = temp_dir / f"{problem_id}_{case_idx:06d}_input.{input_file_ext}"
@@ -59,6 +62,7 @@ def setup_local_visualization_paths(
 def case_iter_func(
     problem_id: str, case_idx: int, input_str: str, output_str: str, temp_dir: Path, tool_dir: Path, vis_command: str
 ) -> Image.Image | None:
+    """Run local visualization for one case and return the rendered image if available."""
     host_paths_vis = setup_local_visualization_paths(problem_id, case_idx, input_str, output_str, temp_dir)
     vis_volumes = get_vis_volumes(host_paths_vis, tool_dir)
     run_vis_container(vis_command, vis_volumes)
@@ -89,6 +93,7 @@ def local_visualization(
     Returns:
         list[Image.Image | None]: The list of local visualization images for each case.
             If a case fails, the corresponding entry will be None.
+
     """
     if problem_id in ale_bench.constants.NO_LOCAL_VIS:
         return [None for _ in range(len(inputs))]  # No local visualization for this problem
@@ -102,7 +107,7 @@ def local_visualization(
         # Run the code and calculate the score in the Docker container
         local_visualizations: list[Image.Image | None] = []
         if len(inputs) == 1 or num_workers == 1:
-            for case_idx, (input_str, output_str) in enumerate(zip(inputs, outputs)):
+            for case_idx, (input_str, output_str) in enumerate(zip(inputs, outputs, strict=True)):
                 local_visualization_image = case_iter_func(
                     problem_id,
                     case_idx,
@@ -119,7 +124,7 @@ def local_visualization(
             # Use ThreadPoolExecutor to run the cases in parallel
             with ThreadPoolExecutor(max_workers=num_workers) as executor:
                 future_to_case_idx = {}
-                for case_idx, (input_str, output_str) in enumerate(zip(inputs, outputs)):
+                for case_idx, (input_str, output_str) in enumerate(zip(inputs, outputs, strict=True)):
                     future = executor.submit(
                         case_iter_func,
                         problem_id,

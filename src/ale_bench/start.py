@@ -1,5 +1,8 @@
+"""Public entry points to create or restore ALE-Bench sessions."""
+
 import datetime as dt
 import json
+import logging
 import math
 import os
 import warnings
@@ -11,6 +14,8 @@ from ale_bench.result import ResourceUsage
 from ale_bench.session import Session
 from ale_bench.utils import find_free_port, get_cache_dir
 
+logger = logging.getLogger(__name__)
+
 
 def start(
     problem_id: str,
@@ -20,7 +25,7 @@ def start(
     maximum_num_case_eval: int = int(1e18),
     maximum_execution_time_case_eval: float = 1e18,
     maximum_num_call_public_eval: int = int(1e18),
-    session_duration: dt.timedelta | int | float | None = None,
+    session_duration: dt.timedelta | float | None = None,
     num_workers: int = 1,
     run_visualization_server: bool = False,
     visualization_server_port: int | None = None,
@@ -46,20 +51,24 @@ def start(
 
     Raises:
         AleBenchError: If the problem ID is not found.
-    """
 
+    """
     # Configure the cache directory
     cache_dir = get_cache_dir()
     if not cache_dir.is_dir():
-        print(f"Creating cache directory: {cache_dir}")
+        logger.info("Creating cache directory: %s", cache_dir)
         cache_dir.mkdir(parents=True)
 
     # Check if the problem ID exists
     if problem_id not in list_problem_ids(lite_version=lite_version):
-        raise AleBenchError(f"Problem ID {problem_id} not found.")
+        msg = f"Problem ID {problem_id} not found."
+        raise AleBenchError(msg)
 
     # Load the dataset
-    problem, seeds, standings, rank_performance_map, data_root = load_problem(problem_id, lite_version)
+    problem, seeds, standings, rank_performance_map, data_root = load_problem(
+        problem_id=problem_id,
+        lite_version=lite_version,
+    )
 
     # Build the Rust tools
     build_rust_tools(data_root / "tools")
@@ -79,9 +88,8 @@ def start(
     # Set session duration if not provided
     if session_duration is None:
         session_duration = problem.metadata.duration
-    else:
-        if isinstance(session_duration, (int, float)):
-            session_duration = dt.timedelta(seconds=session_duration)
+    elif isinstance(session_duration, (int, float)):
+        session_duration = dt.timedelta(seconds=session_duration)
 
     # Set the visualization server port if not provided
     if run_visualization_server:
@@ -92,7 +100,7 @@ def start(
 
     # Create a new session for the problem
     # NOTE: We only use 5 public seeds and 10% of private seeds for the lite version
-    session = Session(
+    return Session(
         problem=problem,
         lite_version=lite_version,
         public_seeds=seeds.public,
@@ -106,8 +114,6 @@ def start(
         num_workers=num_workers,
         visualization_server_port=visualization_server_port,
     )
-
-    return session
 
 
 def restart(
@@ -129,12 +135,14 @@ def restart(
     Warnings:
         - If the number of workers in the saved session is different from the provided one.
         - If the saved session did not use the visualization server but the new session will use it.
+
     """
     session_data = json.loads(Path(session_saved_file).read_text())
 
     # Load the dataset
     problem, seeds, standings, rank_performance_map, data_root = load_problem(
-        session_data["problem_id"], session_data["lite_version"]
+        problem_id=session_data["problem_id"],
+        lite_version=session_data["lite_version"],
     )
 
     # Build the Rust tools
@@ -146,14 +154,18 @@ def restart(
     elif num_workers != session_data["num_workers"]:
         warnings.warn(
             f"Number of workers in the saved session ({session_data['num_workers']}) "
-            f"is different from the provided one ({num_workers})."
+            f"is different from the provided one ({num_workers}).",
+            stacklevel=2,
         )
 
     # Set the visualization server port if not provided
     if visualization_server_port is None:
         visualization_server_port = session_data["visualization_server_port"]
     elif session_data["visualization_server_port"] is None:
-        warnings.warn("The saved session did not use the visualization server but the new session will use it.")
+        warnings.warn(
+            "The saved session did not use the visualization server but the new session will use it.",
+            stacklevel=2,
+        )
 
     # Create a new session for the problem
     session = Session(
@@ -171,20 +183,22 @@ def restart(
         visualization_server_port=visualization_server_port,
     )
 
-    session._current_resource_usage = ResourceUsage.model_validate(session_data["current_resource_usage"])
-    session._action_log = session_data["action_log"]
+    session._current_resource_usage = ResourceUsage.model_validate(  # noqa: SLF001
+        session_data["current_resource_usage"]
+    )
+    session._action_log = session_data["action_log"]  # noqa: SLF001
 
-    session._session_started_at -= dt.datetime.fromtimestamp(
-        session_data["session_paused_at"]
+    session._session_started_at -= dt.datetime.fromtimestamp(  # noqa: SLF001
+        session_data["session_paused_at"], tz=dt.timezone.utc
     ) - dt.datetime.fromtimestamp(
-        session_data["session_started_at"]
+        session_data["session_started_at"], tz=dt.timezone.utc
     )  # NOTE: We need to subtract the duration time already passed
     if session_data["last_public_eval_time"] >= session_data["session_started_at"]:
-        session._last_public_eval_time = session._session_started_at + dt.timedelta(
+        session._last_public_eval_time = session._session_started_at + dt.timedelta(  # noqa: SLF001
             seconds=session_data["last_public_eval_time"] - session_data["session_started_at"]
         )
     if session_data["last_private_eval_time"] >= session_data["session_started_at"]:
-        session._last_private_eval_time = session._session_started_at + dt.timedelta(
+        session._last_private_eval_time = session._session_started_at + dt.timedelta(  # noqa: SLF001
             seconds=session_data["last_private_eval_time"] - session_data["session_started_at"]
         )
     return session

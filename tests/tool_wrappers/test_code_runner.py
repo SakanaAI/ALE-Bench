@@ -32,7 +32,7 @@ sample_profiles_content = """{{
 
 
 @pytest.mark.parametrize(
-    "time_limit,memory_limit,execution_time_host,profiles_content,expected",
+    ("time_limit", "memory_limit", "execution_time_host", "profiles_content", "expected"),
     [
         pytest.param(
             2.0,
