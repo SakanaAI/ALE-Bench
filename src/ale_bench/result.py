@@ -1,5 +1,7 @@
+"""Result models returned by judge and evaluation steps."""
+
+from collections.abc import Sequence
 from enum import Enum
-from typing import Sequence
 
 from PIL import Image
 from pydantic import BaseModel, ConfigDict, Field, computed_field, field_validator
@@ -114,6 +116,7 @@ class ResourceUsage(BaseModel):
     - We use only the running time (excluding the compilation time) to calculate the execution time.
     - For the public/private evaluation, we don't track the execution time because the number of calls is limited.
     - For the `case_gen`, tracking the execution time is not necessary because it is quite small.
+
     """
 
     model_config = ConfigDict(frozen=True)
@@ -129,13 +132,13 @@ class ResourceUsage(BaseModel):
     def __add__(self, other: "ResourceUsage") -> "ResourceUsage":
         """Add two ResourceUsage objects."""
         return ResourceUsage(
-            **{field: getattr(self, field) + getattr(other, field) for field in ResourceUsage.model_fields.keys()}
+            **{field: getattr(self, field) + getattr(other, field) for field in ResourceUsage.model_fields}
         )
 
     def __sub__(self, other: "ResourceUsage") -> "ResourceUsage":
         """Subtract two ResourceUsage objects."""
         return ResourceUsage(
-            **{field: getattr(self, field) - getattr(other, field) for field in ResourceUsage.model_fields.keys()}
+            **{field: getattr(self, field) - getattr(other, field) for field in ResourceUsage.model_fields}
         )
 
 
@@ -150,32 +153,31 @@ class Result(BaseModel):
     resource_usage: ResourceUsage = Field(description="The resource usage")
     case_results: Sequence[CaseResult] = Field(description="The results of each case")
 
-    @computed_field  # type: ignore[prop-decorator]
+    @computed_field
     @property
     def overall_judge_result(self) -> JudgeResult:
-        """The overall judge result"""
+        """The overall judge result."""
         judge_results_set = {case_result.judge_result for case_result in self.case_results}
         if JudgeResult.INTERNAL_ERROR in judge_results_set:
             return JudgeResult.INTERNAL_ERROR
-        elif JudgeResult.WRONG_ANSWER in judge_results_set:
+        if JudgeResult.WRONG_ANSWER in judge_results_set:
             return JudgeResult.WRONG_ANSWER
-        elif JudgeResult.RUNTIME_ERROR in judge_results_set:
+        if JudgeResult.RUNTIME_ERROR in judge_results_set:
             return JudgeResult.RUNTIME_ERROR
-        elif JudgeResult.TIME_LIMIT_EXCEEDED in judge_results_set:
+        if JudgeResult.TIME_LIMIT_EXCEEDED in judge_results_set:
             return JudgeResult.TIME_LIMIT_EXCEEDED
-        elif JudgeResult.MEMORY_LIMIT_EXCEEDED in judge_results_set:
+        if JudgeResult.MEMORY_LIMIT_EXCEEDED in judge_results_set:
             return JudgeResult.MEMORY_LIMIT_EXCEEDED
-        elif JudgeResult.OUTPUT_LIMIT_EXCEEDED in judge_results_set:
+        if JudgeResult.OUTPUT_LIMIT_EXCEEDED in judge_results_set:
             return JudgeResult.OUTPUT_LIMIT_EXCEEDED
-        elif JudgeResult.COMPILATION_ERROR in judge_results_set:
+        if JudgeResult.COMPILATION_ERROR in judge_results_set:
             return JudgeResult.COMPILATION_ERROR
-        else:
-            return JudgeResult.ACCEPTED
+        return JudgeResult.ACCEPTED
 
-    @computed_field  # type: ignore[prop-decorator]
+    @computed_field
     @property
     def overall_absolute_score(self) -> int:
-        """The overall absolute score"""
+        """The overall absolute score."""
         if self.overall_judge_result in {JudgeResult.COMPILATION_ERROR, JudgeResult.INTERNAL_ERROR}:
             return 0  # NOTE: CE & IE should not be counted
         if not self.allow_score_non_ac and self.overall_judge_result != JudgeResult.ACCEPTED:
@@ -189,11 +191,11 @@ class Result(BaseModel):
             ]
         )  # NOTE: Only count the accepted cases
 
-    @computed_field  # type: ignore[prop-decorator]
+    @computed_field
     @property
     def overall_relative_score(self) -> int | None:
-        """The overall relative score"""
-        if any([case_result.relative_score is None for case_result in self.case_results]):
+        """The overall relative score."""
+        if any(case_result.relative_score is None for case_result in self.case_results):
             # NOTE: If any case does not have a relative score, return None
             return None
         if self.overall_judge_result in {JudgeResult.COMPILATION_ERROR, JudgeResult.INTERNAL_ERROR}:
@@ -215,5 +217,6 @@ class Result(BaseModel):
     def validate_case_results(cls, case_results: list[CaseResult]) -> list[CaseResult]:
         """Validate the case results."""
         if len(case_results) == 0:
-            raise ValueError("The case results must not be empty.")
+            msg = "The case results must not be empty."
+            raise ValueError(msg)
         return case_results

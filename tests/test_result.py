@@ -11,7 +11,7 @@ from ale_bench.result import (
 
 
 @pytest.mark.parametrize(
-    "resource_usage_1,resource_usage_2,expected",
+    ("resource_usage_1", "resource_usage_2", "expected"),
     [
         pytest.param(ResourceUsage(), ResourceUsage(), ResourceUsage(), id="zero"),
         pytest.param(
@@ -119,7 +119,7 @@ def test_resource_usage_add(
 
 
 @pytest.mark.parametrize(
-    "resource_usage_1,resource_usage_2,expected",
+    ("resource_usage_1", "resource_usage_2", "expected"),
     [
         pytest.param(ResourceUsage(), ResourceUsage(), ResourceUsage(), id="zero"),
         pytest.param(
@@ -155,7 +155,14 @@ def test_resource_usage_sub(
 
 
 @pytest.mark.parametrize(
-    "case_results,allow_score_non_ac,context,overall_judge_result,overall_absolute_score,overall_relative_score",
+    (
+        "case_results",
+        "allow_score_non_ac",
+        "context",
+        "overall_judge_result",
+        "overall_absolute_score",
+        "overall_relative_score",
+    ),
     [
         pytest.param(
             [],

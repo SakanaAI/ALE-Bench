@@ -42,7 +42,7 @@ class TestCE:
         }
 
     @pytest.mark.parametrize(
-        "code_language,judge_version",
+        ("code_language", "judge_version"),
         [
             pytest.param(CodeLanguage.CPP17, JudgeVersion.V201907, id="cpp17-v201907"),
             pytest.param(CodeLanguage.CPP17, JudgeVersion.V202301, id="cpp17-v202301"),
@@ -93,7 +93,7 @@ class TestCE:
             assert case_result.local_visualization is None, f"{case_result.local_visualization} is not None"
 
     @pytest.mark.parametrize(
-        "code_language,judge_version",
+        ("code_language", "judge_version"),
         [
             pytest.param(CodeLanguage.CPP17, JudgeVersion.V201907, id="cpp17-v201907"),
             pytest.param(CodeLanguage.CPP17, JudgeVersion.V202301, id="cpp17-v202301"),

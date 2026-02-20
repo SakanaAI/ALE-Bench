@@ -1,3 +1,5 @@
+"""Wrappers around ALE-Bench tool executables."""
+
 from ale_bench.tool_wrappers.case_runner import run_cases
 from ale_bench.tool_wrappers.code_runner import run_code
 from ale_bench.tool_wrappers.input_generation import generate_inputs

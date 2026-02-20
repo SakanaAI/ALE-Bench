@@ -3,12 +3,9 @@
     ```sh
     git clone https://github.com/SakanaAI/ALE-Bench.git
     cd ALE-Bench
-    pip install ".[dev,eval]"
 
     # Using uv
-    uv venv --python 3.12.11
-    uv sync --extra dev --extra eval
-    source .venv/bin/activate
+    uv sync --dev --extra eval
     ```
 
 - **Docker Image Management:**
@@ -34,7 +31,7 @@
     ruff format
 
     # Static Type Checking
-    mypy --strict src tests
+    ty check
 
     # Running Tests
     pytest

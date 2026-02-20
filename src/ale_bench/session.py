@@ -1,6 +1,9 @@
+"""Session orchestration for case generation and evaluation."""
+
 import atexit
 import datetime as dt
 import json
+import logging
 import os
 import shutil
 import warnings
@@ -18,6 +21,8 @@ from ale_bench.error import AleBenchError
 from ale_bench.result import CaseResult, CodeRunResult, ResourceUsage, Result
 from ale_bench.tool_wrappers import generate_inputs, local_visualization, run_cases, run_code
 from ale_bench.utils import docker_client
+
+logger = logging.getLogger(__name__)
 
 
 class AleBenchFunction(str, Enum):
@@ -39,6 +44,10 @@ CHECK_RESOURCE_USAGE_FIELDS = {
     AleBenchFunction.PUBLIC_EVAL: {"num_call_public_eval"},
     AleBenchFunction.PRIVATE_EVAL: {"num_call_private_eval"},
 }
+
+UINT64_MAX = 18446744073709551615
+MAX_CODE_SIZE_BYTES = 524288  # 512 KiB
+MIN_MEMORY_LIMIT_BYTES = 6291456  # 6 MiB
 
 
 class Session:
@@ -78,6 +87,7 @@ class Session:
 
         Raises:
             AleBenchError: If failed to initialize the public / private inputs or start the visualization server.
+
         """
         # NOTE: We use private attributes to prevent modification of the session (but it's not perfect)
         self._problem = problem
@@ -101,10 +111,12 @@ class Session:
 
         self._public_inputs = generate_inputs(public_seeds, {}, tool_dir)
         if len(self._public_inputs) != len(public_seeds):
-            raise AleBenchError("Failed to initialize: generating public inputs failed.")
+            msg = "Failed to initialize: generating public inputs failed."
+            raise AleBenchError(msg)
         self._private_inputs = generate_inputs(private_seeds, {}, tool_dir)
         if len(self._private_inputs) != len(private_seeds):
-            raise AleBenchError("Failed to initialize: generating private inputs failed.")
+            msg = "Failed to initialize: generating private inputs failed."
+            raise AleBenchError(msg)
 
         # Start the visualization server if needed
         self._visualization_server_container_id = None
@@ -115,7 +127,8 @@ class Session:
                     port_num=visualization_server_port,
                 )
             except Exception as e:
-                raise AleBenchError(f"Failed to start the visualization server: {e}")
+                msg = f"Failed to start the visualization server: {e}"
+                raise AleBenchError(msg) from e
 
         # Register the cleanup function to be called on exit
         atexit.register(self.close)
@@ -124,6 +137,7 @@ class Session:
         self._session_started_at = dt.datetime.now(tz=dt.timezone.utc)
 
     def __repr__(self) -> str:
+        """Return a concise representation of this session."""
         return f"Session(problem_id={self.problem_id})"
 
     # Interface
@@ -154,15 +168,13 @@ class Session:
 
         Raises:
             AleBenchError: If the session has finished or arguments are invalid.
+
         """
         # Preprocessing
-        try:
-            if self.session_finished:
-                raise AleBenchError("The session is finished.")
-        except AleBenchError:
-            raise AleBenchError("The session is finished.")
+        self._check_session_finished()
         if not self._check_within_resource_usage_before(AleBenchFunction.CODE_RUN):
-            raise AleBenchError("The resource usage is exceeded.")
+            msg = "The resource usage is exceeded."
+            raise AleBenchError(msg)
         elapsed_time = (dt.datetime.now(tz=dt.timezone.utc) - self._session_started_at).total_seconds()
         (input_list, code, code_language, judge_version, time_limit, memory_limit) = self._check_run_cases_arguments(
             input_str=input_str,
@@ -173,7 +185,9 @@ class Session:
             time_limit=time_limit,
             memory_limit=memory_limit,
         )
-        assert len(input_list) == 1
+        if len(input_list) != 1:
+            msg = "The number of inputs must be exactly one for `code_run`."
+            raise RuntimeError(msg)
 
         # Run
         result = run_code(
@@ -189,7 +203,8 @@ class Session:
         resource_usage = ResourceUsage(execution_time_case_eval=result.execution_time)
         self._current_resource_usage = self._current_resource_usage + resource_usage
         if not self._check_within_resource_usage_after(AleBenchFunction.CODE_RUN):
-            raise AleBenchError("The resource usage is exceeded after the action.")
+            msg = "The resource usage is exceeded after the action."
+            raise AleBenchError(msg)
 
         # Save the action log and return the result
         self._action_log.append(
@@ -210,7 +225,7 @@ class Session:
         )
         return result
 
-    def case_gen(self, seed: list[int] | int = 0, gen_kwargs: dict[str, Any] = {}) -> list[str] | str:
+    def case_gen(self, seed: list[int] | int = 0, gen_kwargs: dict[str, Any] | None = None) -> list[str] | str:
         """Generate a case using the given seed and generation arguments.
 
         Args:
@@ -222,15 +237,13 @@ class Session:
 
         Raises:
             AleBenchError: If the session is finished, the resource usage is exceeded, or the generation fails.
+
         """
         # Preprocessing
-        try:
-            if self.session_finished:
-                raise AleBenchError("The session is finished.")
-        except AleBenchError:
-            raise AleBenchError("The session is finished.")
+        self._check_session_finished()
         if not self._check_within_resource_usage_before(AleBenchFunction.CASE_GEN):
-            raise AleBenchError("The resource usage is exceeded.")
+            msg = "The resource usage is exceeded."
+            raise AleBenchError(msg)
         elapsed_time = (dt.datetime.now(tz=dt.timezone.utc) - self._session_started_at).total_seconds()
         is_scalar = isinstance(seed, int)
         seed, gen_kwargs = self._check_input_generation_arguments(seed=seed, gen_kwargs=gen_kwargs)
@@ -240,14 +253,15 @@ class Session:
 
         # Postprocessing
         if len(generated_cases) == 0:
-            raise AleBenchError("Failed to generate the case. Maybe you specified invalid arguments.")
+            msg = "Failed to generate the case. Maybe you specified invalid arguments."
+            raise AleBenchError(msg)
         if len(generated_cases) != len(seed):
-            raise AleBenchError(
-                "Something went wrong: The number of generated cases must match the number of seeds provided."
-            )
+            msg = "Something went wrong: The number of generated cases must match the number of seeds provided."
+            raise AleBenchError(msg)
         self._current_resource_usage = self._current_resource_usage + ResourceUsage(num_case_gen=len(generated_cases))
         if not self._check_within_resource_usage_after(AleBenchFunction.CASE_GEN):
-            raise AleBenchError("The resource usage is exceeded after the action.")
+            msg = "The resource usage is exceeded after the action."
+            raise AleBenchError(msg)
 
         # Save the action log and return the result
         self._action_log.append(
@@ -290,15 +304,13 @@ class Session:
         Raises:
             AleBenchError: If the session is finished or the resource usage is exceeded.
             AssertionError: If the number of case results is not 1.
+
         """
         # Preprocessing
-        try:
-            if self.session_finished:
-                raise AleBenchError("The session is finished.")
-        except AleBenchError:
-            raise AleBenchError("The session is finished.")
+        self._check_session_finished()
         if not self._check_within_resource_usage_before(AleBenchFunction.CASE_EVAL):
-            raise AleBenchError("The resource usage is exceeded.")
+            msg = "The resource usage is exceeded."
+            raise AleBenchError(msg)
         elapsed_time = (dt.datetime.now(tz=dt.timezone.utc) - self._session_started_at).total_seconds()
         (input_str, code, code_language, judge_version, time_limit, memory_limit) = self._check_run_cases_arguments(
             input_str=input_str,
@@ -326,16 +338,17 @@ class Session:
         )
 
         # Postprocessing
-        assert len(case_results) == len(input_str), (
-            "The number of case results must be equal to the number of input strings."
-        )
+        if len(case_results) != len(input_str):
+            msg = "The number of case results must be equal to the number of input strings."
+            raise RuntimeError(msg)
         resource_usage = ResourceUsage(
             num_case_eval=len(case_results),
             execution_time_case_eval=sum([case_result.execution_time for case_result in case_results]),
         )
         self._current_resource_usage = self._current_resource_usage + resource_usage
         if not self._check_within_resource_usage_after(AleBenchFunction.CASE_EVAL):
-            raise AleBenchError("The resource usage is exceeded after the action.")
+            msg = "The resource usage is exceeded after the action."
+            raise AleBenchError(msg)
 
         # Save the action log and return the result
         self._action_log.append(
@@ -368,7 +381,7 @@ class Session:
         seed: list[int] | int = 0,
         time_limit: float | None = None,
         memory_limit: int | str | None = None,
-        gen_kwargs: dict[str, Any] = {},
+        gen_kwargs: dict[str, Any] | None = None,
         skip_local_visualization: bool = False,
     ) -> Result:
         """Generate a case and evaluate the code with the given input.
@@ -388,15 +401,13 @@ class Session:
 
         Raises:
             AleBenchError: If the session is finished or the resource usage is exceeded.
+
         """
         # Preprocessing (to avoid unnecessary computation, we check the resource usage of both functions here)
-        try:
-            if self.session_finished:
-                raise AleBenchError("The session is finished.")
-        except AleBenchError:
-            raise AleBenchError("The session is finished.")
+        self._check_session_finished()
         if not self._check_within_resource_usage_before(AleBenchFunction.CASE_GEN_EVAL):
-            raise AleBenchError("The resource usage is exceeded.")
+            msg = "The resource usage is exceeded."
+            raise AleBenchError(msg)
         seed, gen_kwargs = self._check_input_generation_arguments(seed=seed, gen_kwargs=gen_kwargs)
         (_, code, code_language, judge_version, time_limit, memory_limit) = self._check_run_cases_arguments(
             code=code,
@@ -413,7 +424,8 @@ class Session:
         )
         if not self._check_within_resource_usage_after(AleBenchFunction.CASE_GEN_EVAL):
             # NOTE: maybe this block is not reached because we check the resource usage in each function
-            raise AleBenchError("The resource usage is exceeded after the action.")
+            msg = "The resource usage is exceeded after the action."
+            raise AleBenchError(msg)
         return result
 
     def local_visualization(
@@ -431,13 +443,10 @@ class Session:
             list[Image.Image | None] | Image.Image | None: The generated visualization(s).
                 None if the problem has no local visualization or the visualization fails.
                 Scalar value will be returned if `input_str` and `output_str` are scalar.
+
         """
         # Preprocessing
-        try:
-            if self.session_finished:
-                raise AleBenchError("The session is finished.")
-        except AleBenchError:
-            raise AleBenchError("The session is finished.")
+        self._check_session_finished()
         elapsed_time = (dt.datetime.now(tz=dt.timezone.utc) - self._session_started_at).total_seconds()
         is_scalar = isinstance(input_str, str)
         input_str, output_str = self._check_local_visualization_arguments(input_str=input_str, output_str=output_str)
@@ -452,9 +461,9 @@ class Session:
         )
 
         # Postprocessing
-        assert len(local_visualization_images) == len(input_str), (
-            "The number of local visualization images must match the number of input strings."
-        )
+        if len(local_visualization_images) != len(input_str):
+            msg = "The number of local visualization images must match the number of input strings."
+            raise RuntimeError(msg)
 
         # Save the action log and return the result
         self._action_log.append(
@@ -490,15 +499,13 @@ class Session:
         Raises:
             AleBenchError: If the session is finished or the resource usage is exceeded.
             AssertionError: If the number of case results is not equal to the number of public seeds.
+
         """
         # Preprocessing
-        try:
-            if self.session_finished:
-                raise AleBenchError("The session is finished.")
-        except AleBenchError:
-            raise AleBenchError("The session is finished.")
+        self._check_session_finished()
         if not self._check_within_resource_usage_before(AleBenchFunction.PUBLIC_EVAL):
-            raise AleBenchError("The resource usage is exceeded.")
+            msg = "The resource usage is exceeded."
+            raise AleBenchError(msg)
         elapsed_time = (dt.datetime.now(tz=dt.timezone.utc) - self._session_started_at).total_seconds()
         _, code, code_language, judge_version, _, _ = self._check_run_cases_arguments(
             code=code, code_language=code_language, judge_version=judge_version
@@ -522,13 +529,14 @@ class Session:
         )
 
         # Postprocessing
-        assert len(public_case_results) == self.num_public_cases, (
-            "The number of case results must be equal to the number of public seeds."
-        )
+        if len(public_case_results) != self.num_public_cases:
+            msg = "The number of case results must be equal to the number of public seeds."
+            raise RuntimeError(msg)
         resource_usage = ResourceUsage(num_call_public_eval=1)
         self._current_resource_usage = self._current_resource_usage + resource_usage
         if not self._check_within_resource_usage_after(AleBenchFunction.PUBLIC_EVAL):
-            raise AleBenchError("The resource usage is exceeded after the action.")
+            msg = "The resource usage is exceeded after the action."
+            raise AleBenchError(msg)
 
         # Save the action log and return the result
         self._action_log.append(
@@ -571,15 +579,13 @@ class Session:
         Raises:
             AleBenchError: If the session is finished or the resource usage is exceeded.
             AssertionError: If the number of case results is not equal to the number of private seeds.
+
         """
         # Preprocessing
-        try:
-            if self.session_finished:
-                raise AleBenchError("The session is finished.")
-        except AleBenchError:
-            raise AleBenchError("The session is finished.")
+        self._check_session_finished()
         if not self._check_within_resource_usage_before(AleBenchFunction.PRIVATE_EVAL):
-            raise AleBenchError("The resource usage is exceeded.")
+            msg = "The resource usage is exceeded."
+            raise AleBenchError(msg)
         elapsed_time = (dt.datetime.now(tz=dt.timezone.utc) - self._session_started_at).total_seconds()
         _, code, code_language, judge_version, _, _ = self._check_run_cases_arguments(
             code=code, code_language=code_language, judge_version=judge_version
@@ -603,13 +609,14 @@ class Session:
         )
 
         # Postprocessing
-        assert len(private_case_results) == self.num_private_cases, (
-            "The number of case results must be equal to the number of private seeds."
-        )
+        if len(private_case_results) != self.num_private_cases:
+            msg = "The number of case results must be equal to the number of private seeds."
+            raise RuntimeError(msg)
         resource_usage = ResourceUsage(num_call_private_eval=1)
         self._current_resource_usage = self._current_resource_usage + resource_usage
         if not self._check_within_resource_usage_after(AleBenchFunction.PRIVATE_EVAL):
-            raise AleBenchError("The resource usage is exceeded after the action.")
+            msg = "The resource usage is exceeded after the action."
+            raise AleBenchError(msg)
 
         # Save the action log and return the result
         self._action_log.append(
@@ -630,8 +637,7 @@ class Session:
             resource_usage=resource_usage,
             case_results=private_case_results,
         )
-        new_rank, new_performance_rank, relative_scores = self._standings.get_new_rank(private_result)
-        new_performance = self._rank_performance_map.get_performance(new_performance_rank)
+        new_rank, new_performance, relative_scores = self.estimate_rank_and_performance(private_result)
         processed_relative_cases = [
             CaseResult(
                 input_str=None,
@@ -645,7 +651,7 @@ class Session:
                 execution_time=case_result.execution_time,
                 memory_usage=case_result.memory_usage,
             )
-            for relative_score, case_result in zip(relative_scores, private_result.case_results)
+            for relative_score, case_result in zip(relative_scores, private_result.case_results, strict=True)
         ]  # NOTE: `input_str`, `output_str`, `error_str`, `message` and `local_visualization` will not be provided
         processed_private_result = Result(
             allow_score_non_ac=private_result.allow_score_non_ac,
@@ -654,6 +660,11 @@ class Session:
         )
         return processed_private_result, new_rank, new_performance
 
+    def estimate_rank_and_performance(self, private_result: Result) -> tuple[int, int, list[int]]:
+        """Estimate rank and performance for a private result without mutating session state."""
+        new_rank, new_performance_rank, relative_scores = self._standings.get_new_rank(private_result)
+        return new_rank, self._rank_performance_map.get_performance(new_performance_rank), relative_scores
+
     def save(self, filepath: str | os.PathLike[str] = "session.json") -> None:
         """Save the session to a JSON file.
 
@@ -661,9 +672,10 @@ class Session:
 
         Args:
             filepath (str | os.PathLike[str], optional): The path to save the session. Defaults to "session.json".
+
         """
         filepath_path = Path(filepath)
-        with open(filepath_path, "w") as f:
+        with filepath_path.open("w") as f:
             json.dump(
                 {
                     "problem_id": self._problem.metadata.problem_id,
@@ -685,21 +697,21 @@ class Session:
                 f,
                 ensure_ascii=False,
             )
-        print(f"Session saved to {filepath_path.resolve()}")
+        logger.info("Session saved to %s", filepath_path.resolve())
 
     def close(self) -> None:
         """Close the session and clean up resources."""
         shutil.rmtree(self._tool_dir, ignore_errors=True)
         if self._visualization_server_container_id is not None:
-            print("Stopping the visualization server...")
+            logger.info("Stopping the visualization server...")
             with docker_client() as client:
                 try:
                     visualization_server_container = client.containers.get(self._visualization_server_container_id)
                     visualization_server_container.stop()
                     visualization_server_container.remove(force=True)
                 except NotFound:
-                    print("Visualization server container not found.")
-            print("Visualization server stopped.")
+                    logger.warning("Visualization server container not found.")
+            logger.info("Visualization server stopped.")
             self._run_visualization_server = False
             self._visualization_server_port = None
             self._visualization_server_container_id = None
@@ -711,6 +723,7 @@ class Session:
 
         Returns:
             Problem: The problem object.
+
         """
         return self._problem
 
@@ -720,6 +733,7 @@ class Session:
 
         Returns:
             str: The problem ID.
+
         """
         return self._problem.metadata.problem_id
 
@@ -729,6 +743,7 @@ class Session:
 
         Returns:
             bool: Whether the session is in lite version.
+
         """
         return self._lite_version
 
@@ -738,6 +753,7 @@ class Session:
 
         Returns:
             list[int]: The public seeds.
+
         """
         return self._public_seeds
 
@@ -747,6 +763,7 @@ class Session:
 
         Returns:
             int: The number of public cases.
+
         """
         return len(self._public_seeds)
 
@@ -756,8 +773,10 @@ class Session:
 
         Raises:
             AleBenchError: Accessing private seeds is not allowed.
+
         """
-        raise AleBenchError("Accessing private seeds is not allowed.")
+        msg = "Accessing private seeds is not allowed."
+        raise AleBenchError(msg)
 
     @property
     def num_private_cases(self) -> int:
@@ -765,6 +784,7 @@ class Session:
 
         Returns:
             int: The number of private cases.
+
         """
         return len(self._private_seeds)
 
@@ -774,8 +794,10 @@ class Session:
 
         Raises:
             AleBenchError: Accessing standings is not allowed.
+
         """
-        raise AleBenchError("Accessing standings is not allowed.")
+        msg = "Accessing standings is not allowed."
+        raise AleBenchError(msg)
 
     @property
     def rank_performance_map(self) -> NoReturn:
@@ -783,8 +805,10 @@ class Session:
 
         Raises:
             AleBenchError: Accessing rank performance map is not allowed.
+
         """
-        raise AleBenchError("Accessing rank performance map is not allowed.")
+        msg = "Accessing rank performance map is not allowed."
+        raise AleBenchError(msg)
 
     @property
     def tool_dir(self) -> Path:
@@ -792,6 +816,7 @@ class Session:
 
         Returns:
             Path: The directory for the tools.
+
         """
         return self._tool_dir
 
@@ -801,6 +826,7 @@ class Session:
 
         Returns:
             Path: The directory for the tools.
+
         """
         return self._tool_dir / "tools" / "src"
 
@@ -810,6 +836,7 @@ class Session:
 
         Returns:
             bool: Whether to use the same time scale.
+
         """
         return self._use_same_time_scale
 
@@ -819,6 +846,7 @@ class Session:
 
         Returns:
             ResourceUsage: The maximum resource usage.
+
         """
         return self._maximum_resource_usage
 
@@ -828,6 +856,7 @@ class Session:
 
         Returns:
             ResourceUsage: The current resource usage.
+
         """
         return self._current_resource_usage
 
@@ -837,6 +866,7 @@ class Session:
 
         Returns:
             ResourceUsage: The remaining resource usage.
+
         """
         return self._maximum_resource_usage - self._current_resource_usage
 
@@ -846,6 +876,7 @@ class Session:
 
         Returns:
             list[str]: The action log.
+
         """
         return self._action_log
 
@@ -855,6 +886,7 @@ class Session:
 
         Returns:
             dt.datetime: The time when the last public evaluation was performed.
+
         """
         return self._last_public_eval_time
 
@@ -864,13 +896,13 @@ class Session:
 
         Returns:
             dt.datetime: The time when the next public evaluation can be performed.
+
         """
         if self._use_same_time_scale:
             return self._last_public_eval_time + dt.timedelta(
                 seconds=self._problem.metadata.submission_interval_seconds
             )
-        else:
-            return self._last_public_eval_time
+        return self._last_public_eval_time
 
     @property
     def last_private_eval_time(self) -> dt.datetime:
@@ -878,6 +910,7 @@ class Session:
 
         Returns:
             dt.datetime: The time when the last private evaluation was performed.
+
         """
         return self._last_private_eval_time
 
@@ -887,6 +920,7 @@ class Session:
 
         Returns:
             dt.timedelta: The duration of the session.
+
         """
         return self._session_duration
 
@@ -896,6 +930,7 @@ class Session:
 
         Returns:
             dt.datetime: The time when the session started.
+
         """
         return self._session_started_at
 
@@ -905,6 +940,7 @@ class Session:
 
         Returns:
             dt.timedelta: The remaining time of the session.
+
         """
         return self._session_started_at + self._session_duration - dt.datetime.now(tz=dt.timezone.utc)
 
@@ -917,9 +953,9 @@ class Session:
 
         Raises:
             AleBenchError: If the session is finished.
+
         """
-        is_finished = not self._check_within_resource_usage_before(AleBenchFunction.PRIVATE_EVAL)
-        return is_finished
+        return not self._check_within_resource_usage_before(AleBenchFunction.PRIVATE_EVAL)
 
     @property
     def run_visualization_server(self) -> bool:
@@ -927,6 +963,7 @@ class Session:
 
         Returns:
             bool: Whether to run the visualization server.
+
         """
         return self._run_visualization_server
 
@@ -936,42 +973,53 @@ class Session:
 
         Returns:
             int | None: The port number of the visualization server or None if not running.
+
         """
         return self._visualization_server_port
 
     # Checkers
+    def _check_session_finished(self) -> None:
+        msg = "The session is finished."
+        try:
+            session_finished = self.session_finished
+        except AleBenchError as e:
+            raise AleBenchError(msg) from e
+        if session_finished:
+            raise AleBenchError(msg)
+
     def _check_within_resource_usage_before(self, function_type: AleBenchFunction) -> bool:
         """Check if the current resource usage is within the maximum resource usage before the action is performed."""
         if self.session_remaining_time.total_seconds() <= 0:
             # NOTE: You have to call `private_eval` to submit your solution
             # This is slightly different from the original competition
             # However, this is not critical because anyway user can't submit after the session is finished
-            raise AleBenchError("The session has already finished.")
+            msg = "The session has already finished."
+            raise AleBenchError(msg)
         is_within_resource_usage = all(
-            [
-                getattr(self._current_resource_usage, field) < getattr(self._maximum_resource_usage, field)
-                for field in CHECK_RESOURCE_USAGE_FIELDS[function_type]
-            ]
+            getattr(self._current_resource_usage, field) < getattr(self._maximum_resource_usage, field)
+            for field in CHECK_RESOURCE_USAGE_FIELDS[function_type]
         )
         if not is_within_resource_usage:
-            raise AleBenchError(f"Exceeded the maximum resource usage for the `{function_type.value}` function.")
-        if self._use_same_time_scale and function_type == AleBenchFunction.PUBLIC_EVAL:
-            if dt.datetime.now(tz=dt.timezone.utc) < self.next_public_eval_time:
-                raise AleBenchError("The next public evaluation is not allowed yet.")
+            msg = f"Exceeded the maximum resource usage for the `{function_type.value}` function."
+            raise AleBenchError(msg)
+        if (
+            self._use_same_time_scale
+            and function_type == AleBenchFunction.PUBLIC_EVAL
+            and dt.datetime.now(tz=dt.timezone.utc) < self.next_public_eval_time
+        ):
+            msg = "The next public evaluation is not allowed yet."
+            raise AleBenchError(msg)
         return is_within_resource_usage
 
     def _check_within_resource_usage_after(self, function_type: AleBenchFunction) -> bool:
         """Check if the current resource usage is within the maximum resource usage after the action is performed."""
         is_within_resource_usage = all(
-            [
-                getattr(self._current_resource_usage, field) <= getattr(self._maximum_resource_usage, field)
-                for field in CHECK_RESOURCE_USAGE_FIELDS[function_type]
-            ]
+            getattr(self._current_resource_usage, field) <= getattr(self._maximum_resource_usage, field)
+            for field in CHECK_RESOURCE_USAGE_FIELDS[function_type]
         )  # NOTE: `<=` is used to allow the last action
         if not is_within_resource_usage:
-            raise AleBenchError(
-                f"Exceeded the maximum resource usage for the `{function_type.value}` function after the action."
-            )
+            msg = f"Exceeded the maximum resource usage for the `{function_type.value}` function after the action."
+            raise AleBenchError(msg)
         return is_within_resource_usage
 
     def _check_input_generation_arguments(
@@ -987,15 +1035,16 @@ class Session:
             if isinstance(seed, int):
                 seed = [seed]
             for s in seed:
-                if s < 0 or s > 18446744073709551615:  # NOTE: Unsigned 64-bit integer
-                    raise AleBenchError("`seed` must be between 0 and 2^64 - 1.")
+                if s < 0 or s > UINT64_MAX:  # NOTE: Unsigned 64-bit integer
+                    msg = "`seed` must be between 0 and 2^64 - 1."
+                    raise AleBenchError(msg)
 
         # Check `gen_kwargs`
         ret_gen_kwargs = {}
         if gen_kwargs is not None:
-            for key in gen_kwargs.keys():
+            for key in gen_kwargs:
                 if key == "dir":
-                    warnings.warn("`dir` is a reserved keyword and will be ignored.")
+                    warnings.warn("`dir` is a reserved keyword and will be ignored.", stacklevel=2)
                 else:
                     ret_gen_kwargs[key] = gen_kwargs[key]
 
@@ -1011,15 +1060,19 @@ class Session:
             input_str = [input_str]
             output_str = [output_str]
         elif isinstance(input_str, str) or isinstance(output_str, str):
-            raise AleBenchError("Both `input_str` and `output_str` must be either a string or a list of strings.")
+            msg = "Both `input_str` and `output_str` must be either a string or a list of strings."
+            raise AleBenchError(msg)
         # Check the length of `input_str` and `output_str`
         if len(input_str) != len(output_str):
-            raise AleBenchError("The number of input strings and output strings must be the same.")
+            msg = "The number of input strings and output strings must be the same."
+            raise AleBenchError(msg)
         # Check if the input and output strings are empty
         if len(input_str) == 0 or any(in_s.strip() == "" for in_s in input_str):
-            raise AleBenchError("The input string is empty.")
+            msg = "The input string is empty."
+            raise AleBenchError(msg)
         if len(output_str) == 0 or any(out_s.strip() == "" for out_s in output_str):
-            raise AleBenchError("The output string is empty.")
+            msg = "The output string is empty."
+            raise AleBenchError(msg)
         return input_str, output_str
 
     def _check_run_cases_arguments(
@@ -1041,49 +1094,49 @@ class Session:
                 input_str = [input_str]
             for in_s in input_str:
                 if in_s.strip() == "" and not allow_empty_input:
-                    raise AleBenchError("The input string is empty.")
+                    msg = "The input string is empty."
+                    raise AleBenchError(msg)
 
         # Check `code`
         if code is None:
-            raise AleBenchError("`code` must be specified.")
-        else:
-            code_byte_size = len(code.encode("utf-8"))
-            if code_byte_size > 524288:  # NOTE: 512 KiB
-                raise AleBenchError("The size of the submission code exceeds the limit (512 KiB).")
-            if code.strip() == "":
-                raise AleBenchError("The submission code is empty.")
+            msg = "`code` must be specified."
+            raise AleBenchError(msg)
+        code_byte_size = len(code.encode("utf-8"))
+        if code_byte_size > MAX_CODE_SIZE_BYTES:  # NOTE: 512 KiB
+            msg = "The size of the submission code exceeds the limit (512 KiB)."
+            raise AleBenchError(msg)
+        if code.strip() == "":
+            msg = "The submission code is empty."
+            raise AleBenchError(msg)
 
         # Check `code_language` and `judge_version`
         if code_language is None:
-            raise AleBenchError("`code_language` must be specified.")
-        else:
-            if isinstance(code_language, str):
-                try:
-                    code_language = CodeLanguage(code_language)
-                except ValueError:
-                    raise AleBenchError(
-                        f"Invalid code language. Available options: {', '.join(CodeLanguage.__members__)}"
-                    )
-            if judge_version is None:
-                judge_version = JudgeVersion.V202301  # NOTE: Use the judge version 202301 by default
-            else:
-                if isinstance(judge_version, str):
-                    try:
-                        judge_version = JudgeVersion(judge_version)
-                    except ValueError:
-                        raise AleBenchError(
-                            f"Invalid judge version. Available options: {', '.join(JudgeVersion.__members__)}"
-                        )
-            if judge_version == JudgeVersion.V201907 and (
-                code_language == CodeLanguage.CPP20 or code_language == CodeLanguage.CPP23
-            ):
-                raise AleBenchError("The judge version 201907 does not support C++20 or C++23.")
+            msg = "`code_language` must be specified."
+            raise AleBenchError(msg)
+        if isinstance(code_language, str):
+            try:
+                code_language = CodeLanguage(code_language)
+            except ValueError as e:
+                msg = f"Invalid code language. Available options: {', '.join(CodeLanguage.__members__)}"
+                raise AleBenchError(msg) from e
+        if judge_version is None:
+            judge_version = JudgeVersion.V202301  # NOTE: Use the judge version 202301 by default
+        elif isinstance(judge_version, str):
+            try:
+                judge_version = JudgeVersion(judge_version)
+            except ValueError as e:
+                msg = f"Invalid judge version. Available options: {', '.join(JudgeVersion.__members__)}"
+                raise AleBenchError(msg) from e
+        if judge_version == JudgeVersion.V201907 and (code_language in (CodeLanguage.CPP20, CodeLanguage.CPP23)):
+            msg = "The judge version 201907 does not support C++20 or C++23."
+            raise AleBenchError(msg)
 
         # Check `time_limit`
         if time_limit is None:
             time_limit = self._problem.constraints.time_limit  # NOTE: Use the default time limit
         if time_limit <= 0.0:
-            raise AleBenchError("`time_limit` must be positive.")
+            msg = "`time_limit` must be positive."
+            raise AleBenchError(msg)
 
         # Check `memory_limit`
         if memory_limit is None:
@@ -1103,9 +1156,11 @@ class Session:
                     else:
                         memory_limit = int(memory_limit)
                 except ValueError:
-                    raise AleBenchError("Invalid `memory_limit` format. Use 'b', 'k', 'm', or 'g' suffixes.")
+                    msg = "Invalid `memory_limit` format. Use 'b', 'k', 'm', or 'g' suffixes."
+                    raise AleBenchError(msg) from None
             memory_limit = min(memory_limit, ale_bench.constants.MAX_MEMORY_LIMIT)
-            if memory_limit < 6291456:
-                raise AleBenchError("`memory_limit` must be greater than or equal to 6MB.")
+            if memory_limit < MIN_MEMORY_LIMIT_BYTES:
+                msg = "`memory_limit` must be greater than or equal to 6MB."
+                raise AleBenchError(msg)
 
         return input_str, code, code_language, judge_version, time_limit, memory_limit

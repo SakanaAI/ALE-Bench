@@ -11,14 +11,14 @@ from ale_bench.utils import pil_to_base64
 
 
 @pytest.mark.parametrize(
-    "problem,serialized",
+    ("problem", "serialized"),
     [
         pytest.param(
             ProblemSerializable(
                 metadata=ProblemMetaData(
                     problem_id="test",
-                    start_at=datetime.datetime(2025, 1, 1, 0, 0, 0),
-                    end_at=datetime.datetime(2025, 7, 7, 0, 0, 0),
+                    start_at=datetime.datetime(2025, 1, 1, 0, 0, 0, tzinfo=datetime.timezone.utc),
+                    end_at=datetime.datetime(2025, 7, 7, 0, 0, 0, tzinfo=datetime.timezone.utc),
                     contest_url="https://example.com/test",
                     title="Test Problem",
                     problem_type=ProblemType.BATCH,
@@ -41,8 +41,8 @@ from ale_bench.utils import pil_to_base64
             {
                 "metadata": {
                     "problem_id": "test",
-                    "start_at": "2025-01-01T00:00:00",
-                    "end_at": "2025-07-07T00:00:00",
+                    "start_at": "2025-01-01T00:00:00+00:00",
+                    "end_at": "2025-07-07T00:00:00+00:00",
                     "contest_url": "https://example.com/test",
                     "title": "Test Problem",
                     "problem_type": "batch",
@@ -77,7 +77,7 @@ def test_problem_serializable(problem: ProblemSerializable, serialized: dict[str
 
 
 @pytest.mark.parametrize(
-    "case_result,serialized",
+    ("case_result", "serialized"),
     [
         pytest.param(
             CaseResultSerializable(
@@ -144,7 +144,7 @@ def test_case_result_serializable(
 
 
 @pytest.mark.parametrize(
-    "case_result,expected",
+    ("case_result", "expected"),
     [
         pytest.param(
             CaseResult(
@@ -201,7 +201,7 @@ def test_case_result_serializable_from_case_result(case_result: CaseResult, expe
 
 
 @pytest.mark.parametrize(
-    "result,expected",
+    ("result", "expected"),
     [
         pytest.param(
             Result(

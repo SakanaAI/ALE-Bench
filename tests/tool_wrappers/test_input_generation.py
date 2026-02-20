@@ -23,20 +23,25 @@ def test_setup_paths_gen() -> None:
         assert gen_host_paths.input_dir.is_dir()
 
 
-def test_get_gen_volumes() -> None:
-    gen_host_paths = HostPathsGen(seeds_file=Path("/tmp/test/seeds.txt"), input_dir=Path("/tmp/test/input"))
-    gen_volumes = get_gen_volumes(gen_host_paths, Path("/tmp/test"))
-    assert gen_volumes.keys() == {"/tmp/test/seeds.txt", "/tmp/test/input", "/tmp/test/tools/target/release/gen"}
-    assert gen_volumes["/tmp/test/seeds.txt"]["bind"] == ale_bench.constants.SEEDS_FILE
-    assert gen_volumes["/tmp/test/seeds.txt"]["mode"] == "ro"
-    assert gen_volumes["/tmp/test/input"]["bind"] == ale_bench.constants.IN_DIR
-    assert gen_volumes["/tmp/test/input"]["mode"] == "rw"
-    assert gen_volumes["/tmp/test/tools/target/release/gen"]["bind"] == ale_bench.constants.GEN_BIN
-    assert gen_volumes["/tmp/test/tools/target/release/gen"]["mode"] == "ro"
+def test_get_gen_volumes(tmp_path: Path) -> None:
+    test_dir = tmp_path / "test"
+    gen_host_paths = HostPathsGen(seeds_file=test_dir / "seeds.txt", input_dir=test_dir / "input")
+    gen_volumes = get_gen_volumes(gen_host_paths, test_dir)
+    assert gen_volumes.keys() == {
+        str(test_dir / "seeds.txt"),
+        str(test_dir / "input"),
+        str(test_dir / "tools/target/release/gen"),
+    }
+    assert gen_volumes[str(test_dir / "seeds.txt")]["bind"] == ale_bench.constants.SEEDS_FILE
+    assert gen_volumes[str(test_dir / "seeds.txt")]["mode"] == "ro"
+    assert gen_volumes[str(test_dir / "input")]["bind"] == ale_bench.constants.IN_DIR
+    assert gen_volumes[str(test_dir / "input")]["mode"] == "rw"
+    assert gen_volumes[str(test_dir / "tools/target/release/gen")]["bind"] == ale_bench.constants.GEN_BIN
+    assert gen_volumes[str(test_dir / "tools/target/release/gen")]["mode"] == "ro"
 
 
 @pytest.mark.parametrize(
-    "gen_kwargs,expected_context,expected_command",
+    ("gen_kwargs", "expected_context", "expected_command"),
     [
         pytest.param(
             {},

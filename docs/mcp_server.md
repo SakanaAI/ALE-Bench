@@ -18,7 +18,7 @@ The MCP server is a lightweight HTTP server that provides a simple interface for
     ```sh
     cd mcp
     uv sync
-    uv sync --extra dev  # For development dependencies
+    uv sync --dev  # For development dependencies
     ```
 
 ## Running the MCP Server

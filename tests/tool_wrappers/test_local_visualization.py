@@ -7,7 +7,15 @@ from ale_bench.tool_wrappers.local_visualization import setup_local_visualizatio
 
 
 @pytest.mark.parametrize(
-    "problem_id,case_idx,input_str,output_str,input_file_name,output_file_name,local_visualization_file_name",
+    (
+        "problem_id",
+        "case_idx",
+        "input_str",
+        "output_str",
+        "input_file_name",
+        "output_file_name",
+        "local_visualization_file_name",
+    ),
     [
         pytest.param(
             "ahc001",

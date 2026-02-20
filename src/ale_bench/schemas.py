@@ -1,11 +1,13 @@
-from typing import Sequence
+"""Schema conversion helpers for serializing ALE-Bench objects."""
+
+from collections.abc import Sequence
+from typing import Annotated
 
 from PIL import Image
 from pydantic import Field
 from pydantic.functional_serializers import PlainSerializer
 from pydantic.functional_validators import BeforeValidator
 from pydantic.json_schema import WithJsonSchema
-from typing_extensions import Annotated
 
 from ale_bench.data import Problem
 from ale_bench.result import CaseResult, Result
@@ -16,7 +18,7 @@ SerializableImage = Annotated[
     # Deserialize from base64 string
     BeforeValidator(lambda v: base64_to_pil(v) if isinstance(v, str) else v),
     # Serialize to base64 string
-    PlainSerializer(lambda img: pil_to_base64(img), return_type=str),  # NOTE: when_used="json" may be helpful
+    PlainSerializer(pil_to_base64, return_type=str),  # NOTE: when_used="json" may be helpful
     # JSON Schema representation
     WithJsonSchema(
         {

@@ -30,9 +30,12 @@ from ale_bench.tool_wrappers.case_runner import (
     setup_paths_vis,
 )
 
+TMP_TEST_DIR = f"{ale_bench.constants.TMP_DIR}/test"
+TMP_CACHE_DIR = f"{ale_bench.constants.TMP_DIR}/cache"
+
 
 @pytest.mark.parametrize(
-    "code,code_language,judge_version",
+    ("code", "code_language", "judge_version"),
     [
         pytest.param("cpp17", CodeLanguage.CPP17, JudgeVersion.V201907, id="cpp17-v201907"),
         pytest.param("python", CodeLanguage.PYTHON, JudgeVersion.V201907, id="python-v201907"),
@@ -60,30 +63,33 @@ def test_setup_paths_compile(
 
 def test_get_compile_volumes() -> None:
     host_paths_compile = HostPathsCompile(
-        code_file=Path("/tmp/test/code.cpp"), object_file=Path("/tmp/test/object.out")
+        code_file=Path(f"{TMP_TEST_DIR}/code.cpp"), object_file=Path(f"{TMP_TEST_DIR}/object.out")
     )
-    compile_volumes = get_compile_volumes(host_paths_compile, Path("/tmp/test"))
-    assert compile_volumes.keys() == {"/tmp/test/code.cpp", "/tmp/test/object.out"}
-    assert compile_volumes["/tmp/test/code.cpp"]["bind"] == f"{ale_bench.constants.WORK_DIR}/code.cpp"
-    assert compile_volumes["/tmp/test/code.cpp"]["mode"] == "ro"
-    assert compile_volumes["/tmp/test/object.out"]["bind"] == "/tmp/object.out"
-    assert compile_volumes["/tmp/test/object.out"]["mode"] == "rw"
+    compile_volumes = get_compile_volumes(host_paths_compile, Path(f"{TMP_TEST_DIR}"))
+    assert compile_volumes.keys() == {f"{TMP_TEST_DIR}/code.cpp", f"{TMP_TEST_DIR}/object.out"}
+    assert compile_volumes[f"{TMP_TEST_DIR}/code.cpp"]["bind"] == f"{ale_bench.constants.WORK_DIR}/code.cpp"
+    assert compile_volumes[f"{TMP_TEST_DIR}/code.cpp"]["mode"] == "ro"
+    assert compile_volumes[f"{TMP_TEST_DIR}/object.out"]["bind"] == f"{ale_bench.constants.TMP_DIR}/object.out"
+    assert compile_volumes[f"{TMP_TEST_DIR}/object.out"]["mode"] == "rw"
 
 
 def test_get_compile_volumes_nested() -> None:
     host_paths_compile = HostPathsCompile(
-        code_file=Path("/tmp/test/src/main.rs"), object_file=Path("/tmp/test/target/release/main")
+        code_file=Path(f"{TMP_TEST_DIR}/src/main.rs"), object_file=Path(f"{TMP_TEST_DIR}/target/release/main")
     )
-    compile_volumes = get_compile_volumes(host_paths_compile, Path("/tmp/test"))
-    assert compile_volumes.keys() == {"/tmp/test/src/main.rs", "/tmp/test/target/release/main"}
-    assert compile_volumes["/tmp/test/src/main.rs"]["bind"] == f"{ale_bench.constants.WORK_DIR}/src/main.rs"
-    assert compile_volumes["/tmp/test/src/main.rs"]["mode"] == "ro"
-    assert compile_volumes["/tmp/test/target/release/main"]["bind"] == "/tmp/target/release/main"
-    assert compile_volumes["/tmp/test/target/release/main"]["mode"] == "rw"
+    compile_volumes = get_compile_volumes(host_paths_compile, Path(f"{TMP_TEST_DIR}"))
+    assert compile_volumes.keys() == {f"{TMP_TEST_DIR}/src/main.rs", f"{TMP_TEST_DIR}/target/release/main"}
+    assert compile_volumes[f"{TMP_TEST_DIR}/src/main.rs"]["bind"] == f"{ale_bench.constants.WORK_DIR}/src/main.rs"
+    assert compile_volumes[f"{TMP_TEST_DIR}/src/main.rs"]["mode"] == "ro"
+    assert (
+        compile_volumes[f"{TMP_TEST_DIR}/target/release/main"]["bind"]
+        == f"{ale_bench.constants.TMP_DIR}/target/release/main"
+    )
+    assert compile_volumes[f"{TMP_TEST_DIR}/target/release/main"]["mode"] == "rw"
 
 
 @pytest.mark.parametrize(
-    "code_language,judge_version,object_file_relative_path_str",
+    ("code_language", "judge_version", "object_file_relative_path_str"),
     [
         pytest.param(CodeLanguage.CPP17, JudgeVersion.V201907, "cpp17", id="cpp17-v201907"),
         pytest.param(CodeLanguage.PYTHON, JudgeVersion.V201907, "python", id="python-v201907"),
@@ -111,7 +117,7 @@ def test_build_compile_command(
 
 
 @pytest.mark.parametrize(
-    "problem_id,case_idx,input_str,input_file_name,output_file_name,profiles_file_name",
+    ("problem_id", "case_idx", "input_str", "input_file_name", "output_file_name", "profiles_file_name"),
     [
         pytest.param(
             "ahc001",
@@ -214,62 +220,65 @@ def test_setup_paths_batch_run(
 
 def test_get_batch_run_volumes() -> None:
     host_paths_run = HostPathsBatchRun(
-        code_file=Path("/tmp/test/code.cpp"),
-        object_file=Path("/tmp/test/object.out"),
-        input_file=Path("/tmp/test/input.txt"),
-        output_file=Path("/tmp/test/output.txt"),
-        profiles_file=Path("/tmp/test/profiles.json"),
+        code_file=Path(f"{TMP_TEST_DIR}/code.cpp"),
+        object_file=Path(f"{TMP_TEST_DIR}/object.out"),
+        input_file=Path(f"{TMP_TEST_DIR}/input.txt"),
+        output_file=Path(f"{TMP_TEST_DIR}/output.txt"),
+        profiles_file=Path(f"{TMP_TEST_DIR}/profiles.json"),
     )
-    run_volumes = get_batch_run_volumes(host_paths_run, Path("/tmp/test"))
+    run_volumes = get_batch_run_volumes(host_paths_run, Path(f"{TMP_TEST_DIR}"))
     assert run_volumes.keys() == {
-        "/tmp/test/code.cpp",
-        "/tmp/test/object.out",
-        "/tmp/test/input.txt",
-        "/tmp/test/output.txt",
-        "/tmp/test/profiles.json",
+        f"{TMP_TEST_DIR}/code.cpp",
+        f"{TMP_TEST_DIR}/object.out",
+        f"{TMP_TEST_DIR}/input.txt",
+        f"{TMP_TEST_DIR}/output.txt",
+        f"{TMP_TEST_DIR}/profiles.json",
     }
-    assert run_volumes["/tmp/test/code.cpp"]["bind"] == f"{ale_bench.constants.WORK_DIR}/code.cpp"
-    assert run_volumes["/tmp/test/code.cpp"]["mode"] == "ro"
-    assert run_volumes["/tmp/test/object.out"]["bind"] == f"{ale_bench.constants.WORK_DIR}/object.out"
-    assert run_volumes["/tmp/test/object.out"]["mode"] == "ro"
-    assert run_volumes["/tmp/test/input.txt"]["bind"] == ale_bench.constants.INPUT_FILE
-    assert run_volumes["/tmp/test/input.txt"]["mode"] == "ro"
-    assert run_volumes["/tmp/test/output.txt"]["bind"] == ale_bench.constants.OUTPUT_FILE
-    assert run_volumes["/tmp/test/output.txt"]["mode"] == "rw"
-    assert run_volumes["/tmp/test/profiles.json"]["bind"] == ale_bench.constants.PROFILES_FILE
-    assert run_volumes["/tmp/test/profiles.json"]["mode"] == "rw"
+    assert run_volumes[f"{TMP_TEST_DIR}/code.cpp"]["bind"] == f"{ale_bench.constants.WORK_DIR}/code.cpp"
+    assert run_volumes[f"{TMP_TEST_DIR}/code.cpp"]["mode"] == "ro"
+    assert run_volumes[f"{TMP_TEST_DIR}/object.out"]["bind"] == f"{ale_bench.constants.WORK_DIR}/object.out"
+    assert run_volumes[f"{TMP_TEST_DIR}/object.out"]["mode"] == "ro"
+    assert run_volumes[f"{TMP_TEST_DIR}/input.txt"]["bind"] == ale_bench.constants.INPUT_FILE
+    assert run_volumes[f"{TMP_TEST_DIR}/input.txt"]["mode"] == "ro"
+    assert run_volumes[f"{TMP_TEST_DIR}/output.txt"]["bind"] == ale_bench.constants.OUTPUT_FILE
+    assert run_volumes[f"{TMP_TEST_DIR}/output.txt"]["mode"] == "rw"
+    assert run_volumes[f"{TMP_TEST_DIR}/profiles.json"]["bind"] == ale_bench.constants.PROFILES_FILE
+    assert run_volumes[f"{TMP_TEST_DIR}/profiles.json"]["mode"] == "rw"
 
 
 def test_get_batch_run_volumes_nested() -> None:
     host_paths_run = HostPathsBatchRun(
-        code_file=Path("/tmp/test/src/main.rs"),
-        object_file=Path("/tmp/test/target/release/main"),
-        input_file=Path("/tmp/test/input.txt"),
-        output_file=Path("/tmp/test/output.txt"),
-        profiles_file=Path("/tmp/test/profiles.json"),
+        code_file=Path(f"{TMP_TEST_DIR}/src/main.rs"),
+        object_file=Path(f"{TMP_TEST_DIR}/target/release/main"),
+        input_file=Path(f"{TMP_TEST_DIR}/input.txt"),
+        output_file=Path(f"{TMP_TEST_DIR}/output.txt"),
+        profiles_file=Path(f"{TMP_TEST_DIR}/profiles.json"),
     )
-    run_volumes = get_batch_run_volumes(host_paths_run, Path("/tmp/test"))
+    run_volumes = get_batch_run_volumes(host_paths_run, Path(f"{TMP_TEST_DIR}"))
     assert run_volumes.keys() == {
-        "/tmp/test/src/main.rs",
-        "/tmp/test/target/release/main",
-        "/tmp/test/input.txt",
-        "/tmp/test/output.txt",
-        "/tmp/test/profiles.json",
+        f"{TMP_TEST_DIR}/src/main.rs",
+        f"{TMP_TEST_DIR}/target/release/main",
+        f"{TMP_TEST_DIR}/input.txt",
+        f"{TMP_TEST_DIR}/output.txt",
+        f"{TMP_TEST_DIR}/profiles.json",
     }
-    assert run_volumes["/tmp/test/src/main.rs"]["bind"] == f"{ale_bench.constants.WORK_DIR}/src/main.rs"
-    assert run_volumes["/tmp/test/src/main.rs"]["mode"] == "ro"
-    assert run_volumes["/tmp/test/target/release/main"]["bind"] == f"{ale_bench.constants.WORK_DIR}/target/release/main"
-    assert run_volumes["/tmp/test/target/release/main"]["mode"] == "ro"
-    assert run_volumes["/tmp/test/input.txt"]["bind"] == ale_bench.constants.INPUT_FILE
-    assert run_volumes["/tmp/test/input.txt"]["mode"] == "ro"
-    assert run_volumes["/tmp/test/output.txt"]["bind"] == ale_bench.constants.OUTPUT_FILE
-    assert run_volumes["/tmp/test/output.txt"]["mode"] == "rw"
-    assert run_volumes["/tmp/test/profiles.json"]["bind"] == ale_bench.constants.PROFILES_FILE
-    assert run_volumes["/tmp/test/profiles.json"]["mode"] == "rw"
+    assert run_volumes[f"{TMP_TEST_DIR}/src/main.rs"]["bind"] == f"{ale_bench.constants.WORK_DIR}/src/main.rs"
+    assert run_volumes[f"{TMP_TEST_DIR}/src/main.rs"]["mode"] == "ro"
+    assert (
+        run_volumes[f"{TMP_TEST_DIR}/target/release/main"]["bind"]
+        == f"{ale_bench.constants.WORK_DIR}/target/release/main"
+    )
+    assert run_volumes[f"{TMP_TEST_DIR}/target/release/main"]["mode"] == "ro"
+    assert run_volumes[f"{TMP_TEST_DIR}/input.txt"]["bind"] == ale_bench.constants.INPUT_FILE
+    assert run_volumes[f"{TMP_TEST_DIR}/input.txt"]["mode"] == "ro"
+    assert run_volumes[f"{TMP_TEST_DIR}/output.txt"]["bind"] == ale_bench.constants.OUTPUT_FILE
+    assert run_volumes[f"{TMP_TEST_DIR}/output.txt"]["mode"] == "rw"
+    assert run_volumes[f"{TMP_TEST_DIR}/profiles.json"]["bind"] == ale_bench.constants.PROFILES_FILE
+    assert run_volumes[f"{TMP_TEST_DIR}/profiles.json"]["mode"] == "rw"
 
 
 @pytest.mark.parametrize(
-    "code_language,judge_version,time_limit,expected",
+    ("code_language", "judge_version", "time_limit", "expected"),
     [
         pytest.param(
             CodeLanguage.CPP17,
@@ -373,11 +382,11 @@ def test_build_batch_run_command(
 
 def test_setup_paths_batch_judge() -> None:
     host_paths_run = HostPathsBatchRun(
-        code_file=Path("/tmp/test/code.cpp"),
-        object_file=Path("/tmp/test/object.out"),
-        input_file=Path("/tmp/test/input.txt"),
-        output_file=Path("/tmp/test/output.txt"),
-        profiles_file=Path("/tmp/test/profiles.json"),
+        code_file=Path(f"{TMP_TEST_DIR}/code.cpp"),
+        object_file=Path(f"{TMP_TEST_DIR}/object.out"),
+        input_file=Path(f"{TMP_TEST_DIR}/input.txt"),
+        output_file=Path(f"{TMP_TEST_DIR}/output.txt"),
+        profiles_file=Path(f"{TMP_TEST_DIR}/profiles.json"),
     )
     host_paths_judge = setup_paths_batch_judge(host_paths_run)
     assert host_paths_judge.input_file == host_paths_run.input_file
@@ -387,22 +396,22 @@ def test_setup_paths_batch_judge() -> None:
 
 def test_get_batch_judge_volumes() -> None:
     host_paths_judge = HostPathsBatchJudge(
-        input_file=Path("/tmp/test/input.txt"),
-        output_file=Path("/tmp/test/output.txt"),
-        profiles_file=Path("/tmp/test/profiles.json"),
+        input_file=Path(f"{TMP_TEST_DIR}/input.txt"),
+        output_file=Path(f"{TMP_TEST_DIR}/output.txt"),
+        profiles_file=Path(f"{TMP_TEST_DIR}/profiles.json"),
     )
-    judge_volumes = get_batch_judge_volumes(host_paths_judge, Path("/tmp/cache"))
+    judge_volumes = get_batch_judge_volumes(host_paths_judge, Path(f"{TMP_CACHE_DIR}"))
     assert judge_volumes.keys() == {
-        "/tmp/test/input.txt",
-        "/tmp/test/output.txt",
-        "/tmp/cache/tools/target/release/tester",
+        f"{TMP_TEST_DIR}/input.txt",
+        f"{TMP_TEST_DIR}/output.txt",
+        f"{TMP_CACHE_DIR}/tools/target/release/tester",
     }
-    assert judge_volumes["/tmp/test/input.txt"]["bind"] == ale_bench.constants.INPUT_FILE
-    assert judge_volumes["/tmp/test/input.txt"]["mode"] == "ro"
-    assert judge_volumes["/tmp/test/output.txt"]["bind"] == ale_bench.constants.OUTPUT_FILE
-    assert judge_volumes["/tmp/test/output.txt"]["mode"] == "ro"
-    assert judge_volumes["/tmp/cache/tools/target/release/tester"]["bind"] == ale_bench.constants.TESTER_BIN
-    assert judge_volumes["/tmp/cache/tools/target/release/tester"]["mode"] == "ro"
+    assert judge_volumes[f"{TMP_TEST_DIR}/input.txt"]["bind"] == ale_bench.constants.INPUT_FILE
+    assert judge_volumes[f"{TMP_TEST_DIR}/input.txt"]["mode"] == "ro"
+    assert judge_volumes[f"{TMP_TEST_DIR}/output.txt"]["bind"] == ale_bench.constants.OUTPUT_FILE
+    assert judge_volumes[f"{TMP_TEST_DIR}/output.txt"]["mode"] == "ro"
+    assert judge_volumes[f"{TMP_CACHE_DIR}/tools/target/release/tester"]["bind"] == ale_bench.constants.TESTER_BIN
+    assert judge_volumes[f"{TMP_CACHE_DIR}/tools/target/release/tester"]["mode"] == "ro"
 
 
 def test_build_batch_judge_command() -> None:
@@ -413,7 +422,7 @@ def test_build_batch_judge_command() -> None:
 
 
 @pytest.mark.parametrize(
-    "problem_id,case_idx,input_str,input_file_name,output_file_name,profiles_file_name",
+    ("problem_id", "case_idx", "input_str", "input_file_name", "output_file_name", "profiles_file_name"),
     [
         pytest.param(
             "ahc001",
@@ -518,68 +527,71 @@ def test_setup_paths_reactive_judge(
 
 def test_get_reactive_judge_volumes() -> None:
     host_paths_run = HostPathsReactiveJudge(
-        code_file=Path("/tmp/test/code.cpp"),
-        object_file=Path("/tmp/test/object.out"),
-        input_file=Path("/tmp/test/input.txt"),
-        output_file=Path("/tmp/test/output.txt"),
-        profiles_file=Path("/tmp/test/profiles.json"),
+        code_file=Path(f"{TMP_TEST_DIR}/code.cpp"),
+        object_file=Path(f"{TMP_TEST_DIR}/object.out"),
+        input_file=Path(f"{TMP_TEST_DIR}/input.txt"),
+        output_file=Path(f"{TMP_TEST_DIR}/output.txt"),
+        profiles_file=Path(f"{TMP_TEST_DIR}/profiles.json"),
     )
-    run_volumes = get_reactive_judge_volumes(host_paths_run, Path("/tmp/test"), Path("/tmp/cache"))
+    run_volumes = get_reactive_judge_volumes(host_paths_run, Path(f"{TMP_TEST_DIR}"), Path(f"{TMP_CACHE_DIR}"))
     assert run_volumes.keys() == {
-        "/tmp/test/code.cpp",
-        "/tmp/test/object.out",
-        "/tmp/test/input.txt",
-        "/tmp/test/output.txt",
-        "/tmp/test/profiles.json",
-        "/tmp/cache/tools/target/release/tester",
+        f"{TMP_TEST_DIR}/code.cpp",
+        f"{TMP_TEST_DIR}/object.out",
+        f"{TMP_TEST_DIR}/input.txt",
+        f"{TMP_TEST_DIR}/output.txt",
+        f"{TMP_TEST_DIR}/profiles.json",
+        f"{TMP_CACHE_DIR}/tools/target/release/tester",
     }
-    assert run_volumes["/tmp/test/code.cpp"]["bind"] == f"{ale_bench.constants.WORK_DIR}/code.cpp"
-    assert run_volumes["/tmp/test/code.cpp"]["mode"] == "ro"
-    assert run_volumes["/tmp/test/object.out"]["bind"] == f"{ale_bench.constants.WORK_DIR}/object.out"
-    assert run_volumes["/tmp/test/object.out"]["mode"] == "ro"
-    assert run_volumes["/tmp/test/input.txt"]["bind"] == ale_bench.constants.INPUT_FILE
-    assert run_volumes["/tmp/test/input.txt"]["mode"] == "ro"
-    assert run_volumes["/tmp/test/output.txt"]["bind"] == ale_bench.constants.OUTPUT_FILE
-    assert run_volumes["/tmp/test/output.txt"]["mode"] == "rw"
-    assert run_volumes["/tmp/test/profiles.json"]["bind"] == ale_bench.constants.PROFILES_FILE
-    assert run_volumes["/tmp/test/profiles.json"]["mode"] == "rw"
-    assert run_volumes["/tmp/cache/tools/target/release/tester"]["bind"] == ale_bench.constants.TESTER_BIN
-    assert run_volumes["/tmp/cache/tools/target/release/tester"]["mode"] == "ro"
+    assert run_volumes[f"{TMP_TEST_DIR}/code.cpp"]["bind"] == f"{ale_bench.constants.WORK_DIR}/code.cpp"
+    assert run_volumes[f"{TMP_TEST_DIR}/code.cpp"]["mode"] == "ro"
+    assert run_volumes[f"{TMP_TEST_DIR}/object.out"]["bind"] == f"{ale_bench.constants.WORK_DIR}/object.out"
+    assert run_volumes[f"{TMP_TEST_DIR}/object.out"]["mode"] == "ro"
+    assert run_volumes[f"{TMP_TEST_DIR}/input.txt"]["bind"] == ale_bench.constants.INPUT_FILE
+    assert run_volumes[f"{TMP_TEST_DIR}/input.txt"]["mode"] == "ro"
+    assert run_volumes[f"{TMP_TEST_DIR}/output.txt"]["bind"] == ale_bench.constants.OUTPUT_FILE
+    assert run_volumes[f"{TMP_TEST_DIR}/output.txt"]["mode"] == "rw"
+    assert run_volumes[f"{TMP_TEST_DIR}/profiles.json"]["bind"] == ale_bench.constants.PROFILES_FILE
+    assert run_volumes[f"{TMP_TEST_DIR}/profiles.json"]["mode"] == "rw"
+    assert run_volumes[f"{TMP_CACHE_DIR}/tools/target/release/tester"]["bind"] == ale_bench.constants.TESTER_BIN
+    assert run_volumes[f"{TMP_CACHE_DIR}/tools/target/release/tester"]["mode"] == "ro"
 
 
 def test_get_reactive_judge_volumes_nested() -> None:
     host_paths_run = HostPathsReactiveJudge(
-        code_file=Path("/tmp/test/src/main.rs"),
-        object_file=Path("/tmp/test/target/release/main"),
-        input_file=Path("/tmp/test/input.txt"),
-        output_file=Path("/tmp/test/output.txt"),
-        profiles_file=Path("/tmp/test/profiles.json"),
+        code_file=Path(f"{TMP_TEST_DIR}/src/main.rs"),
+        object_file=Path(f"{TMP_TEST_DIR}/target/release/main"),
+        input_file=Path(f"{TMP_TEST_DIR}/input.txt"),
+        output_file=Path(f"{TMP_TEST_DIR}/output.txt"),
+        profiles_file=Path(f"{TMP_TEST_DIR}/profiles.json"),
     )
-    run_volumes = get_reactive_judge_volumes(host_paths_run, Path("/tmp/test"), Path("/tmp/cache"))
+    run_volumes = get_reactive_judge_volumes(host_paths_run, Path(f"{TMP_TEST_DIR}"), Path(f"{TMP_CACHE_DIR}"))
     assert run_volumes.keys() == {
-        "/tmp/test/src/main.rs",
-        "/tmp/test/target/release/main",
-        "/tmp/test/input.txt",
-        "/tmp/test/output.txt",
-        "/tmp/test/profiles.json",
-        "/tmp/cache/tools/target/release/tester",
+        f"{TMP_TEST_DIR}/src/main.rs",
+        f"{TMP_TEST_DIR}/target/release/main",
+        f"{TMP_TEST_DIR}/input.txt",
+        f"{TMP_TEST_DIR}/output.txt",
+        f"{TMP_TEST_DIR}/profiles.json",
+        f"{TMP_CACHE_DIR}/tools/target/release/tester",
     }
-    assert run_volumes["/tmp/test/src/main.rs"]["bind"] == f"{ale_bench.constants.WORK_DIR}/src/main.rs"
-    assert run_volumes["/tmp/test/src/main.rs"]["mode"] == "ro"
-    assert run_volumes["/tmp/test/target/release/main"]["bind"] == f"{ale_bench.constants.WORK_DIR}/target/release/main"
-    assert run_volumes["/tmp/test/target/release/main"]["mode"] == "ro"
-    assert run_volumes["/tmp/test/input.txt"]["bind"] == ale_bench.constants.INPUT_FILE
-    assert run_volumes["/tmp/test/input.txt"]["mode"] == "ro"
-    assert run_volumes["/tmp/test/output.txt"]["bind"] == ale_bench.constants.OUTPUT_FILE
-    assert run_volumes["/tmp/test/output.txt"]["mode"] == "rw"
-    assert run_volumes["/tmp/test/profiles.json"]["bind"] == ale_bench.constants.PROFILES_FILE
-    assert run_volumes["/tmp/test/profiles.json"]["mode"] == "rw"
-    assert run_volumes["/tmp/cache/tools/target/release/tester"]["bind"] == ale_bench.constants.TESTER_BIN
-    assert run_volumes["/tmp/cache/tools/target/release/tester"]["mode"] == "ro"
+    assert run_volumes[f"{TMP_TEST_DIR}/src/main.rs"]["bind"] == f"{ale_bench.constants.WORK_DIR}/src/main.rs"
+    assert run_volumes[f"{TMP_TEST_DIR}/src/main.rs"]["mode"] == "ro"
+    assert (
+        run_volumes[f"{TMP_TEST_DIR}/target/release/main"]["bind"]
+        == f"{ale_bench.constants.WORK_DIR}/target/release/main"
+    )
+    assert run_volumes[f"{TMP_TEST_DIR}/target/release/main"]["mode"] == "ro"
+    assert run_volumes[f"{TMP_TEST_DIR}/input.txt"]["bind"] == ale_bench.constants.INPUT_FILE
+    assert run_volumes[f"{TMP_TEST_DIR}/input.txt"]["mode"] == "ro"
+    assert run_volumes[f"{TMP_TEST_DIR}/output.txt"]["bind"] == ale_bench.constants.OUTPUT_FILE
+    assert run_volumes[f"{TMP_TEST_DIR}/output.txt"]["mode"] == "rw"
+    assert run_volumes[f"{TMP_TEST_DIR}/profiles.json"]["bind"] == ale_bench.constants.PROFILES_FILE
+    assert run_volumes[f"{TMP_TEST_DIR}/profiles.json"]["mode"] == "rw"
+    assert run_volumes[f"{TMP_CACHE_DIR}/tools/target/release/tester"]["bind"] == ale_bench.constants.TESTER_BIN
+    assert run_volumes[f"{TMP_CACHE_DIR}/tools/target/release/tester"]["mode"] == "ro"
 
 
 @pytest.mark.parametrize(
-    "code_language,judge_version,time_limit,expected",
+    ("code_language", "judge_version", "time_limit", "expected"),
     [
         pytest.param(
             CodeLanguage.CPP17,
@@ -690,7 +702,7 @@ def test_build_reactive_judge_command(
 
 
 @pytest.mark.parametrize(
-    "problem_id,case_idx,local_visualization_file_name",
+    ("problem_id", "case_idx", "local_visualization_file_name"),
     [
         pytest.param(
             "ahc001",
@@ -792,58 +804,58 @@ def test_setup_paths_vis(
 
 def test_get_vis_volumes_svg() -> None:
     host_paths_vis = HostPathsVis(
-        input_file=Path("/tmp/test/input.txt"),
-        output_file=Path("/tmp/test/output.txt"),
-        local_visualization_file=Path("/tmp/test/local_visualization.svg"),
+        input_file=Path(f"{TMP_TEST_DIR}/input.txt"),
+        output_file=Path(f"{TMP_TEST_DIR}/output.txt"),
+        local_visualization_file=Path(f"{TMP_TEST_DIR}/local_visualization.svg"),
     )
-    vis_volumes = get_vis_volumes(host_paths_vis, Path("/tmp/cache"))
+    vis_volumes = get_vis_volumes(host_paths_vis, Path(f"{TMP_CACHE_DIR}"))
     assert vis_volumes.keys() == {
-        "/tmp/cache/tools/target/release/vis",
-        "/tmp/test/input.txt",
-        "/tmp/test/output.txt",
-        "/tmp/test/local_visualization.svg",
+        f"{TMP_CACHE_DIR}/tools/target/release/vis",
+        f"{TMP_TEST_DIR}/input.txt",
+        f"{TMP_TEST_DIR}/output.txt",
+        f"{TMP_TEST_DIR}/local_visualization.svg",
     }
-    assert vis_volumes["/tmp/cache/tools/target/release/vis"]["bind"] == ale_bench.constants.VIS_BIN
-    assert vis_volumes["/tmp/cache/tools/target/release/vis"]["mode"] == "ro"
-    assert vis_volumes["/tmp/test/input.txt"]["bind"] == ale_bench.constants.INPUT_FILE
-    assert vis_volumes["/tmp/test/input.txt"]["mode"] == "ro"
-    assert vis_volumes["/tmp/test/output.txt"]["bind"] == ale_bench.constants.OUTPUT_FILE
-    assert vis_volumes["/tmp/test/output.txt"]["mode"] == "ro"
-    assert vis_volumes["/tmp/test/local_visualization.svg"]["bind"] == ale_bench.constants.LOCAL_VIS_SVG
-    assert vis_volumes["/tmp/test/local_visualization.svg"]["mode"] == "rw"
+    assert vis_volumes[f"{TMP_CACHE_DIR}/tools/target/release/vis"]["bind"] == ale_bench.constants.VIS_BIN
+    assert vis_volumes[f"{TMP_CACHE_DIR}/tools/target/release/vis"]["mode"] == "ro"
+    assert vis_volumes[f"{TMP_TEST_DIR}/input.txt"]["bind"] == ale_bench.constants.INPUT_FILE
+    assert vis_volumes[f"{TMP_TEST_DIR}/input.txt"]["mode"] == "ro"
+    assert vis_volumes[f"{TMP_TEST_DIR}/output.txt"]["bind"] == ale_bench.constants.OUTPUT_FILE
+    assert vis_volumes[f"{TMP_TEST_DIR}/output.txt"]["mode"] == "ro"
+    assert vis_volumes[f"{TMP_TEST_DIR}/local_visualization.svg"]["bind"] == ale_bench.constants.LOCAL_VIS_SVG
+    assert vis_volumes[f"{TMP_TEST_DIR}/local_visualization.svg"]["mode"] == "rw"
 
 
 def test_get_vis_volumes_html() -> None:
     host_paths_vis = HostPathsVis(
-        input_file=Path("/tmp/test/input.txt"),
-        output_file=Path("/tmp/test/output.txt"),
-        local_visualization_file=Path("/tmp/test/local_visualization.html"),
+        input_file=Path(f"{TMP_TEST_DIR}/input.txt"),
+        output_file=Path(f"{TMP_TEST_DIR}/output.txt"),
+        local_visualization_file=Path(f"{TMP_TEST_DIR}/local_visualization.html"),
     )
-    vis_volumes = get_vis_volumes(host_paths_vis, Path("/tmp/cache"))
+    vis_volumes = get_vis_volumes(host_paths_vis, Path(f"{TMP_CACHE_DIR}"))
     assert vis_volumes.keys() == {
-        "/tmp/cache/tools/target/release/vis",
-        "/tmp/test/input.txt",
-        "/tmp/test/output.txt",
-        "/tmp/test/local_visualization.html",
+        f"{TMP_CACHE_DIR}/tools/target/release/vis",
+        f"{TMP_TEST_DIR}/input.txt",
+        f"{TMP_TEST_DIR}/output.txt",
+        f"{TMP_TEST_DIR}/local_visualization.html",
     }
-    assert vis_volumes["/tmp/cache/tools/target/release/vis"]["bind"] == ale_bench.constants.VIS_BIN
-    assert vis_volumes["/tmp/cache/tools/target/release/vis"]["mode"] == "ro"
-    assert vis_volumes["/tmp/test/input.txt"]["bind"] == ale_bench.constants.INPUT_FILE
-    assert vis_volumes["/tmp/test/input.txt"]["mode"] == "ro"
-    assert vis_volumes["/tmp/test/output.txt"]["bind"] == ale_bench.constants.OUTPUT_FILE
-    assert vis_volumes["/tmp/test/output.txt"]["mode"] == "ro"
-    assert vis_volumes["/tmp/test/local_visualization.html"]["bind"] == ale_bench.constants.LOCAL_VIS_HTML
-    assert vis_volumes["/tmp/test/local_visualization.html"]["mode"] == "rw"
+    assert vis_volumes[f"{TMP_CACHE_DIR}/tools/target/release/vis"]["bind"] == ale_bench.constants.VIS_BIN
+    assert vis_volumes[f"{TMP_CACHE_DIR}/tools/target/release/vis"]["mode"] == "ro"
+    assert vis_volumes[f"{TMP_TEST_DIR}/input.txt"]["bind"] == ale_bench.constants.INPUT_FILE
+    assert vis_volumes[f"{TMP_TEST_DIR}/input.txt"]["mode"] == "ro"
+    assert vis_volumes[f"{TMP_TEST_DIR}/output.txt"]["bind"] == ale_bench.constants.OUTPUT_FILE
+    assert vis_volumes[f"{TMP_TEST_DIR}/output.txt"]["mode"] == "ro"
+    assert vis_volumes[f"{TMP_TEST_DIR}/local_visualization.html"]["bind"] == ale_bench.constants.LOCAL_VIS_HTML
+    assert vis_volumes[f"{TMP_TEST_DIR}/local_visualization.html"]["mode"] == "rw"
 
 
 def test_get_vis_volumes_error() -> None:
     host_paths_vis = HostPathsVis(
-        input_file=Path("/tmp/test/input.txt"),
-        output_file=Path("/tmp/test/output.txt"),
-        local_visualization_file=Path("/tmp/test/local_visualization.txt"),
+        input_file=Path(f"{TMP_TEST_DIR}/input.txt"),
+        output_file=Path(f"{TMP_TEST_DIR}/output.txt"),
+        local_visualization_file=Path(f"{TMP_TEST_DIR}/local_visualization.txt"),
     )
     with pytest.raises(ValueError, match=r"The local visualization file must have either \.svg or \.html extension\."):
-        get_vis_volumes(host_paths_vis, Path("/tmp/cache"))
+        get_vis_volumes(host_paths_vis, Path(f"{TMP_CACHE_DIR}"))
 
 
 def test_build_vis_command() -> None:
@@ -883,7 +895,7 @@ sample_profiles_content = """{{
 
 
 @pytest.mark.parametrize(
-    "time_limit,memory_limit,execution_time_host,profiles_content,expected",
+    ("time_limit", "memory_limit", "execution_time_host", "profiles_content", "expected"),
     [
         pytest.param(
             2.0,

@@ -19,7 +19,7 @@ from ale_bench.result import CaseResult, JudgeResult, ResourceUsage, Result
 
 class TestRankPerformanceMap:
     @pytest.mark.parametrize(
-        "raw_data,context,data",
+        ("raw_data", "context", "data"),
         [
             pytest.param(
                 [], pytest.raises(ValueError, match=r"The raw data must contain at least 2 entries\."), {}, id="empty"
@@ -108,7 +108,7 @@ class TestRankPerformanceMap:
             assert rank_performance_map.data == data
 
     @pytest.mark.parametrize(
-        "raw_data,rank,context,expected",
+        ("raw_data", "rank", "context", "expected"),
         [
             pytest.param([(1, 3200), (2, 200)], 1, does_not_raise(), 3200, id="2rows_1st"),
             pytest.param([(1, 3200), (2, 200)], 1.5, does_not_raise(), 1700, id="2rows_1.5th"),
@@ -249,7 +249,7 @@ class TestRankPerformanceMap:
         ],
     )
     def test_get_performance(
-        self, raw_data: list[tuple[int, int]], rank: int | float, context: AbstractContextManager[None], expected: int
+        self, raw_data: list[tuple[int, int]], rank: float, context: AbstractContextManager[None], expected: int
     ) -> None:
         rank_performance_map = RankPerformanceMap(raw_data=raw_data)
         with context:
@@ -258,7 +258,7 @@ class TestRankPerformanceMap:
 
 class TestRelativeResults:
     @pytest.mark.parametrize(
-        "absolute_scores,relative_score_type,relative_max_score,context,expected_absolute_scores",
+        ("absolute_scores", "relative_score_type", "relative_max_score", "context", "expected_absolute_scores"),
         [
             pytest.param(
                 [],
@@ -335,7 +335,7 @@ class TestRelativeResults:
             assert relative_results.absolute_scores == expected_absolute_scores
 
     @pytest.mark.parametrize(
-        "new_scores,relative_score_type,context,expected",
+        ("new_scores", "relative_score_type", "context", "expected"),
         [
             pytest.param(
                 [500],
@@ -463,7 +463,7 @@ class TestRelativeResults:
 
 class TestStandings:
     @pytest.mark.parametrize(
-        "standings_scores,context,score_rank_list",
+        ("standings_scores", "context", "score_rank_list"),
         [
             pytest.param(
                 [], pytest.raises(ValueError, match=r"The standings scores cannot be empty\."), [], id="empty"
@@ -589,7 +589,7 @@ class TestStandings:
             assert standings.score_rank_list == score_rank_list
 
     @pytest.mark.parametrize(
-        "standings_scores,result,expected",
+        ("standings_scores", "result", "expected"),
         [
             pytest.param(
                 [(1, 0)],
@@ -1297,7 +1297,7 @@ class TestStandings:
         assert standings.get_new_rank(result) == expected
 
     @pytest.mark.parametrize(
-        "standings_scores,absolute_scores,relative_score_type,case_scores,expected",
+        ("standings_scores", "absolute_scores", "relative_score_type", "case_scores", "expected"),
         [
             pytest.param(
                 [(1, 150), (1, 150), (3, 125), (4, 75), (5, 0)],
@@ -1388,30 +1388,45 @@ class TestProblemMetaData:
         )
 
     @pytest.mark.parametrize(
-        "instantiate_problem_metadata,expected",
+        ("instantiate_problem_metadata", "expected"),
         [
             pytest.param(
-                (dt.datetime(2023, 1, 1, 0, 0, 0), dt.datetime(2023, 1, 1, 6, 0, 0)),
+                (
+                    dt.datetime(2023, 1, 1, 0, 0, 0, tzinfo=dt.timezone.utc),
+                    dt.datetime(2023, 1, 1, 6, 0, 0, tzinfo=dt.timezone.utc),
+                ),
                 dt.timedelta(hours=6),
                 id="06:00:00",
             ),
             pytest.param(
-                (dt.datetime(2023, 1, 1, 0, 0, 0), dt.datetime(2023, 1, 1, 23, 59, 59)),
+                (
+                    dt.datetime(2023, 1, 1, 0, 0, 0, tzinfo=dt.timezone.utc),
+                    dt.datetime(2023, 1, 1, 23, 59, 59, tzinfo=dt.timezone.utc),
+                ),
                 dt.timedelta(hours=23, minutes=59, seconds=59),
                 id="23:59:59",
             ),
             pytest.param(
-                (dt.datetime(2023, 1, 1, 0, 0, 0), dt.datetime(2023, 1, 2, 0, 0, 0)),
+                (
+                    dt.datetime(2023, 1, 1, 0, 0, 0, tzinfo=dt.timezone.utc),
+                    dt.datetime(2023, 1, 2, 0, 0, 0, tzinfo=dt.timezone.utc),
+                ),
                 dt.timedelta(days=1),
                 id="1day",
             ),
             pytest.param(
-                (dt.datetime(2023, 1, 1, 0, 0, 0), dt.datetime(2023, 1, 8, 0, 0, 0)),
+                (
+                    dt.datetime(2023, 1, 1, 0, 0, 0, tzinfo=dt.timezone.utc),
+                    dt.datetime(2023, 1, 8, 0, 0, 0, tzinfo=dt.timezone.utc),
+                ),
                 dt.timedelta(weeks=1),
                 id="1week",
             ),
             pytest.param(
-                (dt.datetime(2023, 1, 1, 0, 0, 0), dt.datetime(2023, 1, 11, 4, 0, 0)),
+                (
+                    dt.datetime(2023, 1, 1, 0, 0, 0, tzinfo=dt.timezone.utc),
+                    dt.datetime(2023, 1, 11, 4, 0, 0, tzinfo=dt.timezone.utc),
+                ),
                 dt.timedelta(weeks=1, days=3, hours=4),
                 id="10days 4hours",
             ),
@@ -1422,30 +1437,45 @@ class TestProblemMetaData:
         assert instantiate_problem_metadata.duration == expected
 
     @pytest.mark.parametrize(
-        "instantiate_problem_metadata,expected",
+        ("instantiate_problem_metadata", "expected"),
         [
             pytest.param(
-                (dt.datetime(2023, 1, 1, 0, 0, 0), dt.datetime(2023, 1, 1, 6, 0, 0)),
+                (
+                    dt.datetime(2023, 1, 1, 0, 0, 0, tzinfo=dt.timezone.utc),
+                    dt.datetime(2023, 1, 1, 6, 0, 0, tzinfo=dt.timezone.utc),
+                ),
                 300,
                 id="06:00:00",
             ),
             pytest.param(
-                (dt.datetime(2023, 1, 1, 0, 0, 0), dt.datetime(2023, 1, 1, 23, 59, 59)),
+                (
+                    dt.datetime(2023, 1, 1, 0, 0, 0, tzinfo=dt.timezone.utc),
+                    dt.datetime(2023, 1, 1, 23, 59, 59, tzinfo=dt.timezone.utc),
+                ),
                 300,
                 id="23:59:59",
             ),
             pytest.param(
-                (dt.datetime(2023, 1, 1, 0, 0, 0), dt.datetime(2023, 1, 2, 0, 0, 0)),
+                (
+                    dt.datetime(2023, 1, 1, 0, 0, 0, tzinfo=dt.timezone.utc),
+                    dt.datetime(2023, 1, 2, 0, 0, 0, tzinfo=dt.timezone.utc),
+                ),
                 1800,
                 id="1day",
             ),
             pytest.param(
-                (dt.datetime(2023, 1, 1, 0, 0, 0), dt.datetime(2023, 1, 8, 0, 0, 0)),
+                (
+                    dt.datetime(2023, 1, 1, 0, 0, 0, tzinfo=dt.timezone.utc),
+                    dt.datetime(2023, 1, 8, 0, 0, 0, tzinfo=dt.timezone.utc),
+                ),
                 1800,
                 id="1week",
             ),
             pytest.param(
-                (dt.datetime(2023, 1, 1, 0, 0, 0), dt.datetime(2023, 1, 11, 4, 0, 0)),
+                (
+                    dt.datetime(2023, 1, 1, 0, 0, 0, tzinfo=dt.timezone.utc),
+                    dt.datetime(2023, 1, 11, 4, 0, 0, tzinfo=dt.timezone.utc),
+                ),
                 1800,
                 id="10days 4hours",
             ),
@@ -1463,7 +1493,7 @@ class TestRatingCalculator:
         return RatingCalculator()
 
     @pytest.mark.parametrize(
-        "performances,final_problem_id,context,expected",
+        ("performances", "final_problem_id", "context", "expected"),
         [
             pytest.param(
                 {},
@@ -1617,7 +1647,7 @@ class TestRankingCalculator:
 
     @pytest.mark.slow
     @pytest.mark.parametrize(
-        "minimum_participation,expected",
+        ("minimum_participation", "expected"),
         [
             pytest.param(0, 6139, id="minimum_participation_0"),
             pytest.param(5, 2220, id="minimum_participation_5"),
@@ -1628,7 +1658,7 @@ class TestRankingCalculator:
 
     @pytest.mark.slow
     @pytest.mark.parametrize(
-        "rating,context,expected",
+        ("rating", "context", "expected"),
         [
             pytest.param(3348, does_not_raise(), 1, id="1st"),
             pytest.param(3347, does_not_raise(), 1, id="1st_tie"),
@@ -1656,7 +1686,7 @@ class TestRankingCalculator:
 
     @pytest.mark.slow
     @pytest.mark.parametrize(
-        "rank,method,context,expected",
+        ("rank", "method", "context", "expected"),
         [
             pytest.param(1, "original", does_not_raise(), 100.0 * 1.0 / 6139, id="1st_original"),
             pytest.param(1, "hazen", does_not_raise(), 100.0 * 0.5 / 6140, id="1st_hazen"),

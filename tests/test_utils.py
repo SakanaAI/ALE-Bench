@@ -1,5 +1,4 @@
 import os
-import tempfile
 from pathlib import Path
 from typing import Literal, TypedDict
 
@@ -15,10 +14,10 @@ def test_get_cache_dir_default() -> None:
     assert cache_dir == Path.home() / ".cache" / "ale-bench"
 
 
-def test_get_cache_dir_custom() -> None:
-    os.environ["ALE_BENCH_CACHE"] = "/tmp/ale-bench"
+def test_get_cache_dir_custom(tmp_path: Path) -> None:
+    os.environ["ALE_BENCH_CACHE"] = str(tmp_path / "ale-bench")
     cache_dir = get_cache_dir()
-    assert cache_dir == Path("/tmp/ale-bench").resolve()
+    assert cache_dir == (tmp_path / "ale-bench").resolve()
 
 
 def test_get_local_data_dir_default() -> None:
@@ -27,25 +26,19 @@ def test_get_local_data_dir_default() -> None:
     assert local_data_dir is None
 
 
-def test_get_local_data_dir_none() -> None:
-    with tempfile.TemporaryDirectory() as tmpdir:
-        dummy_dir = Path(tmpdir)
+def test_get_local_data_dir_none(tmp_path: Path) -> None:
+    dummy_dir = tmp_path / "does_not_exist"
     os.environ["ALE_BENCH_DATA"] = str(dummy_dir)
     local_data_dir = get_local_data_dir()
-    assert local_data_dir is None  # Expecting None when the directory is empty
+    assert local_data_dir is None  # Expecting None when the directory does not exist
 
 
-def test_get_local_data_dir_custom() -> None:
-    os.environ["ALE_BENCH_DATA"] = "/tmp/data/ALE-Bench"
-    expected = Path("/tmp/data/ALE-Bench").resolve()
-    is_created = False
-    if not expected.exists():
-        is_created = True
-        expected.mkdir(parents=True)  # Create the directory if it doesn't exist
+def test_get_local_data_dir_custom(tmp_path: Path) -> None:
+    expected = tmp_path / "data" / "ALE-Bench"
+    expected.mkdir(parents=True, exist_ok=True)
+    os.environ["ALE_BENCH_DATA"] = str(expected)
     local_data_dir = get_local_data_dir()
-    if is_created:
-        expected.rmdir()  # Remove the directory after test
-    assert local_data_dir == expected
+    assert local_data_dir == expected.resolve()
 
 
 class ParseStatementKeywordArguments(TypedDict):
@@ -55,7 +48,7 @@ class ParseStatementKeywordArguments(TypedDict):
 
 
 @pytest.mark.parametrize(
-    "statement,images,kwargs,expected",
+    ("statement", "images", "kwargs", "expected"),
     [
         pytest.param(
             'This is a test statement. This has no images like "./images/image001.png" or "./images/image002.gif".',
@@ -504,7 +497,7 @@ def test_parse_statement(
 ) -> None:
     contents = parse_statement(statement, images, **kwargs)
     assert len(contents) == len(expected)
-    for content, expected_content in zip(contents, expected):
+    for content, expected_content in zip(contents, expected, strict=True):
         if isinstance(expected_content, str):
             assert isinstance(content, str)
             assert content == expected_content
@@ -517,7 +510,8 @@ def test_parse_statement(
             assert isinstance(content, Image.Image)
             assert content.tobytes() == expected_content.tobytes()
         else:
-            raise ValueError("The content is not a str, a dict, or a PIL.Image.Image.")
+            msg = "The content is not a str, a dict, or a PIL.Image.Image."
+            raise TypeError(msg)
 
 
 def test_read_svg_empty() -> None:
@@ -535,7 +529,7 @@ def test_read_svg_size_default() -> None:
 
 
 @pytest.mark.parametrize(
-    "size,expected", [pytest.param(600, (600, 600), id="int"), pytest.param((600, 800), (600, 800), id="tuple")]
+    ("size", "expected"), [pytest.param(600, (600, 600), id="int"), pytest.param((600, 800), (600, 800), id="tuple")]
 )
 def test_read_svg(size: int | tuple[int, int], expected: tuple[int, int]) -> None:
     image = read_svg('<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" />', size=size)

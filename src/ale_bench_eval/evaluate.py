@@ -14,12 +14,12 @@ def get_ce_code(code_language: str) -> str:
         return files("ale_bench_eval.codes").joinpath("ce_cpp20.cpp").read_text()
     if code_language == "cpp23":
         return files("ale_bench_eval.codes").joinpath("ce_cpp23.cpp").read_text()
-    elif code_language == "rust":
+    if code_language == "rust":
         return files("ale_bench_eval.codes").joinpath("ce_rust.rs").read_text()
-    elif code_language == "python":
+    if code_language == "python":
         return files("ale_bench_eval.codes").joinpath("ce_python.py").read_text()
-    else:
-        raise ValueError(f"Invalid code language: {code_language}")
+    msg = f"Invalid code language: {code_language}"
+    raise ValueError(msg)
 
 
 def run_private_evaluation(
@@ -36,8 +36,7 @@ def run_private_evaluation(
         if save_info is not None:
             try:
                 private_result = save_info.load_ale_bench_results(f"private_result_{solution.name}.json")
-                final_rank, new_performance_rank, _ = session._standings.get_new_rank(private_result)
-                final_performance = session._rank_performance_map.get_performance(new_performance_rank)
+                final_rank, final_performance, _ = session.estimate_rank_and_performance(private_result)
                 results_private[solution.name] = {
                     "problem_id": config.problem_id,
                     "model_name": config.model_name,
@@ -49,11 +48,16 @@ def run_private_evaluation(
                     "performance": final_performance,
                 }
                 save_info.logger.info(
-                    f"Loaded cached private evaluation for {solution.name}: {private_result.overall_absolute_score}"
+                    "Loaded cached private evaluation for %s: %s",
+                    solution.name,
+                    private_result.overall_absolute_score,
                 )
                 save_info.logger.info(
-                    f"Private Evaluation ({solution.name}): {private_result.overall_absolute_score} "
-                    f"Rank: {final_rank}, Performance: {final_performance}"
+                    "Private Evaluation (%s): %s Rank: %s, Performance: %s",
+                    solution.name,
+                    private_result.overall_absolute_score,
+                    final_rank,
+                    final_performance,
                 )
                 past_solution = solution
                 continue
@@ -65,12 +69,15 @@ def run_private_evaluation(
             results_private[solution.name] = results_private[past_solution.name]
             if save_info is not None:
                 save_info.logger.info(
-                    f"Skipping private evaluation for {solution.name} (same code as previous solution)"
+                    "Skipping private evaluation for %s (same code as previous solution)",
+                    solution.name,
                 )
                 save_info.logger.info(
-                    f"Private Evaluation ({solution.name}): {results_private[solution.name]['overall_absolute_score']} "
-                    f"Rank: {results_private[solution.name]['rank']}, "
-                    f"Performance: {results_private[solution.name]['performance']}"
+                    "Private Evaluation (%s): %s Rank: %s, Performance: %s",
+                    solution.name,
+                    results_private[solution.name]["overall_absolute_score"],
+                    results_private[solution.name]["rank"],
+                    results_private[solution.name]["performance"],
                 )
                 private_result = save_info.load_ale_bench_results(f"private_result_{past_solution.name}.json")
                 save_info.save_ale_bench_results(f"private_result_{solution.name}.json", private_result)
@@ -79,11 +86,11 @@ def run_private_evaluation(
 
         try:
             if save_info is not None:
-                save_info.logger.info(f"Running private evaluation for: {solution.name}")
+                save_info.logger.info("Running private evaluation for: %s", solution.name)
             solution_code_language = solution.code_language
             solution_code = solution.code
             if solution_code.strip() == "":
-                if solution_code_language == "any" or solution_code_language == "":
+                if solution_code_language in {"any", ""}:
                     solution_code_language = "cpp20"  # default to cpp20
                 solution_code = get_ce_code(solution_code_language)
             private_result, final_rank, final_performance = session.private_eval(
@@ -92,8 +99,11 @@ def run_private_evaluation(
 
             if save_info is not None:
                 save_info.logger.info(
-                    f"Private Evaluation ({solution.name}): {private_result.overall_absolute_score} "
-                    f"Rank: {final_rank}, Performance: {final_performance}"
+                    "Private Evaluation (%s): %s Rank: %s, Performance: %s",
+                    solution.name,
+                    private_result.overall_absolute_score,
+                    final_rank,
+                    final_performance,
                 )
                 save_info.save_ale_bench_results(f"private_result_{solution.name}.json", private_result)
             results_private[solution.name] = {
@@ -108,7 +118,7 @@ def run_private_evaluation(
             }
         except Exception as e:
             if save_info is not None:
-                save_info.logger.info(f"Private evaluation failed for {solution.name}: {e}")
+                save_info.logger.info("Private evaluation failed for %s: %s", solution.name, e)
             results_private[solution.name] = {
                 "problem_id": config.problem_id,
                 "model_name": config.model_name,
@@ -122,7 +132,7 @@ def run_private_evaluation(
             }
         finally:
             past_solution = solution
-            session._current_resource_usage = ResourceUsage(
+            session._current_resource_usage = ResourceUsage(  # noqa: SLF001
                 num_case_gen=session.current_resource_usage.num_case_gen,
                 num_case_eval=session.current_resource_usage.num_case_eval,
                 num_call_public_eval=session.current_resource_usage.num_call_public_eval,

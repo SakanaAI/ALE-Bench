@@ -1,5 +1,5 @@
 from collections.abc import Sequence
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from google.genai.errors import ClientError
 from pydantic_ai import (
@@ -10,7 +10,6 @@ from pydantic_ai import (
     UsageLimitExceeded,
 )
 from pydantic_ai.messages import ModelMessage, ModelResponse, UserContent
-from pydantic_ai.models import Model
 from pydantic_ai.models.anthropic import AnthropicModel, AnthropicModelSettings
 from pydantic_ai.models.bedrock import BedrockConverseModel, BedrockModelSettings
 from pydantic_ai.models.google import GoogleModel, GoogleModelSettings
@@ -22,9 +21,12 @@ from pydantic_ai.models.openai import (
 )
 from pydantic_ai.models.openrouter import OpenRouterModel, OpenRouterModelSettings
 from pydantic_ai.run import AgentRunResult
-from pydantic_ai.settings import ModelSettings
 
 from ale_bench_eval.shared_async_loop import shared_async_loop
+
+if TYPE_CHECKING:
+    from pydantic_ai.models import Model
+    from pydantic_ai.settings import ModelSettings
 
 OPENAI_COMPATIBLE_PROVIDERS = {
     "azure",
@@ -60,11 +62,13 @@ def parse_model_config(model_config: dict[str, Any]) -> dict[str, Any]:
         if key not in model_config or not isinstance(model_config[key], expected_type)
     ]
     if missing_keys:
-        raise ValueError(f"Missing or invalid keys in model configuration: {', '.join(missing_keys)}")
+        msg = f"Missing or invalid keys in model configuration: {', '.join(missing_keys)}"
+        raise ValueError(msg)
     not_allowed_keys = ["timeout"]
     for key in not_allowed_keys:
         if key in model_config["settings"]:
-            raise ValueError(f"Key '{key}' is not allowed in model configuration settings.")
+            msg = f"Key '{key}' is not allowed in model configuration settings."
+            raise ValueError(msg)
     return model_config
 
 
@@ -83,31 +87,44 @@ def build_agent_from_config(
     model_settings: ModelSettings
     if provider == "openai":
         model = OpenAIResponsesModel(model_name=model_name)
-        model_settings = OpenAIResponsesModelSettings(timeout=timeout, **settings)  # type: ignore[typeddict-item]
+        model_settings = OpenAIResponsesModelSettings(timeout=timeout, **settings)
     elif provider == "anthropic":
         model = AnthropicModel(model_name=model_name)
-        model_settings = AnthropicModelSettings(timeout=timeout, **settings)  # type: ignore[typeddict-item]
+        model_settings = AnthropicModelSettings(timeout=timeout, **settings)
     elif provider == "google":
         model = GoogleModel(model_name=model_name)
-        model_settings = GoogleModelSettings(timeout=timeout, **settings)  # type: ignore[typeddict-item]
+        model_settings = GoogleModelSettings(timeout=timeout, **settings)
     elif provider == "bedrock":
         model = BedrockConverseModel(model_name=model_name)
-        model_settings = BedrockModelSettings(timeout=timeout, **settings)  # type: ignore[typeddict-item]
+        model_settings = BedrockModelSettings(timeout=timeout, **settings)
     elif provider == "openrouter":
         model = OpenRouterModel(model_name=model_name)
-        model_settings = OpenRouterModelSettings(timeout=timeout, **settings)  # type: ignore[typeddict-item]
+        model_settings = OpenRouterModelSettings(timeout=timeout, **settings)
     elif provider in OPENAI_COMPATIBLE_PROVIDERS:
         model = OpenAIChatModel(model_name=model_name, provider=provider)
-        model_settings = OpenAIChatModelSettings(timeout=timeout, **settings)  # type: ignore[typeddict-item]
+        model_settings = OpenAIChatModelSettings(timeout=timeout, **settings)
     else:
-        raise ValueError(f"Unsupported provider: {provider}")
-    agent = Agent(
+        msg = f"Unsupported provider: {provider}"
+        raise ValueError(msg)
+    return Agent(
         model=model,
         model_settings=model_settings,
         system_prompt=system_prompt,
         retries=num_retries,
     )
-    return agent
+
+
+def validate_model_response(model_response: ModelMessage) -> None:
+    """Validate the final model response and raise if response is unusable."""
+    if not isinstance(model_response, ModelResponse):
+        msg = "Model did not return a valid response."
+        raise TypeError(msg)
+    if model_response.finish_reason == "length":
+        msg = "Model response was cut off due to length limit."
+        raise MaxTokenError(msg)
+    if model_response.finish_reason in ["error", "content_filter"]:
+        msg = f"Model response ended with finish_reason: {model_response.finish_reason}"
+        raise RuntimeError(msg)
 
 
 def safe_generation(
@@ -130,24 +147,31 @@ def safe_generation(
             agent.run(user_prompt=user_prompt, message_history=message_history),
         )
         model_response = result.all_messages()[-1]
-        if isinstance(model_response, ModelResponse):
-            if model_response.finish_reason == "length":
-                raise MaxTokenError("Model response was cut off due to length limit.")
-            elif model_response.finish_reason in ["error", "content_filter"]:
-                raise RuntimeError(f"Model response ended with finish_reason: {model_response.finish_reason}")
-        else:
-            raise RuntimeError("Model did not return a valid response.")
-        return result
+        validate_model_response(model_response)
     except ClientError as e:
-        if "exceeds the maximum number of tokens" in e.message:  # type: ignore
-            raise MaxTokenError("Input exceeds the model's maximum token limit.") from e
-        raise RuntimeError(f"Model API returned an HTTP error: {e}") from e
+        error_message = e.message or ""
+        if "exceeds the maximum number of tokens" in error_message:
+            msg = "Input exceeds the model's maximum token limit."
+            raise MaxTokenError(msg) from e
+        msg = f"Model API returned an HTTP error: {e}"
+        raise RuntimeError(msg) from e
         # NOTE: If too long string is input, sometime returned `exceeded your current quota`
     except ModelHTTPError as e:
         body = e.body or {}
         msg = ""
         if isinstance(body, dict):
-            msg = body.get("message") or body.get("error", {}).get("message") or str(body)
+            body_dict: dict[str, Any] = {str(key): value for key, value in body.items()}
+            message = body_dict.get("message")
+            error = body_dict.get("error")
+            if isinstance(message, str):
+                msg = message
+            elif isinstance(error, dict):
+                error_dict: dict[str, Any] = {str(key): value for key, value in error.items()}
+                error_message = error_dict.get("message")
+                if isinstance(error_message, str):
+                    msg = error_message
+            if not msg:
+                msg = str(body_dict)
         else:
             msg = str(body)
         if any(
@@ -158,18 +182,25 @@ def safe_generation(
                 "maximum context length",
             ]
         ):
-            raise MaxTokenError("Input exceeds the model's maximum token limit.") from e
-        raise RuntimeError(f"Model API returned an HTTP error: {e}") from e
+            msg = "Input exceeds the model's maximum token limit."
+            raise MaxTokenError(msg) from e
+        msg = f"Model API returned an HTTP error: {e}"
+        raise RuntimeError(msg) from e
         # NOTE: If too long string is input, sometime raised HTTP 500 error
     except MaxTokenError:
         raise
     except UnexpectedModelBehavior as e:
         if isinstance(e.__cause__, ModelRetry):
-            raise RuntimeError(f"Function call failed after retries: {e}") from e
+            msg = f"Function call failed after retries: {e}"
+            raise TypeError(msg) from e
         # NOTE: If too long string is input, sometime raised this error and e.message is "Received empty model response"
         # NOTE: Maybe because the token limit is exceeded in internal reasoning and the model returns an empty response
         raise
     except UsageLimitExceeded as e:
-        raise RuntimeError(f"Model usage limit exceeded: {e}") from e
+        msg = f"Model usage limit exceeded: {e}"
+        raise RuntimeError(msg) from e
     except Exception as e:
-        raise RuntimeError(f"An unexpected error occurred during model generation: {e}") from e
+        msg = f"An unexpected error occurred during model generation: {e}"
+        raise RuntimeError(msg) from e
+    else:
+        return result

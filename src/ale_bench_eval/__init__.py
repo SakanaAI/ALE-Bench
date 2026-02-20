@@ -1,16 +1,14 @@
 """ALE-Bench evaluation package."""
 
+import importlib
 import importlib.metadata
 
 try:
-    import fire  # noqa: F401
-    import genai_prices  # noqa: F401
-    import numpy  # noqa: F401
-    import pandas  # noqa: F401
-    import psutil  # noqa: F401
-    import pydantic_ai  # noqa: F401
+    for package_name in ("fire", "genai_prices", "numpy", "pandas", "psutil", "pydantic_ai"):
+        importlib.import_module(package_name)
 except ImportError as e:
-    raise ImportError("Missing dependencies. Please install the `eval` extra requirements.") from e
+    msg = "Missing dependencies. Please install the `eval` extra requirements."
+    raise ImportError(msg) from e
 
 try:
     __version__ = importlib.metadata.version("ale_bench")

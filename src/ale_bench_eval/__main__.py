@@ -69,10 +69,14 @@ def evaluate_contest(
     )
 
     # Initialize session and logging
-    session = start_ale_bench_session(problem_id, lite_version, num_workers)
+    session = start_ale_bench_session(
+        problem_id=problem_id,
+        lite_version=lite_version,
+        num_workers=num_workers,
+    )
 
     save_info = SaveInfo(model_name, problem_id, root_path)
-    save_info.logger.info(f"Start evaluation for {model_name} on {problem_id}")
+    save_info.logger.info("Start evaluation for %s on %s", model_name, problem_id)
 
     # Phase 1: Repeated sampling
     results_repeated_sampling = run_repeated_sampling(
@@ -84,10 +88,11 @@ def evaluate_contest(
         save_info=save_info,
     )
     expected_keys = set(range(n_repeated_sampling))
-    actual_keys = set([int(k) for k in results_repeated_sampling.keys() if int(k) in expected_keys])
+    actual_keys = {int(k) for k in results_repeated_sampling if int(k) in expected_keys}
     if actual_keys < expected_keys:
         diff = ", ".join(map(str, sorted(expected_keys - actual_keys)))
-        raise ValueError(f"Mismatch in repeated sampling results keys. Missing keys: {diff}")
+        msg = f"Mismatch in repeated sampling results keys. Missing keys: {diff}"
+        raise ValueError(msg)
 
     # Phase 2: Select the best solution
     score_type = session.problem.metadata.score_type
@@ -102,13 +107,15 @@ def evaluate_contest(
         score_type=score_type,
     )
     save_info.logger.info(
-        f"Selected solution index: {selected_index_repeated_sampling} "
-        f"using method: {selection_method} for repeated sampling"
+        "Selected solution index: %s using method: %s for repeated sampling",
+        selected_index_repeated_sampling,
+        selection_method,
     )
 
     # Phase 3: Self-refinement
     if results_repeated_sampling[selected_index_repeated_sampling]["is_context_length_overflow"]:
-        raise ValueError("Context length overflow occurred in the selected repeated sampling result.")
+        msg = "Context length overflow occurred in the selected repeated sampling result."
+        raise ValueError(msg)
     initial_conversations = save_info.load_conversations(
         f"repeated_sampling_conversations_{selected_index_repeated_sampling}.json"
     )
@@ -130,7 +137,7 @@ def evaluate_contest(
         Solution(
             name="repeated_sampling",
             code=selected_code_repeated_sampling,
-            code_language=selected_code_language_repeated_sampling,  # type: ignore
+            code_language=selected_code_language_repeated_sampling,
         ),
     ]
     self_refine_target_indices = power_of_two_indices(n_self_refine)
@@ -144,12 +151,12 @@ def evaluate_contest(
             score_type=score_type,
             n_max_refine=i,
         )
-        save_info.logger.info(f"Selected solution index: {selected_index_self_refine_at_i} for self-refine at {i}")
+        save_info.logger.info("Selected solution index: %s for self-refine at %s", selected_index_self_refine_at_i, i)
         solutions_to_evaluate.append(
             Solution(
                 name=f"self_refine_{i}",
                 code=selected_code_self_refine_at_i,
-                code_language=selected_code_language_self_refine_at_i,  # type: ignore
+                code_language=selected_code_language_self_refine_at_i,
             ),
         )
     private_result = run_private_evaluation(config, session, solutions_to_evaluate, save_info)
@@ -167,7 +174,9 @@ def evaluate_contest(
         selected_index_repeated_sampling,
     )
     save_info.logger.info(
-        f"Repeated sampling total cost: {repeated_sampling_total_cost}, total tokens: {repeated_sampling_total_tokens}"
+        "Repeated sampling total cost: %s, total tokens: %s",
+        repeated_sampling_total_cost,
+        repeated_sampling_total_tokens,
     )
     total_cost = {
         "repeated_sampling": {
@@ -181,7 +190,7 @@ def evaluate_contest(
             n_max_refine=i,
         )
         save_info.logger.info(
-            f"Self-refine {i} total cost: {self_refine_total_cost}, total tokens: {self_refine_total_tokens}"
+            "Self-refine %s total cost: %s, total tokens: %s", i, self_refine_total_cost, self_refine_total_tokens
         )
         total_cost[f"self_refine_{i}"] = {
             "total_tokens": self_refine_total_tokens,
@@ -196,12 +205,12 @@ def evaluate_contest(
     # Log the time taken
     end_time = get_now_utc()
     elapsed_time = (end_time - start_time).total_seconds()
-    save_info.logger.info(f"Time taken: {elapsed_time:.2f} seconds")
+    save_info.logger.info("Time taken: %.2f seconds", elapsed_time)
 
-    with open(save_info.results / "time_taken.txt", "a") as f:
+    with (save_info.results / "time_taken.txt").open("a") as f:
         f.write(f"{elapsed_time / 60:.2f} minutes\n")
 
-    save_info.logger.info(f"End evaluation for {model_name} on {problem_id}")
+    save_info.logger.info("End evaluation for %s on %s", model_name, problem_id)
 
 
 def _run_evaluation_task(
@@ -221,24 +230,25 @@ def _run_evaluation_task(
     try:
         print(f"▶️  Started: {model_name} on {problem_id}")
         evaluate_contest(
-            prompt_args,
-            model_name,
-            model_config,
-            n_repeated_sampling,
-            n_self_refine,
-            problem_id,
-            lite_version,
-            num_workers,
-            n_public_cases,
-            selection_method,
-            root_path,
+            prompt_args=prompt_args,
+            model_name=model_name,
+            model_config=model_config,
+            n_repeated_sampling=n_repeated_sampling,
+            n_self_refine=n_self_refine,
+            problem_id=problem_id,
+            lite_version=lite_version,
+            num_workers=num_workers,
+            n_public_cases=n_public_cases,
+            selection_method=selection_method,
+            root_path=root_path,
         )
         print(f"✅ Completed: {model_name} on {problem_id}")
-        return problem_id, True, "Success"
     except Exception as e:
-        error_msg = f"Error evaluating {problem_id}: {str(e)}"
+        error_msg = f"Error evaluating {problem_id}: {e!s}"
         print(f"❌ Failed: {model_name} on {problem_id} - {error_msg}")
         return problem_id, False, error_msg
+    else:
+        return problem_id, True, "Success"
 
 
 def main(
@@ -261,12 +271,15 @@ def main(
 
     physical_cores = cpu_count(logical=False)
     if physical_cores is None:
-        warnings.warn("Could not determine the number of physical CPU cores. Proceeding without this check.")
+        warnings.warn(
+            "Could not determine the number of physical CPU cores. Proceeding without this check.", stacklevel=2
+        )
     elif num_workers * max_parallel_problems > physical_cores:
-        raise ValueError(
+        msg = (
             f"num_workers * max_parallel_problems ({num_workers * max_parallel_problems}) "
             f"exceeds available CPU cores ({physical_cores})"
         )
+        raise ValueError(msg)
 
     prompt_args = PromptArgs(
         code_language=code_language,
@@ -274,12 +287,14 @@ def main(
         use_image=use_statement_image,
     )
 
-    with open(model_config_path, "r") as f:
+    model_config_file_path = Path(model_config_path)
+    with model_config_file_path.open() as f:
         model_config = json.load(f)
     if not isinstance(model_config, dict):
-        raise ValueError(f"Invalid model configuration format in {model_config_path}")
+        msg = f"Invalid model configuration format in {model_config_path}"
+        raise TypeError(msg)
     model_config = parse_model_config(model_config)
-    model_name = Path(model_config_path).stem
+    model_name = model_config_file_path.stem
 
     # Create timestamped results directory
     exp_root = Path.cwd() / f"results/{model_name}_{get_now_utc_string()}"
@@ -291,49 +306,55 @@ def main(
     if setting_path.is_file():  # Load the existing experiment settings
         existing_settings = json.load(setting_path.open())
         if existing_settings["model_name"] != model_name:
-            raise ValueError("Experiment settings already exist with different model_name")
+            msg = "Experiment settings already exist with different model_name"
+            raise ValueError(msg)
         if existing_settings["model_config"] != model_config:
-            raise ValueError("Experiment settings already exist with different model_config")
+            msg = "Experiment settings already exist with different model_config"
+            raise ValueError(msg)
         if existing_settings["n_repeated_sampling"] != n_repeated_sampling:
-            raise ValueError("Experiment settings already exist with different n_repeated_sampling")
+            msg = "Experiment settings already exist with different n_repeated_sampling"
+            raise ValueError(msg)
         # NOTE: skip n_self_refine check to allow resuming with different n_self_refine
         # NOTE: skip num_workers check to allow resuming with different num_workers
         if existing_settings["n_public_cases"] != n_public_cases:
-            raise ValueError("Experiment settings already exist with different n_public_cases")
+            msg = "Experiment settings already exist with different n_public_cases"
+            raise ValueError(msg)
         if existing_settings["code_language"] != code_language:
-            raise ValueError("Experiment settings already exist with different code_language")
+            msg = "Experiment settings already exist with different code_language"
+            raise ValueError(msg)
         if existing_settings["prompt_language"] != prompt_language:
-            raise ValueError("Experiment settings already exist with different prompt_language")
+            msg = "Experiment settings already exist with different prompt_language"
+            raise ValueError(msg)
         # NOTE: skip max_parallel_problems check to allow resuming with different max_parallel_problems
         if existing_settings["problem_ids_type"] != problem_ids_type:
-            raise ValueError("Experiment settings already exist with different problem_ids_type")
+            msg = "Experiment settings already exist with different problem_ids_type"
+            raise ValueError(msg)
         if existing_settings["selection_method"] != selection_method:
-            raise ValueError("Experiment settings already exist with different selection_method")
+            msg = "Experiment settings already exist with different selection_method"
+            raise ValueError(msg)
     # Save (update) experiment settings
-    json.dump(
-        {
-            "model_name": model_name,
-            "model_config": model_config,
-            "n_repeated_sampling": n_repeated_sampling,
-            "n_self_refine": n_self_refine,
-            "num_workers": num_workers,
-            "n_public_cases": n_public_cases,
-            "code_language": code_language,
-            "prompt_language": prompt_language,
-            "max_parallel_problems": max_parallel_problems,
-            "problem_ids_type": problem_ids_type,
-            "selection_method": selection_method,
-        },
-        setting_path.open("w"),
-        indent=4,
-    )
+    with setting_path.open("w") as f:
+        json.dump(
+            {
+                "model_name": model_name,
+                "model_config": model_config,
+                "n_repeated_sampling": n_repeated_sampling,
+                "n_self_refine": n_self_refine,
+                "num_workers": num_workers,
+                "n_public_cases": n_public_cases,
+                "code_language": code_language,
+                "prompt_language": prompt_language,
+                "max_parallel_problems": max_parallel_problems,
+                "problem_ids_type": problem_ids_type,
+                "selection_method": selection_method,
+            },
+            f,
+            indent=4,
+        )
 
     # Get the problem ids to evaluate
     lite_version = problem_ids_type != "all"
-    if problem_ids_type == "debug":
-        problem_ids = ["ahc027", "ahc039"]
-    else:
-        problem_ids = list_problem_ids(lite_version=lite_version)
+    problem_ids = ["ahc027", "ahc039"] if problem_ids_type == "debug" else list_problem_ids(lite_version=lite_version)
     print(f"\n🚀 Starting parallel evaluation of {len(problem_ids)} problems...")
     print(f"📊 Model: {model_name}, Repeated Sampling: {n_repeated_sampling}, Self-Refine: {n_self_refine}")
 
@@ -341,8 +362,9 @@ def main(
         print(f"🔍 Skipping LLM inference and loading results from {exp_root}")
         result_json_path = exp_root / "results.json"
         if not result_json_path.exists():
-            raise FileNotFoundError(f"Results file not found at {result_json_path}")
-        with open(result_json_path, "r") as f:
+            msg = f"Results file not found at {result_json_path}"
+            raise FileNotFoundError(msg)
+        with result_json_path.open() as f:
             results = json.load(f)
     else:
         # Evaluate on problems in parallel
@@ -382,14 +404,14 @@ def main(
                     print(f"      • {problem_id}: {result['message']}")
         else:
             print("   🎉 All evaluations completed successfully!")
-        with open(exp_root / "results.json", "w") as f:
+        with (exp_root / "results.json").open("w") as f:
             json.dump(results, f)
 
     # Aggregate the final results to obtain comprehensive statistics
     aggregated_results = aggregate_results(results, exp_root)
 
     # Save aggregated results
-    with open(exp_root / "aggregated_results.json", "w") as f:
+    with (exp_root / "aggregated_results.json").open("w") as f:
         json.dump(aggregated_results, f, indent=4)
 
     # save result table
@@ -399,7 +421,7 @@ def main(
 
     # Display summary statistics
     summary = display_aggregation_summary(aggregated_results)
-    with open(exp_root / "summary.txt", "w") as f:
+    with (exp_root / "summary.txt").open("w") as f:
         f.write(summary)
 
     print(f"\n📁 All results saved to: {exp_root}")
@@ -409,7 +431,7 @@ def main(
     # Save overall time taken
     end_time = get_now_utc()
     elapsed_time_str = f"Overall time taken: {(end_time - start_time).total_seconds() / 60:.2f} minutes"
-    with open(exp_root / "time_taken.txt", "w") as f:
+    with (exp_root / "time_taken.txt").open("w") as f:
         f.write(elapsed_time_str)
     print(elapsed_time_str)
 

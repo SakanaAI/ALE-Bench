@@ -1,11 +1,14 @@
 import asyncio
 import atexit
+import contextlib
 import logging
 import threading
+from collections.abc import Coroutine
 from concurrent.futures import Future, TimeoutError as FutureTimeoutError
-from typing import Coroutine, TypeVar
+from typing import TypeVar
 
 T = TypeVar("T")
+SHARED_ASYNC_LOOP_STATE: dict[str, "SharedAsyncLoop | None"] = {"instance": None}
 
 
 class SharedAsyncLoop:
@@ -46,31 +49,35 @@ class SharedAsyncLoop:
         Args:
             coroutine (Coroutine): The coroutine to execute.
             timeout (float, optional): Maximum time in seconds to wait for the result. If None, wait indefinitely.
+
         Returns:
             T: The result returned by the coroutine.
+
         Raises:
             asyncio.TimeoutError: If the coroutine does not complete within the specified timeout.
             Exception: Any exception raised by the coroutine will be propagated.
+
         Note:
             On exception, this method requests cancellation of the underlying coroutine via the returned Future.
             If the coroutine ignores cancellation, it may continue running briefly.
+
         """
         future: Future[T] = asyncio.run_coroutine_threadsafe(coroutine, self._loop)
         try:
             return future.result(timeout=timeout)
         except FutureTimeoutError as exc:
             future.cancel()
-            raise asyncio.TimeoutError(f"Timed out waiting for coroutine result after {timeout}s") from exc
+            msg = f"Timed out waiting for coroutine result after {timeout}s"
+            raise asyncio.TimeoutError(msg) from exc
         except Exception:
             future.cancel()
             raise
 
     def shutdown(self) -> None:
-        global SHARED_ASYNC_LOOP
         with SHARED_ASYNC_LOOP_LOCK:
             if self._loop.is_closed():
-                if SHARED_ASYNC_LOOP is self:
-                    SHARED_ASYNC_LOOP = None
+                if SHARED_ASYNC_LOOP_STATE["instance"] is self:
+                    SHARED_ASYNC_LOOP_STATE["instance"] = None
                 return
             if self._loop.is_running():
                 drain_future = asyncio.run_coroutine_threadsafe(self._drain_pending(), self._loop)
@@ -83,23 +90,21 @@ class SharedAsyncLoop:
                     self._thread.join(timeout=self.SHUTDOWN_TIMEOUT)
                     if self._thread.is_alive():
                         logging.getLogger(__name__).warning(
-                            f"Shared async loop thread did not stop within {self.SHUTDOWN_TIMEOUT}s"
+                            "Shared async loop thread did not stop within %ss",
+                            self.SHUTDOWN_TIMEOUT,
                         )
             if not self._loop.is_closed():
                 self._loop.close()
-            try:
-                atexit.unregister(self._atexit_cb)
-            except Exception:
+            with contextlib.suppress(Exception):
                 # During interpreter shutdown unregister may fail; ignore.
-                pass
-            if SHARED_ASYNC_LOOP is self:
-                SHARED_ASYNC_LOOP = None
+                atexit.unregister(self._atexit_cb)
+            if SHARED_ASYNC_LOOP_STATE["instance"] is self:
+                SHARED_ASYNC_LOOP_STATE["instance"] = None
 
     def is_closed(self) -> bool:
         return self._loop.is_closed()
 
 
-SHARED_ASYNC_LOOP: SharedAsyncLoop | None = None
 SHARED_ASYNC_LOOP_LOCK = threading.Lock()
 
 
@@ -110,9 +115,11 @@ def shared_async_loop() -> SharedAsyncLoop:
 
     Returns:
         SharedAsyncLoop: The shared async event loop instance.
+
     """
-    global SHARED_ASYNC_LOOP
     with SHARED_ASYNC_LOOP_LOCK:
-        if SHARED_ASYNC_LOOP is None or SHARED_ASYNC_LOOP.is_closed():
-            SHARED_ASYNC_LOOP = SharedAsyncLoop()
-        return SHARED_ASYNC_LOOP
+        shared_loop = SHARED_ASYNC_LOOP_STATE["instance"]
+        if shared_loop is None or shared_loop.is_closed():
+            shared_loop = SharedAsyncLoop()
+            SHARED_ASYNC_LOOP_STATE["instance"] = shared_loop
+        return shared_loop
