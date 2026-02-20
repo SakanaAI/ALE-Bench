@@ -24,6 +24,14 @@ FALLBACK_DICT = {
         cache_read_mtok=Decimal(5) / Decimal(100),
         output_mtok=Decimal(3),
     ),
+    "gemini-3.1-pro-preview": ModelPrice(
+        input_mtok=TieredPrices(base=Decimal(2), tiers=[Tier(start=200000, price=Decimal(4))]),
+        output_mtok=TieredPrices(base=Decimal(12), tiers=[Tier(start=200000, price=Decimal(18))]),
+        cache_read_mtok=TieredPrices(
+            base=Decimal(2) / Decimal(10), tiers=[Tier(start=200000, price=Decimal(4) / Decimal(10))]
+        ),
+        cache_write_mtok=Decimal(375) / Decimal(1000),
+    ),
     "claude-sonnet-4": ModelPrice(
         input_mtok=TieredPrices(base=Decimal(3), tiers=[Tier(start=200000, price=Decimal(6))]),
         cache_write_mtok=TieredPrices(
