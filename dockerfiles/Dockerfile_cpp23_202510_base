@@ -38,15 +38,7 @@ RUN set -eux; \
 WORKDIR /workdir
 
 RUN set -eux; \
-    cp -Trf /usr/include/eigen3 /usr/local/include; \
-    mkdir -p /usr/local/cmake; \
-    cp -f \
-        /usr/share/eigen3/cmake/Eigen3Targets.cmake \
-        /usr/share/eigen3/cmake/Eigen3Config.cmake \
-        /usr/local/cmake; \
-    sed -i \
-        -e 's|include/eigen3|local/include|g' \
-        /usr/local/cmake/Eigen3Targets.cmake
+    cp -Trf /usr/include/eigen3 /usr/local/include
 
 ENV GCC_DIR=/opt/gcc-${GCC_VERSION}
 

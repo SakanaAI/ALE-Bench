@@ -15,7 +15,7 @@ ARG LEAN_VERSION=v4.22.0
 
 RUN set -eux; \
     apt-get update; \
-    apt-get install -y --no-install-recommends ca-certificates curl git xz-utils time; \
+    apt-get install -y --no-install-recommends ca-certificates curl git xz-utils build-essential time; \
     rm -rf /var/lib/apt/lists/*
 
 WORKDIR /workdir

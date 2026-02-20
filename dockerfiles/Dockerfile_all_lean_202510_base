@@ -30,6 +30,7 @@ ARG TYPESCRIPT_VERSION=5.9.2
 ARG OCAML_SWITCH=5.3.0+flambda
 ARG DOTNET_SDK_VERSION=9.0.304
 ARG FISH_VERSION=4.0.2
+ARG LEAN_VERSION=v4.22.0
 
 ARG BOOST_VERSION=1.88.0
 ARG ACL_VERSION=1.6
@@ -548,3 +549,22 @@ RUN set -eux; \
     cmake --install build; \
     fish --version; \
     rm -rf /tmp/fish
+
+# ---- Lean 4.22.0 ----
+ENV PATH="/root/.elan/bin:${PATH}"
+
+COPY ./lean_202510_Main.lean /tmp/Main.lean
+COPY ./lean_202510_lakefile.toml.template /tmp/lakefile.toml.template
+
+RUN set -eux; \
+    curl -fsSLo /tmp/elan-init.sh https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh; \
+    chmod +x /tmp/elan-init.sh; \
+    /tmp/elan-init.sh -y --default-toolchain "leanprover/lean4:${LEAN_VERSION}"; \
+    rm -f /tmp/elan-init.sh; \
+    lake new atcoder exe; \
+    cd atcoder; \
+    sed "s|__LEAN_VERSION__|${LEAN_VERSION}|g" /tmp/lakefile.toml.template >> lakefile.toml; \
+    cp /tmp/Main.lean Main.lean; \
+    lake exe cache get; \
+    lake build; \
+    rm -f .lake/build/bin/atcoder /tmp/lakefile.toml.template /tmp/Main.lean
