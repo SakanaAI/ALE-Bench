@@ -106,6 +106,7 @@ readonly IMAGES=(
     rust
     typescript
     all
+    all-lean
 )
 
 PIDS=()
@@ -158,10 +159,10 @@ run_base_stage() {
     for image in "${IMAGES[@]}"; do
         wait_for_slot
         launch_job \
-            "base_${image}-202510" \
+            "base_${image//-/_}-202510" \
             docker build -q "${DOCKER_CONTEXT}" \
             -t "yimjk/ale-bench:${image}-202510" \
-            -f "${DOCKER_CONTEXT}/Dockerfile_${image}_202510_base"
+            -f "${DOCKER_CONTEXT}/Dockerfile_${image//-/_}_202510_base"
     done
 }
 
@@ -173,10 +174,10 @@ run_final_stage() {
     for image in "${IMAGES[@]}"; do
         wait_for_slot
         launch_job \
-            "final_${image}-202510" \
+            "final_${image//-/_}-202510" \
             docker build -q "${DOCKER_CONTEXT}" \
             -t "ale-bench:${image}-202510" \
-            -f "${DOCKER_CONTEXT}/Dockerfile_${image}_202510" \
+            -f "${DOCKER_CONTEXT}/Dockerfile_${image//-/_}_202510" \
             --build-arg "UID=${USER_ID}" \
             --build-arg "GID=${GROUP_ID}"
     done

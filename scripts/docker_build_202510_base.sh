@@ -18,3 +18,4 @@ docker build -q ./dockerfiles -t yimjk/ale-bench:python-202510 -f ./dockerfiles/
 docker build -q ./dockerfiles -t yimjk/ale-bench:rust-202510 -f ./dockerfiles/Dockerfile_rust_202510_base
 docker build -q ./dockerfiles -t yimjk/ale-bench:typescript-202510 -f ./dockerfiles/Dockerfile_typescript_202510_base
 docker build -q ./dockerfiles -t yimjk/ale-bench:all-202510 -f ./dockerfiles/Dockerfile_all_202510_base
+docker build -q ./dockerfiles -t yimjk/ale-bench:all-lean-202510 -f ./dockerfiles/Dockerfile_all_lean_202510_base

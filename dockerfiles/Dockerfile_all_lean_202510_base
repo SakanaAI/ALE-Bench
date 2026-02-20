@@ -279,8 +279,6 @@ RUN set -eux; \
         -DBUILD_SHARED_LIBS:BOOL=OFF \
         -DCMAKE_INSTALL_RPATH_USE_LINK_PATH:BOOL=ON \
         -DCMAKE_CXX_FLAGS="-std=gnu++23 -w" \
-        -DCMAKE_EXE_LINKER_FLAGS="-fuse-ld=lld" \
-        -DCMAKE_SHARED_LINKER_FLAGS="-fuse-ld=lld" \
         ..; \
     cmake --build . --config Release --target install; \
     rm -rf /tmp/or-tools
