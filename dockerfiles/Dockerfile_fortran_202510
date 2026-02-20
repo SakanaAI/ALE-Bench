@@ -1,0 +1,9 @@
+FROM yimjk/ale-bench:fortran-202510
+
+LABEL org.opencontainers.image.source=https://github.com/SakanaAI/ALE-Bench
+
+# Change the permissions of the workdir to allow the user to write to it
+ARG UID=0 \
+    GID=0
+
+RUN chown -R $UID:$GID /workdir

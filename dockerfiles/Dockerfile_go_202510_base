@@ -1,0 +1,40 @@
+FROM debian:13
+
+LABEL org.opencontainers.image.source=https://github.com/SakanaAI/ALE-Bench
+
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+
+ENV DEBIAN_FRONTEND=noninteractive \
+    DEBCONF_NONINTERACTIVE_SEEN=true \
+    TZ=Etc/UTC \
+    LANG=C.UTF-8 \
+    LC_ALL=C.UTF-8
+
+ARG GO_VERSION=1.25.1
+
+RUN set -eux; \
+    apt-get update; \
+    apt-get install -y --no-install-recommends \
+      ca-certificates wget tar time; \
+    rm -rf /var/lib/apt/lists/*
+
+WORKDIR /workdir
+
+RUN set -eux; \
+    cd /tmp; \
+    wget -q "https://go.dev/dl/go${GO_VERSION}.linux-amd64.tar.gz"; \
+    rm -rf /opt/go; \
+    tar -C /opt -xf "go${GO_VERSION}.linux-amd64.tar.gz"; \
+    rm -f "go${GO_VERSION}.linux-amd64.tar.gz"
+
+ENV PATH="${PATH}:/opt/go/bin"
+
+RUN set -eux; \
+    go mod init atcoder.jp/golang; \
+    go get \
+      github.com/emirpasic/gods@v1.18.1 \
+      gonum.org/v1/gonum@v0.16.0 \
+      github.com/liyue201/gostl@v1.2.0 \
+      github.com/benbjohnson/immutable@v0.4.3 \
+      golang.org/x/exp@v0.0.0-20250711185948-6ae5c78190dc \
+      github.com/monkukui/ac-library-go@2caa314afb5ad142f497cf3c1a5c7d5740184c0d

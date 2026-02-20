@@ -1,0 +1,44 @@
+FROM debian:13
+
+LABEL org.opencontainers.image.source=https://github.com/SakanaAI/ALE-Bench
+
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+
+ENV DEBIAN_FRONTEND=noninteractive \
+    DEBCONF_NONINTERACTIVE_SEEN=true \
+    TZ=Etc/UTC \
+    LANG=C.UTF-8 \
+    LC_ALL=C.UTF-8 \
+    PATH=/root/.elan/bin:${PATH}
+
+ARG LEAN_VERSION=v4.22.0
+
+RUN set -eux; \
+    apt-get update; \
+    apt-get install -y --no-install-recommends ca-certificates curl git xz-utils time; \
+    rm -rf /var/lib/apt/lists/*
+
+WORKDIR /workdir
+
+RUN set -eux; \
+    curl -fsSL https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh -o /tmp/elan-init.sh; \
+    chmod +x /tmp/elan-init.sh; \
+    /tmp/elan-init.sh -y --default-toolchain "leanprover/lean4:${LEAN_VERSION}"; \
+    rm -f /tmp/elan-init.sh; \
+    lake new atcoder exe; \
+    cd atcoder; \
+    printf '\n[[require]]\nname = "Regex"\ngit = "https://github.com/pandaman64/lean-regex"\nrev = "%s"\nsubDir = "regex"\n\n[[require]]\nname = "mathlib"\nscope = "leanprover-community"\nrev = "%s"\n\n[[require]]\nname = "Parser"\nscope = "fgdorais"\nrev = "617f4fa"\n' "${LEAN_VERSION}" "${LEAN_VERSION}" >> lakefile.toml; \
+    printf '%s\n' \
+      'import Mathlib' \
+      'import Parser' \
+      'import Regex.Regex.Utilities' \
+      'import Regex.Regex.Elab' \
+      '' \
+      'def main : IO Unit := do' \
+      '  IO.println s!"Hello, sqrt 9 = {Nat.sqrt 9}"' \
+      '  let re := Regex.parse! r##"bool|boolean"##' \
+      '  IO.println s!"{re.find "boolean"}"' \
+      > Main.lean; \
+    lake exe cache get; \
+    lake build; \
+    rm -f .lake/build/bin/atcoder
