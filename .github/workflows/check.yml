@@ -52,7 +52,7 @@ jobs:
       run: uv run ruff format --diff
 
     - name: Run type checks with ty
-      run: uv run ty check src tests
+      run: uv run ty check
 
     - name: Run tests
       run: uv run pytest -m "not docker and not slow"
