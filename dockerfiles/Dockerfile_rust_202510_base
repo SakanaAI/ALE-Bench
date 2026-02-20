@@ -15,7 +15,7 @@ ARG RUST_VERSION=1.89.0
 RUN set -eux; \
     apt-get update; \
     apt-get install -y --no-install-recommends \
-      ca-certificates curl build-essential time; \
+        ca-certificates curl build-essential time; \
     rm -rf /var/lib/apt/lists/*
 
 ENV RUSTUP_HOME=/opt/rustup \
@@ -26,7 +26,7 @@ ENV PATH="${CARGO_HOME}/bin:${PATH}"
 WORKDIR /workdir
 
 RUN set -eux; \
-    curl -fsSL https://sh.rustup.rs -o /tmp/rustup-init.sh; \
+    curl -fsSLo /tmp/rustup-init.sh https://sh.rustup.rs; \
     sh /tmp/rustup-init.sh -y --profile minimal --default-toolchain "${RUST_VERSION}"; \
     cargo -vV; \
     [ "$(command -v cargo)" = "${CARGO_HOME}/bin/cargo" ]; \

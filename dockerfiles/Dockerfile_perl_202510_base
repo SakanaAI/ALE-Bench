@@ -15,7 +15,7 @@ ARG PERL_VERSION=5.38.2
 RUN set -eux; \
     apt-get update; \
     apt-get install -y --no-install-recommends \
-      ca-certificates curl build-essential time; \
+        ca-certificates curl build-essential time; \
     rm -rf /var/lib/apt/lists/*
 
 WORKDIR /workdir
@@ -23,8 +23,8 @@ WORKDIR /workdir
 RUN set -eux; \
     mkdir -p /tmp/perl; \
     cd /tmp/perl; \
-    curl -fsSL "https://www.cpan.org/src/5.0/perl-${PERL_VERSION}.tar.xz" -o perl.tar.xz; \
-    tar -xJf perl.tar.xz; \
+    curl -fsSLo perl.tar.xz "https://www.cpan.org/src/5.0/perl-${PERL_VERSION}.tar.xz"; \
+    tar -xf perl.tar.xz; \
     cd "perl-${PERL_VERSION}"; \
     sh Configure -des -Dprefix=/usr/local; \
     make -j"$(nproc)"; \

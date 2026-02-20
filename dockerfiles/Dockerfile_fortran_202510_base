@@ -16,23 +16,25 @@ ARG FORTRAN_STDLIB_VERSION=0.7.0
 RUN set -eux; \
     apt-get update; \
     apt-get install -y --no-install-recommends \
-      ca-certificates curl git time \
-      gfortran gfortran-14 python3 fypp python3-joblib libstdc++-14-dev; \
+        ca-certificates curl git time \
+        gfortran gfortran-14 python3 fypp python3-joblib libstdc++-14-dev; \
     rm -rf /var/lib/apt/lists/*
 
 WORKDIR /workdir
 
 RUN set -eux; \
-    curl -fsSL "https://github.com/fortran-lang/fpm/releases/download/v${FPM_VERSION}/fpm-${FPM_VERSION}-linux-x86_64" -o /usr/local/bin/fpm; \
+    curl -fsSLo /usr/local/bin/fpm "https://github.com/fortran-lang/fpm/releases/download/v${FPM_VERSION}/fpm-${FPM_VERSION}-linux-x86_64"; \
     chmod +x /usr/local/bin/fpm
 
-COPY ./fortran_202510_fpm_install.toml /tmp/fortran/stdlib/fpm.toml
+COPY ./fortran_202510_fpm_install.toml /tmp/fortran/fpm.toml
 
 RUN set -eux; \
     mkdir -p /tmp/fortran; \
     cd /tmp/fortran; \
-    git clone --depth 1 --branch "v${FORTRAN_STDLIB_VERSION}" https://github.com/fortran-lang/stdlib.git; \
-    cd /tmp/fortran/stdlib; \
+    curl -fsSLo "v${FORTRAN_STDLIB_VERSION}.tar.gz" "https://github.com/fortran-lang/stdlib/archive/refs/tags/v${FORTRAN_STDLIB_VERSION}.tar.gz"; \
+    tar -xf v${FORTRAN_STDLIB_VERSION}.tar.gz; \
+    mv fpm.toml stdlib-${FORTRAN_STDLIB_VERSION}/fpm.toml; \
+    cd /tmp/fortran/stdlib-${FORTRAN_STDLIB_VERSION}; \
     python3 config/fypp_deployment.py; \
     FPM_FC=gfortran FPM_FFLAGS="-O2 -cpp -std=f2023" fpm build --profile release; \
     FPM_FC=gfortran FPM_FFLAGS="-O2 -cpp -std=f2023" fpm install --profile release --prefix /usr/local; \

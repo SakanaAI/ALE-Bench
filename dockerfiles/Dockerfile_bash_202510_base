@@ -15,18 +15,17 @@ ARG BASH_VERSION=5.3
 RUN set -eux; \
     apt-get update; \
     apt-get install -y --no-install-recommends \
-      ca-certificates curl build-essential time; \
+        ca-certificates curl build-essential time; \
     rm -rf /var/lib/apt/lists/*
 
 WORKDIR /workdir
 
 RUN set -eux; \
-    mkdir -p /tmp/bash; \
-    cd /tmp/bash; \
-    curl -fSLo bash.tar.gz --retry 5 --retry-all-errors "https://ftp.gnu.org/gnu/bash/bash-${BASH_VERSION}.tar.gz" \
-      || curl -fSLo bash.tar.gz --retry 5 --retry-all-errors "https://ftpmirror.gnu.org/bash/bash-${BASH_VERSION}.tar.gz"; \
-    tar -xzf bash.tar.gz; \
-    cd "bash-${BASH_VERSION}"; \
+    cd /tmp; \
+    curl -fsSLo bash.tar.gz "https://ftp.gnu.org/gnu/bash/bash-${BASH_VERSION}.tar.gz"; \
+    mkdir bash; \
+    tar -C bash --strip-components=1 -xf bash.tar.gz; \
+    cd bash; \
     ./configure --enable-largefile --without-bash-malloc; \
     make -j"$(nproc)"; \
     make install; \

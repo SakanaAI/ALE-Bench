@@ -16,8 +16,8 @@ ARG DOTNET_SDK_VERSION=9.0.304
 RUN set -eux; \
     apt-get update; \
     apt-get install -y --no-install-recommends \
-      ca-certificates curl time \
-      libc6 libgcc-s1 libgssapi-krb5-2 libicu-dev libssl3 libstdc++6 libunwind8 zlib1g; \
+        ca-certificates curl time \
+        libc6 libgcc-s1 libgssapi-krb5-2 libicu-dev libssl3 libstdc++6 libunwind8 zlib1g; \
     rm -rf /var/lib/apt/lists/*
 
 ENV DOTNET_ROOT=/opt/dotnet \
@@ -27,7 +27,7 @@ ENV DOTNET_ROOT=/opt/dotnet \
 WORKDIR /workdir
 
 RUN set -eux; \
-    curl -fsSL https://dot.net/v1/dotnet-install.sh -o /tmp/dotnet-install.sh; \
+    curl -fsSLo /tmp/dotnet-install.sh https://dot.net/v1/dotnet-install.sh; \
     bash /tmp/dotnet-install.sh --version "${DOTNET_SDK_VERSION}" --install-dir /opt/dotnet; \
     rm -f /tmp/dotnet-install.sh; \
     dotnet --info > /dev/null

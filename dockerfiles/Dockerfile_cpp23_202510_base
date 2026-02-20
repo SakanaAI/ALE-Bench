@@ -25,15 +25,11 @@ ARG ORTOOLS_VERSION=9.14
 RUN set -eux; \
     apt-get update; \
     apt-get install -y --no-install-recommends \
-      ca-certificates curl wget git gnupg dirmngr time \
-      xz-utils unzip bzip2 tar file patch \
-      build-essential cmake gdb lcov ninja-build pkg-config \
-      bison flex texinfo gawk rsync zlib1g-dev libzstd-dev \
-      libgmp-dev libmpfr-dev libmpc-dev libisl-dev \
-      libssl-dev libbz2-dev libreadline-dev libsqlite3-dev libncurses5-dev libncursesw5-dev \
-      libffi-dev liblzma-dev uuid-dev tk-dev \
-      libopenblas-dev liblapack-dev \
-      libeigen3-dev; \
+        ca-certificates curl git time \
+        xz-utils unzip bzip2 tar file \
+        build-essential cmake ninja-build lld pkg-config \
+        zlib1g-dev libzstd-dev libgmp-dev libmpfr-dev libmpc-dev libisl-dev \
+        libopenblas-dev liblapack-dev libeigen3-dev; \
     rm -rf /var/lib/apt/lists/*
 
 WORKDIR /workdir
@@ -49,23 +45,23 @@ ENV LD_LIBRARY_PATH= \
 RUN set -eux; \
     mkdir -p /tmp/gcc-src; \
     cd /tmp/gcc-src; \
-    curl -fsSL "https://ftp.gnu.org/gnu/gcc/gcc-${GCC_VERSION}/gcc-${GCC_VERSION}.tar.xz" -o gcc.tar.xz; \
-    tar -xJf gcc.tar.xz; \
+    curl -fsSLo gcc.tar.xz "https://ftp.gnu.org/gnu/gcc/gcc-${GCC_VERSION}/gcc-${GCC_VERSION}.tar.xz"; \
+    tar -xf gcc.tar.xz; \
     cd "gcc-${GCC_VERSION}"; \
     ./contrib/download_prerequisites; \
     mkdir -p build; \
     cd build; \
     ../configure \
-      --prefix="${GCC_DIR}" \
-      --enable-languages=c++ \
-      --disable-bootstrap \
-      --disable-multilib \
-      --disable-libsanitizer \
-      --disable-checking \
-      --disable-nls \
-      --disable-gcov \
-      --disable-libada \
-      --disable-libgm2; \
+        --prefix="${GCC_DIR}" \
+        --enable-languages=c++ \
+        --disable-bootstrap \
+        --disable-multilib \
+        --disable-libsanitizer \
+        --disable-checking \
+        --disable-nls \
+        --disable-gcov \
+        --disable-libada \
+        --disable-libgm2; \
     make -j"$(nproc)"; \
     make install-strip; \
     echo "${GCC_DIR}/lib64" > /etc/ld.so.conf.d/gcc-${GCC_VERSION}.conf; \
@@ -79,45 +75,47 @@ ENV PATH="${GCC_DIR}/bin:${PATH}" \
 RUN set -eux; \
     mkdir -p /tmp/boost; \
     cd /tmp/boost; \
-    curl -fsSL "https://archives.boost.io/release/${BOOST_VERSION}/source/boost_${BOOST_VERSION//./_}.tar.bz2" -o boost.tar.bz2; \
-    tar -xjf boost.tar.bz2; \
+    curl -fsSLo boost.tar.bz2 "https://archives.boost.io/release/${BOOST_VERSION}/source/boost_${BOOST_VERSION//./_}.tar.bz2"; \
+    tar -xf boost.tar.bz2; \
     cd "boost_${BOOST_VERSION//./_}"; \
     ./bootstrap.sh \
-      --with-toolset=gcc \
-      --without-libraries=mpi,graph_parallel,python \
-      --prefix=/usr/local; \
+        --with-toolset=gcc \
+        --without-libraries=mpi,graph_parallel,python \
+        --prefix=/usr/local; \
     ./b2 \
-      toolset=gcc \
-      link=static \
-      threading=single \
-      variant=release \
-      cflags="-w" \
-      cxxflags="-std=gnu++23 -w" \
-      -j"$(nproc)" -d0 \
-      install; \
+        toolset=gcc \
+        link=static \
+        threading=single \
+        variant=release \
+        cflags="-w" \
+        cxxflags="-std=gnu++23 -w" \
+        -j"$(nproc)" -d0 \
+        install; \
     rm -rf /tmp/boost
 
 RUN set -eux; \
     mkdir -p /tmp/acl; \
     cd /tmp/acl; \
-    curl -fsSL "https://github.com/atcoder/ac-library/archive/refs/tags/v${ACL_VERSION}.tar.gz" -o acl.tar.gz; \
-    tar -xzf acl.tar.gz; \
+    curl -fsSLo acl.tar.gz "https://github.com/atcoder/ac-library/archive/refs/tags/v${ACL_VERSION}.tar.gz"; \
+    tar -xf acl.tar.gz; \
     cp -r "ac-library-${ACL_VERSION}/atcoder" /usr/local/include/; \
     rm -rf /tmp/acl
 
 RUN set -eux; \
     mkdir -p /tmp/abseil; \
     cd /tmp/abseil; \
-    curl -fsSL "https://github.com/abseil/abseil-cpp/archive/refs/tags/${ABSEIL_VERSION}.tar.gz" -o abseil.tar.gz; \
-    tar -xzf abseil.tar.gz; \
+    curl -fsSLo abseil.tar.gz "https://github.com/abseil/abseil-cpp/archive/refs/tags/${ABSEIL_VERSION}.tar.gz"; \
+    tar -xf abseil.tar.gz; \
     cd "abseil-cpp-${ABSEIL_VERSION}"; \
     cmake -S . -B build -G Ninja \
-      -DCMAKE_BUILD_TYPE=Release \
-      -DCMAKE_INSTALL_PREFIX=/usr/local \
-      -DABSL_ENABLE_INSTALL=ON \
-      -DABSL_PROPAGATE_CXX_STD=ON \
-      -DABSL_USE_SYSTEM_INCLUDES=ON \
-      -DCMAKE_CXX_FLAGS="-fPIC -std=gnu++23 -w"; \
+        -DCMAKE_BUILD_TYPE=Release \
+        -DCMAKE_INSTALL_PREFIX=/usr/local \
+        -DABSL_ENABLE_INSTALL=ON \
+        -DABSL_PROPAGATE_CXX_STD=ON \
+        -DABSL_USE_SYSTEM_INCLUDES=ON \
+        -DCMAKE_CXX_FLAGS="-fPIC -std=gnu++23 -w" \
+        -DCMAKE_EXE_LINKER_FLAGS="-fuse-ld=lld" \
+        -DCMAKE_SHARED_LINKER_FLAGS="-fuse-ld=lld"; \
     cmake --build build; \
     cmake --install build; \
     rm -rf /tmp/abseil
@@ -125,20 +123,22 @@ RUN set -eux; \
 RUN set -eux; \
     mkdir -p /tmp/immer; \
     cd /tmp/immer; \
-    curl -fsSL "https://github.com/arximboldi/immer/archive/refs/tags/v${IMMER_VERSION}.tar.gz" -o immer.tar.gz; \
-    tar -xzf immer.tar.gz; \
+    curl -fsSLo immer.tar.gz "https://github.com/arximboldi/immer/archive/refs/tags/v${IMMER_VERSION}.tar.gz"; \
+    tar -xf immer.tar.gz; \
     cp -Trf "immer-${IMMER_VERSION}/immer" /usr/local/include/immer; \
     rm -rf /tmp/immer
 
 RUN set -eux; \
     mkdir -p /tmp/unordered_dense; \
     cd /tmp/unordered_dense; \
-    curl -fsSL "https://github.com/martinus/unordered_dense/archive/refs/tags/v${UNORDERED_DENSE_VERSION}.tar.gz" -o ud.tar.gz; \
-    tar -xzf ud.tar.gz; \
+    curl -fsSLo ud.tar.gz "https://github.com/martinus/unordered_dense/archive/refs/tags/v${UNORDERED_DENSE_VERSION}.tar.gz"; \
+    tar -xf ud.tar.gz; \
     cd "unordered_dense-${UNORDERED_DENSE_VERSION}"; \
     cmake -S . -B build -G Ninja \
-      -DCMAKE_BUILD_TYPE=Release \
-      -DCMAKE_INSTALL_PREFIX=/usr/local; \
+        -DCMAKE_BUILD_TYPE=Release \
+        -DCMAKE_INSTALL_PREFIX=/usr/local \
+        -DCMAKE_EXE_LINKER_FLAGS="-fuse-ld=lld" \
+        -DCMAKE_SHARED_LINKER_FLAGS="-fuse-ld=lld"; \
     cmake --build build; \
     cmake --install build; \
     rm -rf /tmp/unordered_dense
@@ -146,8 +146,8 @@ RUN set -eux; \
 RUN set -eux; \
     mkdir -p /tmp/range-v3; \
     cd /tmp/range-v3; \
-    curl -fsSL "https://github.com/ericniebler/range-v3/archive/refs/tags/${RANGE_V3_VERSION}.tar.gz" -o range-v3.tar.gz; \
-    tar -xzf range-v3.tar.gz; \
+    curl -fsSLo range-v3.tar.gz "https://github.com/ericniebler/range-v3/archive/refs/tags/${RANGE_V3_VERSION}.tar.gz"; \
+    tar -xf range-v3.tar.gz; \
     cp -r "range-v3-${RANGE_V3_VERSION}/include/range" /usr/local/include/; \
     cp -r "range-v3-${RANGE_V3_VERSION}/include/meta" /usr/local/include/; \
     cp -r "range-v3-${RANGE_V3_VERSION}/include/concepts" /usr/local/include/; \
@@ -156,20 +156,22 @@ RUN set -eux; \
 RUN set -eux; \
     mkdir -p /tmp/z3; \
     cd /tmp/z3; \
-    curl -fsSL "https://github.com/Z3Prover/z3/archive/refs/tags/z3-${Z3_VERSION}.tar.gz" -o z3.tar.gz; \
-    tar -xzf z3.tar.gz; \
+    curl -fsSLo z3.tar.gz "https://github.com/Z3Prover/z3/archive/refs/tags/z3-${Z3_VERSION}.tar.gz"; \
+    tar -xf z3.tar.gz; \
     cd z3-*; \
     cmake -S . -B build -G Ninja \
-      -DCMAKE_BUILD_TYPE=Release \
-      -DCMAKE_INSTALL_PREFIX=/usr/local \
-      -DZ3_BUILD_TEST_EXECUTABLES=OFF \
-      -DZ3_BUILD_PYTHON_BINDINGS=OFF; \
+        -DCMAKE_BUILD_TYPE=Release \
+        -DCMAKE_INSTALL_PREFIX=/usr/local \
+        -DZ3_BUILD_TEST_EXECUTABLES=OFF \
+        -DZ3_BUILD_PYTHON_BINDINGS=OFF \
+        -DCMAKE_EXE_LINKER_FLAGS="-fuse-ld=lld" \
+        -DCMAKE_SHARED_LINKER_FLAGS="-fuse-ld=lld"; \
     cmake --build build; \
     cmake --install build; \
     rm -rf /tmp/z3
 
 RUN set -eux; \
-    curl -fsSL "https://download.pytorch.org/libtorch/cpu/libtorch-shared-with-deps-${LIBTORCH_VERSION}%2Bcpu.zip" -o /tmp/libtorch.zip; \
+    curl -fsSLo /tmp/libtorch.zip "https://download.pytorch.org/libtorch/cpu/libtorch-shared-with-deps-${LIBTORCH_VERSION}%2Bcpu.zip"; \
     unzip -q /tmp/libtorch.zip -d /tmp; \
     rm -f /tmp/libtorch/lib/libprotobuf.a /tmp/libtorch/lib/libprotobuf-lite.a /tmp/libtorch/lib/libprotoc.a; \
     cp -Trf /tmp/libtorch/include /usr/local/include; \
@@ -180,46 +182,50 @@ RUN set -eux; \
 RUN set -eux; \
     mkdir -p /tmp/lightgbm; \
     cd /tmp/lightgbm; \
-    curl -fsSL "https://github.com/microsoft/LightGBM/releases/download/v${LIGHTGBM_VERSION}/lightgbm-${LIGHTGBM_VERSION}.tar.gz" -o lightgbm.tar.gz; \
+    curl -fsSLo lightgbm.tar.gz "https://github.com/microsoft/LightGBM/releases/download/v${LIGHTGBM_VERSION}/lightgbm-${LIGHTGBM_VERSION}.tar.gz"; \
     mkdir -p lightgbm-src; \
-    tar -xzf lightgbm.tar.gz -C lightgbm-src --strip-components=1; \
+    tar -xf lightgbm.tar.gz -C lightgbm-src --strip-components=1; \
     cd lightgbm-src; \
     rm -rf ./lightgbm ./external_libs/eigen; \
     mkdir -p build; \
     cd build; \
     cmake -G Ninja \
-      -DBUILD_CLI:BOOL=OFF \
-      -DBUILD_STATIC_LIB=ON \
-      -DUSE_HOMEBREW_FALLBACK=OFF \
-      -DCMAKE_INSTALL_PREFIX=/usr/local \
-      -DCMAKE_CXX_FLAGS="-std=gnu++23 -w -fopenmp" \
-      ..; \
+        -DBUILD_CLI:BOOL=OFF \
+        -DBUILD_STATIC_LIB=ON \
+        -DUSE_HOMEBREW_FALLBACK=OFF \
+        -DCMAKE_INSTALL_PREFIX=/usr/local \
+        -DCMAKE_CXX_FLAGS="-std=gnu++23 -w -fopenmp" \
+        -DCMAKE_EXE_LINKER_FLAGS="-fuse-ld=lld" \
+        -DCMAKE_SHARED_LINKER_FLAGS="-fuse-ld=lld" \
+        ..; \
     cmake --build . --target install; \
     rm -rf /tmp/lightgbm
 
 RUN set -eux; \
     mkdir -p /tmp/or-tools; \
     cd /tmp/or-tools; \
-    curl -fsSL "https://github.com/google/or-tools/archive/refs/tags/v${ORTOOLS_VERSION}.tar.gz" -o or-tools.tar.gz; \
-    tar -xzf or-tools.tar.gz; \
+    curl -fsSLo or-tools.tar.gz "https://github.com/google/or-tools/archive/refs/tags/v${ORTOOLS_VERSION}.tar.gz"; \
+    tar -xf or-tools.tar.gz; \
     cd or-tools-*; \
     mkdir -p build; \
     cd build; \
     cmake -G Ninja \
-      -DBUILD_CXX:BOOL=ON \
-      -DBUILD_BZip2:BOOL=ON -DBUILD_ZLIB:BOOL=ON -DBUILD_Protobuf:BOOL=ON -DBUILD_re2:BOOL=ON \
-      -DUSE_COINOR:BOOL=ON -DBUILD_CoinUtils:BOOL=ON -DBUILD_Osi:BOOL=ON -DBUILD_Clp:BOOL=ON -DBUILD_Cgl:BOOL=ON -DBUILD_Cbc:BOOL=ON \
-      -DUSE_GLPK:BOOL=ON -DBUILD_GLPK:BOOL=ON \
-      -DUSE_HIGHS:BOOL=ON -DBUILD_HIGHS:BOOL=ON \
-      -DUSE_SCIP:BOOL=ON -DBUILD_SCIP:BOOL=ON -DBUILD_soplex:BOOL=ON -DBUILD_Boost:BOOL=ON \
-      -DBUILD_SAMPLES:BOOL=OFF -DBUILD_EXAMPLES:BOOL=OFF \
-      -DBUILD_TESTING:BOOL=OFF \
-      -DCMAKE_PREFIX_PATH=/usr/local \
-      -DCMAKE_INSTALL_PREFIX=/usr/local \
-      -DBUILD_SHARED_LIBS:BOOL=OFF \
-      -DCMAKE_INSTALL_RPATH_USE_LINK_PATH:BOOL=ON \
-      -DCMAKE_CXX_FLAGS="-std=gnu++23 -w" \
-      ..; \
+        -DBUILD_CXX:BOOL=ON \
+        -DBUILD_BZip2:BOOL=ON -DBUILD_ZLIB:BOOL=ON -DBUILD_Protobuf:BOOL=ON -DBUILD_re2:BOOL=ON \
+        -DUSE_COINOR:BOOL=ON -DBUILD_CoinUtils:BOOL=ON -DBUILD_Osi:BOOL=ON -DBUILD_Clp:BOOL=ON -DBUILD_Cgl:BOOL=ON -DBUILD_Cbc:BOOL=ON \
+        -DUSE_GLPK:BOOL=ON -DBUILD_GLPK:BOOL=ON \
+        -DUSE_HIGHS:BOOL=ON -DBUILD_HIGHS:BOOL=ON \
+        -DUSE_SCIP:BOOL=ON -DBUILD_SCIP:BOOL=ON -DBUILD_soplex:BOOL=ON -DBUILD_Boost:BOOL=ON \
+        -DBUILD_SAMPLES:BOOL=OFF -DBUILD_EXAMPLES:BOOL=OFF \
+        -DBUILD_TESTING:BOOL=OFF \
+        -DCMAKE_PREFIX_PATH=/usr/local \
+        -DCMAKE_INSTALL_PREFIX=/usr/local \
+        -DBUILD_SHARED_LIBS:BOOL=OFF \
+        -DCMAKE_INSTALL_RPATH_USE_LINK_PATH:BOOL=ON \
+        -DCMAKE_CXX_FLAGS="-std=gnu++23 -w" \
+        -DCMAKE_EXE_LINKER_FLAGS="-fuse-ld=lld" \
+        -DCMAKE_SHARED_LINKER_FLAGS="-fuse-ld=lld" \
+        ..; \
     cmake --build . --config Release; \
     cmake --build . --config Release --target install; \
     rm -rf /tmp/or-tools
