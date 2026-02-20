@@ -83,7 +83,9 @@ FALLBACK_DICT = {
         cache_write_mtok=TieredPrices(
             base=Decimal(375) / Decimal(100), tiers=[Tier(start=200000, price=Decimal(75) / Decimal(10))]
         ),
-        cache_read_mtok=TieredPrices(base=Decimal(3) / Decimal(10), tiers=[Tier(start=200000, price=Decimal(6) / Decimal(10))]),
+        cache_read_mtok=TieredPrices(
+            base=Decimal(3) / Decimal(10), tiers=[Tier(start=200000, price=Decimal(6) / Decimal(10))]
+        ),
         output_mtok=TieredPrices(base=Decimal(15), tiers=[Tier(start=200000, price=Decimal(225) / Decimal(10))]),
     ),
     "grok-4.1-fast": ModelPrice(
@@ -186,8 +188,12 @@ FALLBACK_DICT = {
     ),
     "qwen3.5-397b-a17b": ModelPrice(input_mtok=Decimal(6) / Decimal(10), output_mtok=Decimal(36) / Decimal(10)),
     "qwen3.5-plus-02-15": ModelPrice(
-        input_mtok=TieredPrices(base=Decimal(4) / Decimal(10), tiers=[Tier(start=256000, price=Decimal(12) / Decimal(10))]),
-        output_mtok=TieredPrices(base=Decimal(24) / Decimal(10), tiers=[Tier(start=256000, price=Decimal(72) / Decimal(10))]),
+        input_mtok=TieredPrices(
+            base=Decimal(4) / Decimal(10), tiers=[Tier(start=256000, price=Decimal(12) / Decimal(10))]
+        ),
+        output_mtok=TieredPrices(
+            base=Decimal(24) / Decimal(10), tiers=[Tier(start=256000, price=Decimal(72) / Decimal(10))]
+        ),
     ),
 }
 
