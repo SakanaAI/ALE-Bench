@@ -35,4 +35,3 @@ RUN set -eux; \
     cmake --install build; \
     fish --version; \
     rm -rf /tmp/fish
-

@@ -30,4 +30,3 @@ RUN set -eux; \
     make -j"$(nproc)"; \
     make install; \
     rm -rf /tmp/perl
-

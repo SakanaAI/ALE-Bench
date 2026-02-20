@@ -26,12 +26,13 @@ RUN set -eux; \
     curl -fsSL "https://github.com/fortran-lang/fpm/releases/download/v${FPM_VERSION}/fpm-${FPM_VERSION}-linux-x86_64" -o /usr/local/bin/fpm; \
     chmod +x /usr/local/bin/fpm
 
+COPY ./fortran_202510_fpm_install.toml /tmp/fortran/stdlib/fpm.toml
+
 RUN set -eux; \
     mkdir -p /tmp/fortran; \
     cd /tmp/fortran; \
     git clone --depth 1 --branch "v${FORTRAN_STDLIB_VERSION}" https://github.com/fortran-lang/stdlib.git; \
-    cd stdlib; \
-    printf '\n[install]\nlibrary = true\n' >> fpm.toml; \
+    cd /tmp/fortran/stdlib; \
     python3 config/fypp_deployment.py; \
     FPM_FC=gfortran FPM_FFLAGS="-O2 -cpp -std=f2023" fpm build --profile release; \
     FPM_FC=gfortran FPM_FFLAGS="-O2 -cpp -std=f2023" fpm install --profile release --prefix /usr/local; \
@@ -39,6 +40,7 @@ RUN set -eux; \
     rm -rf /tmp/fortran
 
 COPY ./fortran_202510_Main.f90 /workdir/Main.f90
+
 RUN set -eux; \
     cd /workdir; \
     git clone --depth 1 https://github.com/ue1221/ac-library-fortran.git acl; \

@@ -43,9 +43,9 @@ RUN set -eux; \
 
 ENV LD_LIBRARY_PATH= \
     LIBRARY_PATH= \
-    CPATH=
+    CPATH= \
+    GCC_DIR=/opt/gcc-${GCC_VERSION}
 
-ENV GCC_DIR=/opt/gcc-${GCC_VERSION}
 RUN set -eux; \
     mkdir -p /tmp/gcc-src; \
     cd /tmp/gcc-src; \

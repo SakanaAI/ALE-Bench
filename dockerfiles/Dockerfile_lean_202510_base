@@ -20,6 +20,9 @@ RUN set -eux; \
 
 WORKDIR /workdir
 
+COPY ./lean_202510_Main.lean /workdir/Main.lean
+COPY ./lean_202510_lakefile.toml.template /tmp/lakefile.toml.template
+
 RUN set -eux; \
     curl -fsSL https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh -o /tmp/elan-init.sh; \
     chmod +x /tmp/elan-init.sh; \
@@ -27,18 +30,7 @@ RUN set -eux; \
     rm -f /tmp/elan-init.sh; \
     lake new atcoder exe; \
     cd atcoder; \
-    printf '\n[[require]]\nname = "Regex"\ngit = "https://github.com/pandaman64/lean-regex"\nrev = "%s"\nsubDir = "regex"\n\n[[require]]\nname = "mathlib"\nscope = "leanprover-community"\nrev = "%s"\n\n[[require]]\nname = "Parser"\nscope = "fgdorais"\nrev = "617f4fa"\n' "${LEAN_VERSION}" "${LEAN_VERSION}" >> lakefile.toml; \
-    printf '%s\n' \
-      'import Mathlib' \
-      'import Parser' \
-      'import Regex.Regex.Utilities' \
-      'import Regex.Regex.Elab' \
-      '' \
-      'def main : IO Unit := do' \
-      '  IO.println s!"Hello, sqrt 9 = {Nat.sqrt 9}"' \
-      '  let re := Regex.parse! r##"bool|boolean"##' \
-      '  IO.println s!"{re.find "boolean"}"' \
-      > Main.lean; \
+    sed "s|__LEAN_VERSION__|${LEAN_VERSION}|g" /tmp/lakefile.toml.template >> lakefile.toml; \
     lake exe cache get; \
     lake build; \
-    rm -f .lake/build/bin/atcoder
+    rm -f .lake/build/bin/atcoder /tmp/lakefile.toml.template

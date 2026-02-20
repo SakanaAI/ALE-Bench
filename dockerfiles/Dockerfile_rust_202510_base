@@ -36,9 +36,8 @@ RUN set -eux; \
 COPY ./rust_202510_config.toml /workdir/.cargo/config.toml
 COPY ./rust_202510_Cargo.toml /workdir/Cargo.toml
 COPY ./rust_202510_Cargo.lock /workdir/Cargo.lock
+COPY ./rust_202510_main.rs /workdir/src/main.rs
 
 RUN set -eux; \
-    mkdir -p /workdir/src; \
-    echo "fn main() {}" > /workdir/src/main.rs; \
     cargo build -vv --release; \
     rm -f /workdir/target/release/main

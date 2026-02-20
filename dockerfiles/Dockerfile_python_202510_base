@@ -50,6 +50,7 @@ RUN set -eux; \
     rm -rf /tmp/python-src
 
 COPY ./python_202510_freeze.txt /tmp/freeze.txt
+
 RUN set -eux; \
     python3.13 -m pip install --no-cache-dir -U pip setuptools; \
     python3.13 -m pip install --no-cache-dir -r /tmp/freeze.txt --no-warn-script-location; \

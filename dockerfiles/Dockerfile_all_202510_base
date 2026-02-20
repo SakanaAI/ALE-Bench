@@ -111,6 +111,7 @@ RUN set -eux; \
 
 # ---- C++23 (GCC 15.2.0 + AtCoder 2025-10 libraries) ----
 ENV GCC_DIR=/opt/gcc-${GCC_VERSION}
+
 RUN set -eux; \
     mkdir -p /tmp/gcc-src; \
     cd /tmp/gcc-src; \
@@ -307,10 +308,9 @@ RUN set -eux; \
 COPY ./rust_202510_config.toml /workdir/.cargo/config.toml
 COPY ./rust_202510_Cargo.toml /workdir/Cargo.toml
 COPY ./rust_202510_Cargo.lock /workdir/Cargo.lock
+COPY ./rust_202510_main.rs /workdir/src/main.rs
 
 RUN set -eux; \
-    mkdir -p /workdir/src; \
-    echo "fn main() {}" > /workdir/src/main.rs; \
     cargo build -vv --release; \
     rm -f /workdir/target/release/main
 
@@ -321,6 +321,7 @@ RUN set -eux; \
     tar -C /opt -xzf /tmp/go.tgz; \
     rm -f /tmp/go.tgz; \
     mkdir -p /opt/go-work
+
 ENV GOROOT=/opt/go \
     GOPATH=/opt/go-work
 ENV PATH="${GOROOT}/bin:${PATH}"
@@ -361,6 +362,7 @@ RUN set -eux; \
     rm -rf /tmp/python-src
 
 COPY ./python_202510_freeze.txt /tmp/freeze.txt
+
 RUN set -eux; \
     python3.13 -m pip install --no-cache-dir -U pip setuptools; \
     python3.13 -m pip install --no-cache-dir -r /tmp/freeze.txt --no-warn-script-location; \
@@ -407,7 +409,8 @@ RUN set -eux; \
     rm -rf /tmp/pypy.tar.bz2 "/tmp/pypy3.11-v${PYPY_VERSION}-linux64"
 
 # ---- Node.js 22.19.0 + JavaScript/TypeScript libs ----
-COPY ./node_202510_node.sh /usr/local/bin/node.sh
+COPY ./node_202510_node.sh /workdir/node.sh
+
 RUN set -eux; \
     curl -fsSL "https://nodejs.org/download/release/v${NODE_VERSION}/node-v${NODE_VERSION}-linux-x64.tar.xz" -o /tmp/node.tar.xz; \
     tar -xJf /tmp/node.tar.xz -C /usr/local --strip-components=1; \
@@ -423,8 +426,6 @@ RUN set -eux; \
       "typescript@${TYPESCRIPT_VERSION}" \
       "@types/node@22.18.1" \
       "@types/lodash@4.17.20"; \
-    chmod +x /usr/local/bin/node.sh; \
-    cp /usr/local/bin/node.sh /workdir/node.sh; \
     chmod +x /workdir/node.sh
 
 ENV NODE_PATH=/usr/local/lib/node_modules
@@ -434,12 +435,13 @@ RUN set -eux; \
     curl -fsSL "https://github.com/fortran-lang/fpm/releases/download/v${FPM_VERSION}/fpm-${FPM_VERSION}-linux-x86_64" -o /usr/local/bin/fpm; \
     chmod +x /usr/local/bin/fpm
 
+COPY ./fortran_202510_fpm_install.toml /tmp/fortran/stdlib/fpm.toml
+
 RUN set -eux; \
     mkdir -p /tmp/fortran; \
     cd /tmp/fortran; \
     git clone --depth 1 --branch "v${FORTRAN_STDLIB_VERSION}" https://github.com/fortran-lang/stdlib.git; \
-    cd stdlib; \
-    printf '\n[install]\nlibrary = true\n' >> fpm.toml; \
+    cd /tmp/fortran/stdlib; \
     python3 config/fypp_deployment.py; \
     FPM_FC=gfortran FPM_FFLAGS="-O2 -cpp -std=f2023" fpm build --profile release; \
     FPM_FC=gfortran FPM_FFLAGS="-O2 -cpp -std=f2023" fpm install --profile release --prefix /usr/local; \
@@ -447,6 +449,7 @@ RUN set -eux; \
     rm -rf /tmp/fortran
 
 COPY ./fortran_202510_Main.f90 /workdir/Main.f90
+
 RUN set -eux; \
     cd /workdir; \
     git clone --depth 1 https://github.com/ue1221/ac-library-fortran.git acl; \
@@ -487,6 +490,7 @@ RUN set -eux; \
 COPY ./csharp_202510_Main.csproj /workdir/Main.csproj
 COPY ./csharp_202510_Main.cs /workdir/Main.cs
 COPY ./csharp_202510_packages.lock.json /workdir/packages.lock.json
+
 RUN set -eux; \
     cd /workdir; \
     dotnet restore --locked-mode; \
@@ -496,26 +500,18 @@ RUN set -eux; \
 
 # ---- Lean 4.22.0 ----
 ENV PATH="/root/.elan/bin:${PATH}"
+
+COPY ./lean_202510_Main.lean /workdir/Main.lean
+COPY ./lean_202510_lakefile.toml.template /tmp/lakefile.toml.template
+
 RUN set -eux; \
     curl -fsSL https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh -o /tmp/elan-init.sh; \
     chmod +x /tmp/elan-init.sh; \
     /tmp/elan-init.sh -y --default-toolchain "leanprover/lean4:${LEAN_VERSION}"; \
     rm -f /tmp/elan-init.sh; \
-    cd /workdir; \
     lake new atcoder exe; \
     cd atcoder; \
-    printf '\n[[require]]\nname = "Regex"\ngit = "https://github.com/pandaman64/lean-regex"\nrev = "%s"\nsubDir = "regex"\n\n[[require]]\nname = "mathlib"\nscope = "leanprover-community"\nrev = "%s"\n\n[[require]]\nname = "Parser"\nscope = "fgdorais"\nrev = "617f4fa"\n' "${LEAN_VERSION}" "${LEAN_VERSION}" >> lakefile.toml; \
-    printf '%s\n' \
-      'import Mathlib' \
-      'import Parser' \
-      'import Regex.Regex.Utilities' \
-      'import Regex.Regex.Elab' \
-      '' \
-      'def main : IO Unit := do' \
-      '  IO.println s!"Hello, sqrt 9 = {Nat.sqrt 9}"' \
-      '  let re := Regex.parse! r##"bool|boolean"##' \
-      '  IO.println s!"{re.find "boolean"}"' \
-      > Main.lean; \
+    sed "s|__LEAN_VERSION__|${LEAN_VERSION}|g" /tmp/lakefile.toml.template >> lakefile.toml; \
     lake exe cache get; \
     lake build; \
-    rm -f .lake/build/bin/atcoder
+    rm -f .lake/build/bin/atcoder /tmp/lakefile.toml.template

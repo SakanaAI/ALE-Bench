@@ -19,7 +19,8 @@ RUN set -eux; \
 
 WORKDIR /workdir
 
-COPY ./node_202510_node.sh /usr/local/bin/node.sh
+COPY ./node_202510_node.sh /workdir/node.sh
+
 RUN set -eux; \
     curl -fsSL "https://nodejs.org/download/release/v${NODE_VERSION}/node-v${NODE_VERSION}-linux-x64.tar.xz" -o /tmp/node.tar.xz; \
     tar -xJf /tmp/node.tar.xz -C /usr/local --strip-components=1; \
@@ -32,8 +33,6 @@ RUN set -eux; \
       "lodash@4.17.21" \
       "mathjs@14.7.0" \
       "tstl@3.0.0"; \
-    chmod +x /usr/local/bin/node.sh; \
-    cp /usr/local/bin/node.sh /workdir/node.sh; \
     chmod +x /workdir/node.sh
 
 ENV NODE_PATH=/usr/local/lib/node_modules
