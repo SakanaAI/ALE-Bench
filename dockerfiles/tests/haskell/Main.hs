@@ -1,4 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# OPTIONS_GHC -Wno-unused-imports -Wno-type-defaults -Wno-unused-do-bind -Wno-unused-matches #-}
 
 import qualified Data.Array as Array
 import qualified Data.ByteString.Char8 as BS

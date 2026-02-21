@@ -10,6 +10,7 @@ Options:
   --image-prefix <PREFIX>   Docker image prefix (default: auto-detect)
   --tag <TAG>               Image tag suffix (default: 202510)
   --langs <CSV>             Comma-separated languages to test
+  --quiet, -q               Suppress stderr on success
   --list                    Show supported languages and exit
   -h, --help                Show this help
 
@@ -45,6 +46,7 @@ SUPPORTED_LANGS=(
 
 IMAGE_PREFIX=""
 TAG="202510"
+QUIET=0
 LANGS=("${SUPPORTED_LANGS[@]}")
 
 contains_lang() {
@@ -71,6 +73,10 @@ while [[ $# -gt 0 ]]; do
     --langs)
         IFS=',' read -r -a LANGS <<<"${2:-}"
         shift 2
+        ;;
+    -q | --quiet)
+        QUIET=1
+        shift
         ;;
     --list)
         printf '%s\n' "${SUPPORTED_LANGS[@]}"
@@ -465,8 +471,9 @@ run_one() {
     fi
 
     echo "[${lang}] image=${image}"
-    local start_time
+    local start_time stderr_file
     start_time="$(date +%s.%N)"
+    stderr_file="$(mktemp)"
     docker run --rm \
         --cpus=1 \
         --memory=2g \
@@ -474,12 +481,18 @@ run_one() {
         -v "${REPO_ROOT}:/repo:ro" \
         -w /workdir \
         "${image}" \
-        bash -lc "set -Eeuo pipefail; ${cmd}"
+        bash -lc "set -Eeuo pipefail; ${cmd}" 2>"${stderr_file}"
     local exit_code=$?
     local end_time
     end_time="$(date +%s.%N)"
     elapsed="$(printf '%.1f' "$(echo "${end_time} - ${start_time}" | bc)")"
     echo "[${lang}] elapsed: ${elapsed}s"
+    if [[ "${exit_code}" -ne 0 ]]; then
+        cat "${stderr_file}" >&2
+    elif [[ "${QUIET}" -ne 1 ]]; then
+        cat "${stderr_file}" >&2
+    fi
+    rm -f "${stderr_file}"
     return "${exit_code}"
 }
 

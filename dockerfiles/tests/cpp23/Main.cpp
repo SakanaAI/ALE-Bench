@@ -9,7 +9,10 @@
 #include <immer/vector.hpp>
 #include <ortools/linear_solver/linear_solver.h>
 #include <range/v3/all.hpp>
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-parameter"
 #include <torch/torch.h>
+#pragma GCC diagnostic pop
 #include <z3++.h>
 
 #include <filesystem>
