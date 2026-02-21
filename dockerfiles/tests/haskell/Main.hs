@@ -36,7 +36,7 @@ import Text.Megaparsec (parse, some)
 import Text.Megaparsec.Char (digitChar)
 import Text.Regex.TDFA ((=~))
 
-import qualified AtCoder.DSU as DSU
+import qualified AtCoder.Dsu as DSU
 
 main :: IO ()
 main = do
