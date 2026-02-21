@@ -181,7 +181,7 @@ RUN set -eux; \
         -DABSL_ENABLE_INSTALL=ON \
         -DABSL_PROPAGATE_CXX_STD=ON \
         -DABSL_USE_SYSTEM_INCLUDES=ON \
-        -DCMAKE_CXX_FLAGS="-fPIC -std=gnu++23 -w" \
+        -DCMAKE_CXX_FLAGS="-fPIC -std=gnu++23 -w -L${GCC_DIR}/lib64 -Wl,-R${GCC_DIR}/lib64" \
         -DCMAKE_EXE_LINKER_FLAGS="-fuse-ld=lld" \
         -DCMAKE_SHARED_LINKER_FLAGS="-fuse-ld=lld"; \
     cmake --build build; \
@@ -230,7 +230,7 @@ RUN set -eux; \
         -DCMAKE_INSTALL_PREFIX="${GCC_DIR}" \
         -DZ3_BUILD_TEST_EXECUTABLES=OFF \
         -DZ3_BUILD_PYTHON_BINDINGS=OFF \
-        -DCMAKE_CXX_FLAGS="-std=gnu++23 -w" \
+        -DCMAKE_CXX_FLAGS="-std=gnu++23 -w -L${GCC_DIR}/lib64 -Wl,-R${GCC_DIR}/lib64" \
         -DCMAKE_EXE_LINKER_FLAGS="-fuse-ld=lld" \
         -DCMAKE_SHARED_LINKER_FLAGS="-fuse-ld=lld"; \
     cmake --build build; \
@@ -261,7 +261,7 @@ RUN set -eux; \
         -DBUILD_STATIC_LIB=ON \
         -DUSE_HOMEBREW_FALLBACK=OFF \
         -DCMAKE_INSTALL_PREFIX="${GCC_DIR}" \
-        -DCMAKE_CXX_FLAGS="-std=gnu++23 -w -fopenmp" \
+        -DCMAKE_CXX_FLAGS="-std=gnu++23 -w -L${GCC_DIR}/lib64 -Wl,-R${GCC_DIR}/lib64 -I${GCC_DIR}/include -fopenmp" \
         -DCMAKE_EXE_LINKER_FLAGS="-fuse-ld=lld" \
         -DCMAKE_SHARED_LINKER_FLAGS="-fuse-ld=lld" \
         ..; \
@@ -289,7 +289,7 @@ RUN set -eux; \
         -DCMAKE_INSTALL_PREFIX="${GCC_DIR}" \
         -DBUILD_SHARED_LIBS:BOOL=OFF \
         -DCMAKE_INSTALL_RPATH_USE_LINK_PATH:BOOL=ON \
-        -DCMAKE_CXX_FLAGS="-std=gnu++23 -w" \
+        -DCMAKE_CXX_FLAGS="-std=gnu++23 -w -L${GCC_DIR}/lib64 -Wl,-R${GCC_DIR}/lib64" \
         ..; \
     cmake --build . --config Release --target install; \
     rm -rf /tmp/or-tools
