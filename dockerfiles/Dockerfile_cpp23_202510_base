@@ -1,4 +1,4 @@
-FROM debian:13
+FROM ubuntu:24.04
 
 LABEL org.opencontainers.image.source=https://github.com/SakanaAI/ALE-Bench
 
@@ -67,7 +67,15 @@ RUN set -eux; \
     rm -rf /tmp/gcc-src
 
 RUN set -eux; \
-    cp -Trf /usr/include/eigen3 "${GCC_DIR}/include"
+    mkdir -p "${GCC_DIR}/share/eigen3/cmake"; \
+    cp -Trf /usr/include/eigen3 "${GCC_DIR}/include"; \
+    cp -f \
+        /usr/share/eigen3/cmake/Eigen3Targets.cmake \
+        /usr/share/eigen3/cmake/Eigen3Config.cmake \
+        "${GCC_DIR}/share/eigen3/cmake"; \
+    sed -i \
+        -e "s|include/eigen3|include|g" \
+        "${GCC_DIR}/share/eigen3/cmake/Eigen3Targets.cmake"
 
 ENV PATH="${GCC_DIR}/bin:${PATH}" \
     LD_LIBRARY_PATH="${GCC_DIR}/lib64:${GCC_DIR}/lib:${LD_LIBRARY_PATH}"
@@ -78,6 +86,7 @@ RUN set -eux; \
     curl -fsSLo boost.tar.bz2 "https://archives.boost.io/release/${BOOST_VERSION}/source/boost_${BOOST_VERSION//./_}.tar.bz2"; \
     tar -xf boost.tar.bz2; \
     cd "boost_${BOOST_VERSION//./_}"; \
+    echo "using gcc : : g++ ;" > ./user-config.jam; \
     ./bootstrap.sh \
         --with-toolset=gcc \
         --without-libraries=mpi,graph_parallel,python \
@@ -88,7 +97,8 @@ RUN set -eux; \
         threading=single \
         variant=release \
         cflags="-w" \
-        cxxflags="-w" \
+        cxxflags="" \
+        --user-config="./user-config.jam" \
         -j"$(nproc)" -d0 \
         install; \
     rm -rf /tmp/boost
@@ -110,14 +120,11 @@ RUN set -eux; \
     cmake -S . -B build -G Ninja \
         -DCMAKE_C_COMPILER="${GCC_DIR}/bin/gcc" \
         -DCMAKE_CXX_COMPILER="${GCC_DIR}/bin/g++" \
-        -DCMAKE_BUILD_TYPE=Release \
         -DCMAKE_INSTALL_PREFIX="${GCC_DIR}" \
         -DABSL_ENABLE_INSTALL=ON \
         -DABSL_PROPAGATE_CXX_STD=ON \
         -DABSL_USE_SYSTEM_INCLUDES=ON \
-        -DCMAKE_CXX_FLAGS="-fPIC -std=gnu++23 -w -L${GCC_DIR}/lib64 -Wl,-R${GCC_DIR}/lib64" \
-        -DCMAKE_EXE_LINKER_FLAGS="-fuse-ld=lld" \
-        -DCMAKE_SHARED_LINKER_FLAGS="-fuse-ld=lld"; \
+        -DCMAKE_CXX_FLAGS="-fPIC -std=gnu++23 -w -L${GCC_DIR}/lib64 -Wl,-R${GCC_DIR}/lib64"; \
     cmake --build build; \
     cmake --install build; \
     rm -rf /tmp/abseil
@@ -139,10 +146,7 @@ RUN set -eux; \
     cmake -S . -B build -G Ninja \
         -DCMAKE_C_COMPILER="${GCC_DIR}/bin/gcc" \
         -DCMAKE_CXX_COMPILER="${GCC_DIR}/bin/g++" \
-        -DCMAKE_BUILD_TYPE=Release \
-        -DCMAKE_INSTALL_PREFIX="${GCC_DIR}" \
-        -DCMAKE_EXE_LINKER_FLAGS="-fuse-ld=lld" \
-        -DCMAKE_SHARED_LINKER_FLAGS="-fuse-ld=lld"; \
+        -DCMAKE_INSTALL_PREFIX="${GCC_DIR}"; \
     cmake --build build; \
     cmake --install build; \
     rm -rf /tmp/unordered_dense
@@ -168,9 +172,7 @@ RUN set -eux; \
         -DCMAKE_INSTALL_PREFIX="${GCC_DIR}" \
         -DZ3_BUILD_TEST_EXECUTABLES=OFF \
         -DZ3_BUILD_PYTHON_BINDINGS=OFF \
-        -DCMAKE_CXX_FLAGS="-std=gnu++23 -w -L${GCC_DIR}/lib64 -Wl,-R${GCC_DIR}/lib64" \
-        -DCMAKE_EXE_LINKER_FLAGS="-fuse-ld=lld" \
-        -DCMAKE_SHARED_LINKER_FLAGS="-fuse-ld=lld"; \
+        -DCMAKE_CXX_FLAGS="-std=gnu++23 -w -L${GCC_DIR}/lib64 -Wl,-R${GCC_DIR}/lib64"; \
     cmake --build build; \
     cmake --install build; \
     rm -rf /tmp/z3
@@ -202,8 +204,6 @@ RUN set -eux; \
         -DUSE_HOMEBREW_FALLBACK=OFF \
         -DCMAKE_INSTALL_PREFIX="${GCC_DIR}" \
         -DCMAKE_CXX_FLAGS="-std=gnu++23 -w -L${GCC_DIR}/lib64 -Wl,-R${GCC_DIR}/lib64 -I${GCC_DIR}/include -fopenmp" \
-        -DCMAKE_EXE_LINKER_FLAGS="-fuse-ld=lld" \
-        -DCMAKE_SHARED_LINKER_FLAGS="-fuse-ld=lld" \
         ..; \
     cmake --build . --target install; \
     rm -rf /tmp/lightgbm
