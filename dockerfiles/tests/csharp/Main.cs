@@ -8,11 +8,11 @@ public static class Program
 {
     public static void Main()
     {
-        var dsu = new DSU(4);
+        var dsu = new Dsu(4);
         dsu.Merge(0, 1);
         if (!dsu.Same(0, 1))
         {
-            throw new Exception("ac-library-csharp DSU check failed");
+            throw new Exception("ac-library-csharp Dsu check failed");
         }
 
         var vec = Vector<double>.Build.DenseOfArray(new[] { 1.0, 2.0, 3.0 });

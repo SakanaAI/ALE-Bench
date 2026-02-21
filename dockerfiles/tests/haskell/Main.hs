@@ -93,7 +93,7 @@ main = do
   let trimmed = trim "  hello  "
   assert "extra" (trimmed == "hello")
   let unique = nubOrd [3, 1, 2, 1, 3]
-  assert "extra nubOrd" (unique == [1, 2, 3])
+  assert "extra nubOrd" (sort unique == [1, 2, 3])
 
   -- hashable
   let h = hash ("test" :: String)

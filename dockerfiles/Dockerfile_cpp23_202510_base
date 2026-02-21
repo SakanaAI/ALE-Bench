@@ -37,9 +37,6 @@ RUN set -eux; \
 
 WORKDIR /workdir
 
-RUN set -eux; \
-    cp -Trf /usr/include/eigen3 /usr/local/include
-
 ENV GCC_DIR=/opt/gcc-${GCC_VERSION}
 
 RUN set -eux; \
@@ -69,6 +66,9 @@ RUN set -eux; \
     ldconfig; \
     rm -rf /tmp/gcc-src
 
+RUN set -eux; \
+    cp -Trf /usr/include/eigen3 "${GCC_DIR}/include"
+
 ENV PATH="${GCC_DIR}/bin:${PATH}" \
     LD_LIBRARY_PATH="${GCC_DIR}/lib64:${GCC_DIR}/lib:${LD_LIBRARY_PATH}"
 
@@ -81,7 +81,7 @@ RUN set -eux; \
     ./bootstrap.sh \
         --with-toolset=gcc \
         --without-libraries=mpi,graph_parallel,python \
-        --prefix=/usr/local; \
+        --prefix="${GCC_DIR}"; \
     ./b2 \
         toolset=gcc \
         link=static \
@@ -98,7 +98,7 @@ RUN set -eux; \
     cd /tmp/acl; \
     curl -fsSLo acl.tar.gz "https://github.com/atcoder/ac-library/archive/refs/tags/v${ACL_VERSION}.tar.gz"; \
     tar -xf acl.tar.gz; \
-    cp -r "ac-library-${ACL_VERSION}/atcoder" /usr/local/include/; \
+    cp -r "ac-library-${ACL_VERSION}/atcoder" "${GCC_DIR}/include/"; \
     rm -rf /tmp/acl
 
 RUN set -eux; \
@@ -109,7 +109,7 @@ RUN set -eux; \
     cd "abseil-cpp-${ABSEIL_VERSION}"; \
     cmake -S . -B build -G Ninja \
         -DCMAKE_BUILD_TYPE=Release \
-        -DCMAKE_INSTALL_PREFIX=/usr/local \
+        -DCMAKE_INSTALL_PREFIX="${GCC_DIR}" \
         -DABSL_ENABLE_INSTALL=ON \
         -DABSL_PROPAGATE_CXX_STD=ON \
         -DABSL_USE_SYSTEM_INCLUDES=ON \
@@ -125,7 +125,7 @@ RUN set -eux; \
     cd /tmp/immer; \
     curl -fsSLo immer.tar.gz "https://github.com/arximboldi/immer/archive/refs/tags/v${IMMER_VERSION}.tar.gz"; \
     tar -xf immer.tar.gz; \
-    cp -Trf "immer-${IMMER_VERSION}/immer" /usr/local/include/immer; \
+    cp -Trf "immer-${IMMER_VERSION}/immer" "${GCC_DIR}/include/immer"; \
     rm -rf /tmp/immer
 
 RUN set -eux; \
@@ -136,7 +136,7 @@ RUN set -eux; \
     cd "unordered_dense-${UNORDERED_DENSE_VERSION}"; \
     cmake -S . -B build -G Ninja \
         -DCMAKE_BUILD_TYPE=Release \
-        -DCMAKE_INSTALL_PREFIX=/usr/local \
+        -DCMAKE_INSTALL_PREFIX="${GCC_DIR}" \
         -DCMAKE_EXE_LINKER_FLAGS="-fuse-ld=lld" \
         -DCMAKE_SHARED_LINKER_FLAGS="-fuse-ld=lld"; \
     cmake --build build; \
@@ -148,7 +148,7 @@ RUN set -eux; \
     cd /tmp/range-v3; \
     curl -fsSLo range-v3.tar.gz "https://github.com/ericniebler/range-v3/archive/refs/tags/${RANGE_V3_VERSION}.tar.gz"; \
     tar -xf range-v3.tar.gz; \
-    cp -Trf "range-v3-${RANGE_V3_VERSION}/include" /usr/local/include; \
+    cp -Trf "range-v3-${RANGE_V3_VERSION}/include" "${GCC_DIR}/include"; \
     rm -rf /tmp/range-v3
 
 RUN set -eux; \
@@ -159,7 +159,7 @@ RUN set -eux; \
     cd z3-*; \
     cmake -S . -B build -G Ninja \
         -DCMAKE_BUILD_TYPE=Release \
-        -DCMAKE_INSTALL_PREFIX=/usr/local \
+        -DCMAKE_INSTALL_PREFIX="${GCC_DIR}" \
         -DZ3_BUILD_TEST_EXECUTABLES=OFF \
         -DZ3_BUILD_PYTHON_BINDINGS=OFF \
         -DCMAKE_CXX_FLAGS="-std=gnu++23 -w" \
@@ -173,8 +173,8 @@ RUN set -eux; \
     curl -fsSLo /tmp/libtorch.zip "https://download.pytorch.org/libtorch/cpu/libtorch-shared-with-deps-${LIBTORCH_VERSION}%2Bcpu.zip"; \
     unzip -q /tmp/libtorch.zip -d /tmp; \
     rm -f /tmp/libtorch/lib/libprotobuf.a /tmp/libtorch/lib/libprotobuf-lite.a /tmp/libtorch/lib/libprotoc.a; \
-    cp -Trf /tmp/libtorch/include /usr/local/include; \
-    cp -Trf /tmp/libtorch/lib /usr/local/lib; \
+    cp -Trf /tmp/libtorch/include "${GCC_DIR}/include"; \
+    cp -Trf /tmp/libtorch/lib "${GCC_DIR}/lib"; \
     ldconfig; \
     rm -rf /tmp/libtorch.zip /tmp/libtorch
 
@@ -192,7 +192,7 @@ RUN set -eux; \
         -DBUILD_CLI:BOOL=OFF \
         -DBUILD_STATIC_LIB=ON \
         -DUSE_HOMEBREW_FALLBACK=OFF \
-        -DCMAKE_INSTALL_PREFIX=/usr/local \
+        -DCMAKE_INSTALL_PREFIX="${GCC_DIR}" \
         -DCMAKE_CXX_FLAGS="-std=gnu++23 -w -fopenmp" \
         -DCMAKE_EXE_LINKER_FLAGS="-fuse-ld=lld" \
         -DCMAKE_SHARED_LINKER_FLAGS="-fuse-ld=lld" \
@@ -217,8 +217,8 @@ RUN set -eux; \
         -DUSE_SCIP:BOOL=ON -DBUILD_SCIP:BOOL=ON -DBUILD_soplex:BOOL=ON -DBUILD_Boost:BOOL=ON \
         -DBUILD_SAMPLES:BOOL=OFF -DBUILD_EXAMPLES:BOOL=OFF \
         -DBUILD_TESTING:BOOL=OFF \
-        -DCMAKE_PREFIX_PATH=/usr/local \
-        -DCMAKE_INSTALL_PREFIX=/usr/local \
+        -DCMAKE_PREFIX_PATH="${GCC_DIR}" \
+        -DCMAKE_INSTALL_PREFIX="${GCC_DIR}" \
         -DBUILD_SHARED_LIBS:BOOL=OFF \
         -DCMAKE_INSTALL_RPATH_USE_LINK_PATH:BOOL=ON \
         -DCMAKE_CXX_FLAGS="-std=gnu++23 -w" \
@@ -247,4 +247,4 @@ RUN set -eux; \
         "-Wl,-R${GCC_DIR}/lib64" \
         -c -fmodule-only -fsearch-include-path
 
-ENV CPATH="/usr/local/include/torch/csrc/api/include:${CPATH}"
+ENV CPATH="${GCC_DIR}/include/torch/csrc/api/include:${CPATH}"

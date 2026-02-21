@@ -134,8 +134,8 @@ USER_BUILD_FLAGS=(
 "-DUSE_MATH_OPT"
 "-DUSE_PDLP"
 "-DUSE_SCIP"
-"-I/usr/local/include"
-"-I/usr/local/include/torch/csrc/api/include"
+"-I/opt/gcc-15.2.0/include"
+"-I/opt/gcc-15.2.0/include/torch/csrc/api/include"
 "-O2"
 "-Wall"
 "-Wextra"
@@ -149,10 +149,10 @@ USER_BUILD_FLAGS=(
 "-pthread"
 "-std=gnu++23"
 "-Wl,--as-needed"
-"-L/usr/local/lib64"
-"-Wl,-R/usr/local/lib64"
-"-L/usr/local/lib"
-"-Wl,-R/usr/local/lib"
+"-L/opt/gcc-15.2.0/lib64"
+"-Wl,-R/opt/gcc-15.2.0/lib64"
+"-L/opt/gcc-15.2.0/lib"
+"-Wl,-R/opt/gcc-15.2.0/lib"
 "-fopenmp"
 "-lstdc++exp"
 "-labsl_cordz_sample_token"
@@ -311,7 +311,7 @@ USER_BUILD_FLAGS=(
 "-ltorch"
 "-ltorch_cpu"
 "-lc10")
-g++ ./Main.cpp -o a.out "${USER_BUILD_FLAGS[@]}" -lboost_exception -lstdc++
+g++ ./Main.cpp -o a.out "${USER_BUILD_FLAGS[@]}"
 ./a.out
 CMD
         ;;
