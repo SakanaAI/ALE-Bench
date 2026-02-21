@@ -17,10 +17,16 @@ ARG CABAL_VERSION=3.14.2.0
 
 RUN set -eux; \
     apt-get update; \
+    apt-get install -y --no-install-recommends ca-certificates curl gnupg; \
+    curl -fsSL https://apt.llvm.org/llvm-snapshot.gpg.key \
+        | gpg --dearmor -o /usr/share/keyrings/llvm-archive-keyring.gpg; \
+    echo "deb [signed-by=/usr/share/keyrings/llvm-archive-keyring.gpg] https://apt.llvm.org/unstable/ llvm-toolchain-15 main" \
+        > /etc/apt/sources.list.d/llvm-15.list; \
+    apt-get update; \
     apt-get install -y --no-install-recommends \
-        build-essential ca-certificates curl time \
+        build-essential time \
         libffi-dev libffi8 libgmp-dev libgmp10 \
-        libncurses-dev libncurses6 libtinfo6 llvm-19 \
+        libncurses-dev libncurses6 libtinfo6 llvm-15 \
         libgsl-dev liblapack-dev libopenblas-dev libglpk-dev; \
     rm -rf /var/lib/apt/lists/*
 

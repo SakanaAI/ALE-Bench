@@ -54,12 +54,16 @@ ARG FORTRAN_STDLIB_VERSION=0.7.0
 
 RUN set -eux; \
     apt-get update; \
+    apt-get install -y --no-install-recommends ca-certificates curl gnupg; \
+    curl -fsSL https://apt.llvm.org/llvm-snapshot.gpg.key \
+        | gpg --dearmor -o /usr/share/keyrings/llvm-archive-keyring.gpg; \
+    echo "deb [signed-by=/usr/share/keyrings/llvm-archive-keyring.gpg] https://apt.llvm.org/unstable/ llvm-toolchain-15 main" \
+        > /etc/apt/sources.list.d/llvm-15.list; \
+    apt-get update; \
     apt-get install -y --no-install-recommends \
-        ca-certificates curl git time \
+        git time  build-essential cmake gdb lcov ninja-build lld pkg-config \
         ansifilter xz-utils unzip bzip2 tar file patch \
-        build-essential cmake gdb lcov ninja-build lld pkg-config \
-        zlib1g-dev libzstd-dev \
-        libgmp-dev libmpfr-dev libmpc-dev libisl-dev \
+        zlib1g-dev libzstd-dev libgmp-dev libmpfr-dev libmpc-dev libisl-dev \
         libssl-dev libbz2-dev libreadline-dev libsqlite3-dev \
         libncurses5-dev libncurses-dev libncursesw5-dev \
         libffi-dev liblzma-dev uuid-dev tk-dev llvm-bolt libbolt-19-dev \
@@ -68,7 +72,7 @@ RUN set -eux; \
         python3 fypp python3-joblib \
         gfortran gfortran-14 libstdc++-14-dev libeigen3-dev \
         libc6 libgcc-s1 libgssapi-krb5-2 libssl3 libstdc++6 libunwind8 zlib1g \
-        libffi8 libgmp10 libncurses6 libtinfo6 llvm-19 libgsl-dev libglpk-dev \
+        libffi8 libgmp10 libncurses6 libtinfo6 llvm-15 libgsl-dev libglpk-dev \
         opam gettext libpcre2-dev libgeos-dev meson; \
     rm -rf /var/lib/apt/lists/*
 

@@ -282,11 +282,22 @@ run_one() {
     fi
 
     echo "[${lang}] image=${image}"
+    local start_time
+    start_time="$(date +%s.%N)"
     docker run --rm \
+        --cpus=1 \
+        --memory=2g \
+        --network=none \
         -v "${REPO_ROOT}:/repo:ro" \
         -w /workdir \
         "${image}" \
         bash -lc "set -Eeuo pipefail; ${cmd}"
+    local exit_code=$?
+    local end_time
+    end_time="$(date +%s.%N)"
+    elapsed="$(printf '%.1f' "$(echo "${end_time} - ${start_time}" | bc)")"
+    echo "[${lang}] elapsed: ${elapsed}s"
+    return "${exit_code}"
 }
 
 failed=0
