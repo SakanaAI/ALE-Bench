@@ -18,6 +18,8 @@ use rand::Rng;
 use regex::Regex;
 use rustc_hash::FxHashMap;
 use smallvec::{smallvec, SmallVec};
+use std::env;
+use std::time::{Duration, Instant};
 use superslice::Ext;
 
 static GLOBAL_VAL: Lazy<i32> = Lazy::new(|| 42);
@@ -119,5 +121,19 @@ fn main() {
     fxmap.insert(1, "one");
     assert_eq!(fxmap[&1], "one");
 
+    let heavy_seconds: u64 = env::var("HEAVY_SECONDS")
+        .ok()
+        .and_then(|s| s.parse::<u64>().ok())
+        .filter(|&n| n >= 1)
+        .unwrap_or(2);
+    let deadline = Instant::now() + Duration::from_secs(heavy_seconds);
+    let mut acc: u64 = 1;
+    while Instant::now() < deadline {
+        for i in 1_u64..=100_000 {
+            acc = (acc * 1103515245 + i + 12345) % 1_000_000_007;
+        }
+    }
+
     println!("RUST_OK");
+    println!("RUST_HEAVY_OK {acc}");
 }

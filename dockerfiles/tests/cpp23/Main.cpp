@@ -16,6 +16,9 @@
 #include <z3++.h>
 
 #include <filesystem>
+#include <chrono>
+#include <cstdint>
+#include <cstdlib>
 #include <iostream>
 #include <string>
 #include <vector>
@@ -97,6 +100,22 @@ int main() {
   check(std::abs(var->solution_value() - 1.0) < 1e-9, "or-tools solution check failed");
   delete solver;
 
+  int heavy_seconds = 2;
+  if (const char* raw = std::getenv("HEAVY_SECONDS"); raw != nullptr) {
+    heavy_seconds = std::atoi(raw);
+  }
+  check(heavy_seconds >= 1, "invalid HEAVY_SECONDS");
+
+  const auto start = std::chrono::steady_clock::now();
+  const auto deadline = start + std::chrono::seconds(heavy_seconds);
+  std::uint64_t acc = 1;
+  while (std::chrono::steady_clock::now() < deadline) {
+    for (std::uint64_t i = 1; i <= 100000; ++i) {
+      acc = (acc * 1103515245ULL + i + 12345ULL) % 1000000007ULL;
+    }
+  }
+
   std::cout << "CPP23_OK" << std::endl;
+  std::cout << "CPP23_HEAVY_OK " << acc << std::endl;
   return 0;
 }

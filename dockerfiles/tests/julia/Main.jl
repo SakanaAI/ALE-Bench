@@ -55,4 +55,25 @@ sv = SVector(1.0, 2.0, 3.0)
 @assert length(sv) == 3
 @assert sum(sv) == 6.0
 
+heavy_seconds = try
+    parse(Int, get(ENV, "HEAVY_SECONDS", "2"))
+catch
+    throw(ArgumentError("invalid HEAVY_SECONDS"))
+end
+@assert heavy_seconds >= 1
+
+deadline_ns = time_ns() + UInt64(heavy_seconds) * UInt64(1_000_000_000)
+function run_heavy(deadline_ns::UInt64)
+    acc = 1
+    while time_ns() < deadline_ns
+        for i in 1:100000
+            acc = mod(acc * 1103515245 + i + 12345, 1000000007)
+        end
+    end
+    return acc
+end
+
+acc = run_heavy(deadline_ns)
+
 println("JULIA_OK")
+println("JULIA_HEAVY_OK ", acc)

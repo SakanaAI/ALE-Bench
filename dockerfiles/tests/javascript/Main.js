@@ -37,4 +37,19 @@ if (v.size() !== 2) {
   throw new Error('tstl Vector check failed');
 }
 
+const heavySecondsRaw = process.env.HEAVY_SECONDS ?? '2';
+const heavySeconds = Number.parseInt(heavySecondsRaw, 10);
+if (!Number.isInteger(heavySeconds) || heavySeconds < 1) {
+  throw new Error(`invalid HEAVY_SECONDS: ${heavySecondsRaw}`);
+}
+
+const deadline = Date.now() + heavySeconds * 1000;
+let acc = 1;
+while (Date.now() < deadline) {
+  for (let i = 1; i <= 100000; ++i) {
+    acc = (acc * 1103515245 + i + 12345) % 1000000007;
+  }
+}
+
 console.log('JAVASCRIPT_OK');
+console.log(`JAVASCRIPT_HEAVY_OK ${acc}`);

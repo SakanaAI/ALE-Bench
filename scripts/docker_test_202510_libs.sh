@@ -10,6 +10,7 @@ Options:
   --image-prefix <PREFIX>   Docker image prefix (default: auto-detect)
   --tag <TAG>               Image tag suffix (default: 202510)
   --langs <CSV>             Comma-separated languages to test
+  --heavy-seconds <N>       Heavy workload duration in seconds (default: 2)
   --quiet, -q               Suppress stderr on success
   --list                    Show supported languages and exit
   -h, --help                Show this help
@@ -46,6 +47,7 @@ SUPPORTED_LANGS=(
 
 IMAGE_PREFIX=""
 TAG="202510"
+HEAVY_SECONDS="2"
 QUIET=0
 LANGS=("${SUPPORTED_LANGS[@]}")
 
@@ -72,6 +74,10 @@ while [[ $# -gt 0 ]]; do
         ;;
     --langs)
         IFS=',' read -r -a LANGS <<<"${2:-}"
+        shift 2
+        ;;
+    --heavy-seconds)
+        HEAVY_SECONDS="${2:-}"
         shift 2
         ;;
     -q | --quiet)
@@ -104,6 +110,11 @@ if [[ ${#LANGS[@]} -eq 0 ]]; then
     exit 1
 fi
 
+if ! [[ "${HEAVY_SECONDS}" =~ ^[0-9]+$ ]] || [[ "${HEAVY_SECONDS}" -lt 1 ]]; then
+    echo "Invalid --heavy-seconds value: ${HEAVY_SECONDS} (must be integer >= 1)" >&2
+    exit 1
+fi
+
 for lang in "${LANGS[@]}"; do
     if ! contains_lang "${lang}"; then
         echo "Unsupported language: ${lang}" >&2
@@ -116,8 +127,8 @@ command_for_lang() {
     bash)
         cat <<'CMD'
 cp /repo/dockerfiles/tests/bash/Main.bash /workdir/Main.bash
-bash -n /workdir/Main.bash
-bash /workdir/Main.bash
+/usr/bin/time -f "[time][bash][compile] real=%e user=%U sys=%S maxrss_kb=%M" bash -n /workdir/Main.bash
+/usr/bin/time -f "[time][bash][execute] real=%e user=%U sys=%S maxrss_kb=%M" bash /workdir/Main.bash
 CMD
         ;;
     cpp23)
@@ -317,8 +328,9 @@ USER_BUILD_FLAGS=(
 "-ltorch"
 "-ltorch_cpu"
 "-lc10")
-g++ ./Main.cpp -o a.out "${USER_BUILD_FLAGS[@]}"
-./a.out
+/usr/bin/time -f "[time][cpp23][compile] real=%e user=%U sys=%S maxrss_kb=%M" \
+  g++ ./Main.cpp -o a.out "${USER_BUILD_FLAGS[@]}"
+/usr/bin/time -f "[time][cpp23][execute] real=%e user=%U sys=%S maxrss_kb=%M" ./a.out
 CMD
         ;;
     csharp)
@@ -328,25 +340,28 @@ export PATH=/opt/dotnet:/opt/dotnet/tools:$PATH
 export DOTNET_EnableWriteXorExecute=0
 export DOTNET_CLI_TELEMETRY_OPTOUT=1
 cp /repo/dockerfiles/tests/csharp/Main.cs /workdir/Main.cs
-dotnet restore --locked-mode --nologo -v q
-dotnet publish -c Release -o /workdir/publish --no-restore --nologo -v q --tl:off
-/workdir/publish/Main
+/usr/bin/time -f "[time][csharp][restore] real=%e user=%U sys=%S maxrss_kb=%M" \
+  dotnet restore --locked-mode --nologo -v q
+/usr/bin/time -f "[time][csharp][compile] real=%e user=%U sys=%S maxrss_kb=%M" \
+  dotnet publish -c Release -o /workdir/publish --no-restore --nologo -v q --tl:off
+/usr/bin/time -f "[time][csharp][execute] real=%e user=%U sys=%S maxrss_kb=%M" /workdir/publish/Main
 CMD
         ;;
     fish)
         cat <<'CMD'
 cp /repo/dockerfiles/tests/fish/Main.fish /workdir/Main.fish
-fish -n /workdir/Main.fish
-fish /workdir/Main.fish
+/usr/bin/time -f "[time][fish][compile] real=%e user=%U sys=%S maxrss_kb=%M" fish -n /workdir/Main.fish
+/usr/bin/time -f "[time][fish][execute] real=%e user=%U sys=%S maxrss_kb=%M" fish /workdir/Main.fish
 CMD
         ;;
     fortran)
         cat <<'CMD'
 cp /repo/dockerfiles/tests/fortran/Main.f90 /workdir/Main.f90
-gfortran-14 -I/workdir -I/usr/local/include -L/usr/local/lib -Wl,-rpath,/usr/local/lib \
+/usr/bin/time -f "[time][fortran][compile] real=%e user=%U sys=%S maxrss_kb=%M" \
+  gfortran-14 -I/workdir -I/usr/local/include -L/usr/local/lib -Wl,-rpath,/usr/local/lib \
   -O2 -cpp -ffree-line-length-none -std=f2023 \
   /workdir/Main.f90 -lstdlib -o /workdir/a.out
-/workdir/a.out
+/usr/bin/time -f "[time][fortran][execute] real=%e user=%U sys=%S maxrss_kb=%M" /workdir/a.out
 CMD
         ;;
     go)
@@ -354,8 +369,9 @@ CMD
 export PATH=$PATH:/opt/go/bin
 cp /repo/dockerfiles/tests/go/main.go /workdir/main.go
 cd /workdir
-GOPROXY=off GO111MODULE=on go build -o a.out main.go
-./a.out
+/usr/bin/time -f "[time][go][compile] real=%e user=%U sys=%S maxrss_kb=%M" \
+  env GOPROXY=off GO111MODULE=on go build -o a.out main.go
+/usr/bin/time -f "[time][go][execute] real=%e user=%U sys=%S maxrss_kb=%M" ./a.out
 CMD
         ;;
     haskell)
@@ -363,15 +379,17 @@ CMD
 export PATH=/opt/.ghcup/bin:$PATH
 cp /repo/dockerfiles/tests/haskell/Main.hs /workdir/submission/app/Main.hs
 cd /workdir/submission
-cabal v2-build --offline && cp $(cabal list-bin main) /workdir/
-/workdir/main
+/usr/bin/time -f "[time][haskell][compile] real=%e user=%U sys=%S maxrss_kb=%M" \
+  bash -lc 'cabal v2-build --offline && cp $(cabal list-bin main) /workdir/'
+/usr/bin/time -f "[time][haskell][execute] real=%e user=%U sys=%S maxrss_kb=%M" /workdir/main
 CMD
         ;;
     javascript)
         cat <<'CMD'
 cp /repo/dockerfiles/tests/javascript/Main.js /workdir/Main.js
-node --check /workdir/Main.js
-/workdir/node.sh 1024 /workdir/Main.js ONLINE_JUDGE ATCODER
+/usr/bin/time -f "[time][javascript][compile] real=%e user=%U sys=%S maxrss_kb=%M" node --check /workdir/Main.js
+/usr/bin/time -f "[time][javascript][execute] real=%e user=%U sys=%S maxrss_kb=%M" \
+  /workdir/node.sh 1024 /workdir/Main.js ONLINE_JUDGE ATCODER
 CMD
         ;;
     julia)
@@ -379,63 +397,76 @@ CMD
 cp /repo/dockerfiles/tests/julia/Main.jl /workdir/Main.jl
 export PATH=$PATH:/opt/juliaup/bin
 export JULIA_DEPOT_PATH=/opt/julia
-julia -e 'Meta.parse("begin " * read("Main.jl",String) * " end")' && julia --threads=auto --startup-file=no --history-file=no Main.jl
+/usr/bin/time -f "[time][julia][compile] real=%e user=%U sys=%S maxrss_kb=%M" \
+  julia -e 'Meta.parse("begin " * read("Main.jl",String) * " end")'
+/usr/bin/time -f "[time][julia][execute] real=%e user=%U sys=%S maxrss_kb=%M" \
+  julia --threads=auto --startup-file=no --history-file=no Main.jl
 CMD
         ;;
     lean)
         cat <<'CMD'
 cp /repo/dockerfiles/tests/lean/Main.lean /workdir/atcoder/Main.lean
 cd /workdir/atcoder
-lake -q build
-./.lake/build/bin/atcoder
+/usr/bin/time -f "[time][lean][compile] real=%e user=%U sys=%S maxrss_kb=%M" lake -q build
+/usr/bin/time -f "[time][lean][execute] real=%e user=%U sys=%S maxrss_kb=%M" ./.lake/build/bin/atcoder
 CMD
         ;;
     ocaml)
         cat <<'CMD'
 cp /repo/dockerfiles/tests/ocaml/main.ml /workdir/main.ml
 eval "$(opam env --switch=5.3.0+flambda)"
-ocamlfind ocamlopt -O2 -o /workdir/a.out \
+/usr/bin/time -f "[time][ocaml][compile] real=%e user=%U sys=%S maxrss_kb=%M" \
+  ocamlfind ocamlopt -O2 -o /workdir/a.out \
   /workdir/main.ml -linkpkg -thread \
   -package str,num,zarith,threads,containers,core,iter,batteries
-/workdir/a.out
+/usr/bin/time -f "[time][ocaml][execute] real=%e user=%U sys=%S maxrss_kb=%M" /workdir/a.out
 CMD
         ;;
     perl)
         cat <<'CMD'
 cp /repo/dockerfiles/tests/perl/Main.pl /workdir/Main.pl
-perl -c /workdir/Main.pl
-perl /workdir/Main.pl
+/usr/bin/time -f "[time][perl][compile] real=%e user=%U sys=%S maxrss_kb=%M" perl -c /workdir/Main.pl
+/usr/bin/time -f "[time][perl][execute] real=%e user=%U sys=%S maxrss_kb=%M" perl /workdir/Main.pl
 CMD
         ;;
     pypy)
         cat <<'CMD'
 cp /repo/dockerfiles/tests/pypy/Main.py /workdir/Main.py
-pypy3 -m py_compile /workdir/Main.py
-pypy3 /workdir/Main.py ONLINE_JUDGE 2>/dev/null || true
-pypy3 -X int_max_str_digits=0 /workdir/Main.py
+/usr/bin/time -f "[time][pypy][compile] real=%e user=%U sys=%S maxrss_kb=%M" \
+  pypy3 -m py_compile /workdir/Main.py
+/usr/bin/time -f "[time][pypy][execute-online-judge] real=%e user=%U sys=%S maxrss_kb=%M" \
+  bash -lc 'pypy3 /workdir/Main.py ONLINE_JUDGE 2>/dev/null || true'
+/usr/bin/time -f "[time][pypy][execute] real=%e user=%U sys=%S maxrss_kb=%M" \
+  pypy3 -X int_max_str_digits=0 /workdir/Main.py
 CMD
         ;;
     python)
         cat <<'CMD'
 cp /repo/dockerfiles/tests/python/Main.py /workdir/Main.py
-python3.13 -m py_compile /workdir/Main.py
-python3.13 /workdir/Main.py ONLINE_JUDGE 2>/dev/null || true
-python3.13 -X int_max_str_digits=0 /workdir/Main.py
+/usr/bin/time -f "[time][python][compile] real=%e user=%U sys=%S maxrss_kb=%M" \
+  python3.13 -m py_compile /workdir/Main.py
+/usr/bin/time -f "[time][python][execute-online-judge] real=%e user=%U sys=%S maxrss_kb=%M" \
+  bash -lc 'python3.13 /workdir/Main.py ONLINE_JUDGE 2>/dev/null || true'
+/usr/bin/time -f "[time][python][execute] real=%e user=%U sys=%S maxrss_kb=%M" \
+  python3.13 -X int_max_str_digits=0 /workdir/Main.py
 CMD
         ;;
     rust)
         cat <<'CMD'
 cp /repo/dockerfiles/tests/rust/main.rs /workdir/src/main.rs
 cd /workdir
-CARGO_NET_OFFLINE=true cargo build --release --quiet --offline
-./target/release/main
+/usr/bin/time -f "[time][rust][compile] real=%e user=%U sys=%S maxrss_kb=%M" \
+  env CARGO_NET_OFFLINE=true cargo build --release --quiet --offline
+/usr/bin/time -f "[time][rust][execute] real=%e user=%U sys=%S maxrss_kb=%M" ./target/release/main
 CMD
         ;;
     typescript)
         cat <<'CMD'
 cp /repo/dockerfiles/tests/typescript/Main.ts /workdir/Main.ts
-tsc /workdir/Main.ts --target ESNext --moduleResolution nodenext --module NodeNext --noEmitOnError --pretty true | ansifilter 1>&2
-/workdir/node.sh 1024 /workdir/Main.js ONLINE_JUDGE ATCODER
+/usr/bin/time -f "[time][typescript][compile] real=%e user=%U sys=%S maxrss_kb=%M" \
+  bash -lc 'tsc /workdir/Main.ts --target ESNext --moduleResolution nodenext --module NodeNext --noEmitOnError --pretty true | ansifilter 1>&2'
+/usr/bin/time -f "[time][typescript][execute] real=%e user=%U sys=%S maxrss_kb=%M" \
+  /workdir/node.sh 1024 /workdir/Main.js ONLINE_JUDGE ATCODER
 CMD
         ;;
     *)
@@ -478,6 +509,7 @@ run_one() {
         --cpus=1 \
         --memory=2g \
         --network=none \
+        -e HEAVY_SECONDS="${HEAVY_SECONDS}" \
         -v "${REPO_ROOT}:/repo:ro" \
         -w /workdir \
         "${image}" \

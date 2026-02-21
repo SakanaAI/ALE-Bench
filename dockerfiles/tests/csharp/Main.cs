@@ -3,6 +3,7 @@ using AtCoder;
 using MathNet.Numerics.LinearAlgebra;
 using Microsoft.ML;
 using Microsoft.ML.Trainers.LightGbm;
+using System.Diagnostics;
 
 public static class Program
 {
@@ -29,6 +30,23 @@ public static class Program
             throw new Exception("Microsoft.ML.LightGbm options check failed");
         }
 
+        var heavySecondsRaw = Environment.GetEnvironmentVariable("HEAVY_SECONDS") ?? "2";
+        if (!int.TryParse(heavySecondsRaw, out var heavySeconds) || heavySeconds < 1)
+        {
+            throw new Exception($"invalid HEAVY_SECONDS: {heavySecondsRaw}");
+        }
+
+        var sw = Stopwatch.StartNew();
+        long acc = 1;
+        while (sw.Elapsed.TotalSeconds < heavySeconds)
+        {
+            for (int i = 1; i <= 100000; ++i)
+            {
+                acc = (acc * 1103515245 + i + 12345) % 1000000007;
+            }
+        }
+
         Console.WriteLine($"CSHARP_OK {ml.GetType().Name}");
+        Console.WriteLine($"CSHARP_HEAVY_OK {acc}");
     }
 }

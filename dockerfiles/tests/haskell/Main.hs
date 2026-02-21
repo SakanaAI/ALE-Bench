@@ -1,3 +1,4 @@
+{-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# OPTIONS_GHC -Wno-unused-imports -Wno-type-defaults -Wno-unused-do-bind -Wno-unused-matches #-}
 
@@ -34,9 +35,12 @@ import Data.Word (Word64)
 import Numeric.LinearAlgebra (Matrix, ident, tr, (><))
 import System.IO (hFlush, stdout)
 import Data.Void (Void)
+import Data.Time.Clock.POSIX (getPOSIXTime)
+import System.Environment (lookupEnv)
 import Text.Megaparsec (Parsec, parse, some)
 import Text.Megaparsec.Char (digitChar)
 import Text.Regex.TDFA ((=~))
+import Text.Read (readMaybe)
 
 import qualified AtCoder.Dsu as DSU
 
@@ -154,9 +158,38 @@ main = do
   val <- readIORef ref
   assert "IORef" (val == 42)
 
+  heavySeconds <- readHeavySeconds
+  heavyAcc <- runHeavyWork heavySeconds
+
   putStrLn "HASKELL_OK"
+  putStrLn ("HASKELL_HEAVY_OK " ++ show heavyAcc)
   hFlush stdout
 
 assert :: String -> Bool -> IO ()
 assert label True  = return ()
 assert label False = error $ label ++ " check failed"
+
+readHeavySeconds :: IO Int
+readHeavySeconds = do
+  env <- lookupEnv "HEAVY_SECONDS"
+  case env of
+    Nothing -> return 2
+    Just s ->
+      case readMaybe s of
+        Just n | n >= 1 -> return n
+        _ -> error "invalid HEAVY_SECONDS"
+
+runHeavyWork :: Int -> IO Int
+runHeavyWork heavySeconds = do
+  start <- getPOSIXTime
+  let deadline = start + fromIntegral heavySeconds
+      spin :: Int -> Int -> Int
+      spin !acc 0 = acc
+      spin !acc n = spin ((acc * 1103515245 + n + 12345) `mod` 1000000007) (n - 1)
+      loop :: Int -> IO Int
+      loop !acc = do
+        now <- getPOSIXTime
+        if now >= deadline
+          then return acc
+          else loop $! spin acc 100000
+  loop 1

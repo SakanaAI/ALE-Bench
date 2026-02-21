@@ -19,4 +19,26 @@ let () =
   let bat_sum = BatList.fold_left ( + ) 0 [1; 2; 3; 4] in
   if bat_sum <> 10 then failwith "batteries check failed";
 
-  printf "OCAML_OK\n"
+  let heavy_seconds =
+    match Sys.getenv "HEAVY_SECONDS" with
+    | None -> 2
+    | Some s ->
+        (match Int.of_string_opt s with
+        | Some n when n >= 1 -> n
+        | _ -> failwith "invalid HEAVY_SECONDS")
+  in
+  let deadline =
+    Time_ns.add (Time_ns.now ()) (Time_ns.Span.of_sec (Float.of_int heavy_seconds))
+  in
+  let rec spin acc i =
+    if i = 0 then acc
+    else spin ((acc * 1103515245 + i + 12345) mod 1000000007) (i - 1)
+  in
+  let rec run acc =
+    if Time_ns.compare (Time_ns.now ()) deadline >= 0 then acc
+    else run (spin acc 100000)
+  in
+  let heavy_acc = run 1 in
+
+  printf "OCAML_OK\n";
+  printf "OCAML_HEAVY_OK %d\n" heavy_acc

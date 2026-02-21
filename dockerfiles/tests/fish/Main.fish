@@ -18,4 +18,27 @@ if not string match -q "4.*" $fish_ver
     exit 1
 end
 
+set heavy_seconds 2
+if set -q HEAVY_SECONDS
+    set heavy_seconds $HEAVY_SECONDS
+end
+if not string match -rq '^[0-9]+$' -- $heavy_seconds
+    echo "invalid HEAVY_SECONDS: $heavy_seconds" >&2
+    exit 1
+end
+if test "$heavy_seconds" -lt 1
+    echo "invalid HEAVY_SECONDS: $heavy_seconds" >&2
+    exit 1
+end
+
+set start_ts (date +%s)
+set end_ts (math "$start_ts + $heavy_seconds")
+set acc 1
+while test (date +%s) -lt $end_ts
+    for i in (seq 1 800)
+        set acc (math "($acc * 1103515245 + $i + 12345) % 1000000007")
+    end
+end
+
 echo "FISH_OK"
+echo "FISH_HEAVY_OK $acc"

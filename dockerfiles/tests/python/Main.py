@@ -1,4 +1,6 @@
 from importlib.metadata import version
+import os
+import time
 
 required_dists = [
     "numpy",
@@ -128,4 +130,19 @@ assert numba_sum(10) == 45
 
 assert hasattr(Cython, "__version__")
 
+heavy_seconds_raw = os.environ.get("HEAVY_SECONDS", "2")
+try:
+    heavy_seconds = int(heavy_seconds_raw)
+except ValueError as exc:
+    raise AssertionError(f"invalid HEAVY_SECONDS: {heavy_seconds_raw}") from exc
+if heavy_seconds < 1:
+    raise AssertionError(f"invalid HEAVY_SECONDS: {heavy_seconds_raw}")
+
+deadline = time.perf_counter() + heavy_seconds
+acc = 1
+while time.perf_counter() < deadline:
+    for i in range(1, 100_000):
+        acc = (acc * 1103515245 + i + 12345) % 1_000_000_007
+
 print("PYTHON_OK")
+print(f"PYTHON_HEAVY_OK {acc}")

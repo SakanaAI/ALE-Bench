@@ -3,6 +3,8 @@ package main
 import (
 	"fmt"
 	"os"
+	"strconv"
+	"time"
 
 	"github.com/benbjohnson/immutable"
 	"github.com/emirpasic/gods/lists/arraylist"
@@ -56,5 +58,21 @@ func main() {
 	check(d.Same(0, 1), "ac-library-go dsu check failed")
 	check(!d.Same(0, 2), "ac-library-go dsu negative check failed")
 
+	heavySeconds := 2
+	if raw := os.Getenv("HEAVY_SECONDS"); raw != "" {
+		n, err := strconv.Atoi(raw)
+		check(err == nil && n >= 1, "invalid HEAVY_SECONDS")
+		heavySeconds = n
+	}
+
+	deadline := time.Now().Add(time.Duration(heavySeconds) * time.Second)
+	var acc uint64 = 1
+	for time.Now().Before(deadline) {
+		for i := uint64(1); i <= 100000; i++ {
+			acc = (acc*1103515245 + i + 12345) % 1000000007
+		}
+	}
+
 	fmt.Println("GO_OK")
+	fmt.Println("GO_HEAVY_OK", acc)
 }

@@ -24,4 +24,19 @@ if [[ ${m[x]} -ne 42 ]]; then
   exit 1
 fi
 
+heavy_seconds="${HEAVY_SECONDS:-2}"
+if ! [[ "${heavy_seconds}" =~ ^[0-9]+$ ]] || [[ "${heavy_seconds}" -lt 1 ]]; then
+  echo "invalid HEAVY_SECONDS: ${heavy_seconds}" >&2
+  exit 1
+fi
+
+end=$((SECONDS + heavy_seconds))
+acc=1
+while ((SECONDS < end)); do
+  for ((i = 1; i <= 50000; ++i)); do
+    ((acc = (acc * 1103515245 + i + 12345) % 1000000007))
+  done
+done
+
 echo "BASH_OK"
+echo "BASH_HEAVY_OK ${acc}"
