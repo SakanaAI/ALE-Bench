@@ -343,7 +343,7 @@ CMD
     fortran)
         cat <<'CMD'
 cp /repo/dockerfiles/tests/fortran/Main.f90 /workdir/Main.f90
-gfortran -I/workdir -I/usr/local/include -L/usr/local/lib -Wl,-rpath,/usr/local/lib \
+gfortran-14 -I/workdir -I/usr/local/include -L/usr/local/lib -Wl,-rpath,/usr/local/lib \
   -O2 -cpp -ffree-line-length-none -std=f2023 \
   /workdir/Main.f90 -lstdlib -o /workdir/a.out
 /workdir/a.out

@@ -34,8 +34,8 @@ RUN set -eux; \
     printf '\n\n[install]\nlibrary = true\n' >> stdlib-${FORTRAN_STDLIB_VERSION}/fpm.toml; \
     cd /tmp/fortran/stdlib-${FORTRAN_STDLIB_VERSION}; \
     python3 config/fypp_deployment.py; \
-    FPM_FC=gfortran FPM_FFLAGS="-O2 -cpp -std=f2023" fpm build --profile release; \
-    FPM_FC=gfortran FPM_FFLAGS="-O2 -cpp -std=f2023" fpm install --profile release --prefix /usr/local; \
+    FPM_FC=gfortran-14 FPM_FFLAGS="-O2 -cpp -std=f2023" fpm build --profile release; \
+    FPM_FC=gfortran-14 FPM_FFLAGS="-O2 -cpp -std=f2023" fpm install --profile release --prefix /usr/local; \
     ldconfig; \
     rm -rf /tmp/fortran
 
@@ -44,6 +44,6 @@ COPY ./fortran_202510_Main.f90 /workdir/Main.f90
 RUN set -eux; \
     cd /workdir; \
     git clone --depth 1 https://github.com/ue1221/ac-library-fortran.git acl; \
-    gfortran -I/usr/local/include -O2 -cpp -ffree-line-length-none -std=f2023 Main.f90 -lstdlib; \
+    gfortran-14 -I/usr/local/include -O2 -cpp -ffree-line-length-none -std=f2023 Main.f90 -lstdlib; \
     ./a.out; \
     rm -f Main.f90 a.out mod_union_find.mod
