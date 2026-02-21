@@ -9,7 +9,9 @@ docker build -q ./dockerfiles -t yimjk/ale-bench:csharp-202510 -f ./dockerfiles/
 docker build -q ./dockerfiles -t yimjk/ale-bench:fish-202510 -f ./dockerfiles/Dockerfile_fish_202510_base
 docker build -q ./dockerfiles -t yimjk/ale-bench:fortran-202510 -f ./dockerfiles/Dockerfile_fortran_202510_base
 docker build -q ./dockerfiles -t yimjk/ale-bench:go-202510 -f ./dockerfiles/Dockerfile_go_202510_base
+docker build -q ./dockerfiles -t yimjk/ale-bench:haskell-202510 -f ./dockerfiles/Dockerfile_haskell_202510_base
 docker build -q ./dockerfiles -t yimjk/ale-bench:javascript-202510 -f ./dockerfiles/Dockerfile_javascript_202510_base
+docker build -q ./dockerfiles -t yimjk/ale-bench:julia-202510 -f ./dockerfiles/Dockerfile_julia_202510_base
 docker build -q ./dockerfiles -t yimjk/ale-bench:lean-202510 -f ./dockerfiles/Dockerfile_lean_202510_base
 docker build -q ./dockerfiles -t yimjk/ale-bench:ocaml-202510 -f ./dockerfiles/Dockerfile_ocaml_202510_base
 docker build -q ./dockerfiles -t yimjk/ale-bench:perl-202510 -f ./dockerfiles/Dockerfile_perl_202510_base

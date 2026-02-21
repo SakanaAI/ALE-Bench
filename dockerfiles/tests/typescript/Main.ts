@@ -28,7 +28,7 @@ if (Object.keys(dstruct).length === 0) {
   throw new Error('data-structure-typed export check failed');
 }
 
-const v = new std.Vector<number>();
+const v = new std.Vector();
 v.push_back(10);
 v.push_back(20);
 if (v.size() !== 2) {

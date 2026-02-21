@@ -31,7 +31,9 @@ SUPPORTED_LANGS=(
     fish
     fortran
     go
+    haskell
     javascript
+    julia
     lean
     ocaml
     perl
@@ -116,6 +118,7 @@ CMD
         cat <<'CMD'
 cp /repo/dockerfiles/tests/cpp23/Main.cpp /workdir/Main.cpp
 g++ -std=gnu++23 -O2 -Wall -Wextra \
+  -DOR_PROTO_DLL= -DPROTOBUF_USE_DLLS \
   -I/usr/local/include \
   -I/usr/local/include/torch/csrc/api/include \
   /workdir/Main.cpp -o /workdir/a.out \
@@ -136,6 +139,7 @@ CMD
         ;;
     csharp)
         cat <<'CMD'
+export PATH=/opt/dotnet:/opt/dotnet/tools:$PATH
 cp /repo/dockerfiles/tests/csharp/Main.cs /workdir/Main.cs
 dotnet publish -c Release -o /workdir/publish --no-restore --nologo -v q --tl:off
 /workdir/publish/Main
@@ -159,10 +163,19 @@ CMD
         ;;
     go)
         cat <<'CMD'
+export PATH=$PATH:/opt/go/bin
 cp /repo/dockerfiles/tests/go/main.go /workdir/main.go
 cd /workdir
 GOPROXY=off GO111MODULE=on go build -o a.out main.go
 ./a.out
+CMD
+        ;;
+    haskell)
+        cat <<'CMD'
+cp /repo/dockerfiles/tests/haskell/Main.hs /workdir/submission/app/Main.hs
+cd /workdir/submission
+cabal v2-build --offline && cp $(cabal list-bin main) /workdir/
+/workdir/main
 CMD
         ;;
     javascript)
@@ -170,6 +183,14 @@ CMD
 cp /repo/dockerfiles/tests/javascript/Main.js /workdir/Main.js
 node --check /workdir/Main.js
 /workdir/node.sh 1024 /workdir/Main.js ONLINE_JUDGE ATCODER
+CMD
+        ;;
+    julia)
+        cat <<'CMD'
+cp /repo/dockerfiles/tests/julia/Main.jl /workdir/Main.jl
+export PATH=$PATH:/opt/juliaup/bin
+export JULIA_DEPOT_PATH=/opt/julia
+julia -e 'Meta.parse("begin " * read("Main.jl",String) * " end")' && julia --threads=auto --startup-file=no --history-file=no Main.jl
 CMD
         ;;
     lean)

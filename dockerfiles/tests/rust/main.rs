@@ -88,7 +88,7 @@ fn main() {
     // proconio (test source parsing)
     let source = OnceSource::from("42\n");
     let mut source = source;
-    let val: i32 = proconio::read_value!(source, i32);
+    let val: i32 = proconio::read_value!(from &mut source, i32);
     assert_eq!(val, 42);
 
     // bitvec

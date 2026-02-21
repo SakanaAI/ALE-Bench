@@ -11,7 +11,7 @@ let () =
   if Num.int_of_num n <> 3 then failwith "num check failed";
 
   let ccl = CCList.map (( + ) 1) [1; 2; 3] in
-  if ccl <> [2; 3; 4] then failwith "containers check failed";
+  if not (Stdlib.( = ) ccl [2; 3; 4]) then failwith "containers check failed";
 
   let iter_sum = Iter.(0 -- 4 |> fold ( + ) 0) in
   if iter_sum <> 10 then failwith "iter check failed";

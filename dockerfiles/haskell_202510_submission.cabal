@@ -1,0 +1,122 @@
+cabal-version:      3.4
+name:               submission
+version:            0.1.0.0
+synopsis:           A Haskell program submitted to AtCoder
+-- description:
+license:            NONE
+author:             submitter-anonymous
+maintainer:         NONE
+-- copyright:
+category:           Competitive
+build-type:         Simple
+-- extra-doc-files:    CHANGELOG.md
+-- extra-source-files:
+
+common warnings
+    ghc-options: -Wall
+
+flag atcoder
+    description:    Indicates this is on the AtCoder judge server
+    default:        False
+    manual:         True
+
+executable main
+    import:           warnings
+    main-is:          Main.hs
+    -- other-modules:
+    -- other-extensions:
+    build-depends:
+                  Cabal ^>=3.16.0.0,
+                  Cabal-syntax ^>=3.16.0.0,
+                  QuickCheck ^>=2.16.0.0,
+                  ac-library-hs ^>=1.5.3.0,
+                  adjunctions ^>=4.4.3,
+                  array ==0.5.8.0,
+                  attoparsec ^>=0.14.4,
+                  base ==4.19.2.0,
+                  bifunctors ^>=5.6.2,
+                  binary ^>=0.8.9.3,
+                  bitvec ^>=1.1.5.0,
+                  bytestring ^>=0.12.2.0,
+                  comonad ^>=5.0.9,
+                  containers ^>=0.8,
+                  contravariant ^>=1.5.5,
+                  deepseq ==1.5.1.0,
+                  directory ^>=1.3.9.0,
+                  distributive ^>=0.6.2.1,
+                  exceptions ^>=0.10.7,
+                  extra ^>=1.8,
+                  fgl ^>=5.8.3.0,
+                  filepath ^>=1.4.301.0,
+                  flow ^>=2.0.0.9,
+                  free ^>=5.2,
+                  ghc-bignum ==1.3,
+                  ghc-boot-th ==9.8.4,
+                  ghc-prim ==0.11.0,
+                  hashable ^>=1.5.0.0,
+                  heaps ^>=0.4.1,
+                  hmatrix ^>=0.20.2,
+                  hmatrix-glpk ^>=0.19.0.0,
+                  hmatrix-gsl ^>=0.19.0.1,
+                  hmatrix-special ^>=0.19.0.0,
+                  ilist ^>=0.4.0.1,
+                  indexed-traversable ^>=0.1.4,
+                  indexed-traversable-instances ^>=0.1.2,
+                  integer-gmp ^>=1.1,
+                  integer-logarithms ^>=1.0.4,
+                  kan-extensions ^>=5.2.7,
+                  lens ^>=5.3.5,
+                  linear-base ^>=0.5.0,
+                  list-t ^>=1.0.5.7,
+                  massiv ^>=1.0.5.0,
+                  megaparsec ^>=9.7.0,
+                  monad-memo ^>=0.5.4,
+                  mono-traversable ^>=1.0.21.0,
+                  mtl ^>=2.3.1,
+                  mutable-containers ^>=0.3.4.1,
+                  mwc-random ^>=0.15.2.0,
+                  parallel ^>=3.2.2.0,
+                  parsec ^>=3.1.18.0,
+                  parser-combinators ^>=1.3.0,
+                  pretty ^>=1.1.3.6,
+                  primitive ^>=0.9.1.0,
+                  process ^>=1.6.26.1,
+                  profunctors ^>=5.6.3,
+                  psqueues ^>=0.2.8.2,
+                  random ^>=1.3.1,
+                  reflection ^>=2.1.9,
+                  regex-tdfa ^>=1.3.2.4,
+                  safe-exceptions ^>=0.1.7.4,
+                  scientific ^>=0.3.8.0,
+                  semialign ^>=1.3.1,
+                  semigroupoids ^>=6.0.1,
+                  split ^>=0.2.5,
+                  stm ^>=2.5.3.1,
+                  strict ^>=0.5.1,
+                  strict-lens ^>=0.4.1,
+                  tagged ^>=0.8.9,
+                  template-haskell ==2.21.0.0,
+                  text ^>=2.1.3,
+                  tf-random ^>=0.5,
+                  these ^>=1.2.1,
+                  these-lens ^>=1.0.2,
+                  time ^>=1.12.2,
+                  transformers ^>=0.6.1.0,
+                  trifecta ^>=2.1.4,
+                  unboxing-vector ^>=0.2.0.0,
+                  unix ==2.8.6.0,
+                  unordered-containers ^>=0.2.20,
+                  utility-ht ^>=0.0.17.2,
+                  vector ^>=0.13.2.0,
+                  vector-algorithms ^>=0.9.1.0,
+                  vector-split ^>=1.0.0.4,
+                  vector-stream ^>=0.1.0.1,
+                  vector-th-unbox ^>=0.2.2,
+                  wide-word ^>=0.1.7.1,
+                  witherable ^>=0.5,
+                  xhtml ^>=3000.2.2.1
+
+    hs-source-dirs:   app
+    default-language: GHC2021
+    if flag(atcoder)
+      cpp-options: -DATCODER

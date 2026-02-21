@@ -14,7 +14,11 @@ ENV DEBIAN_FRONTEND=noninteractive \
     CPATH= \
     PIP_DISABLE_PIP_VERSION_CHECK=1 \
     PIP_NO_CACHE_DIR=1 \
-    DOTNET_EnableWriteXorExecute=0
+    JULIAUP_DEPOT_PATH=/opt/juliaup \
+    JULIA_DEPOT_PATH=/opt/julia \
+    DOTNET_EnableWriteXorExecute=0 \
+    GHCUP_INSTALL_BASE_PREFIX=/opt \
+    GHCUP_HOME=/opt/.ghcup
 
 ARG TARGETARCH
 ARG TARGETVARIANT
@@ -25,10 +29,13 @@ ARG RUST_VERSION=1.89.0
 ARG GO_VERSION=1.25.1
 ARG PYTHON_VERSION=3.13.7
 ARG PYPY_VERSION=7.3.20
+ARG JULIA_VERSION=1.11.6
 ARG NODE_VERSION=22.19.0
 ARG TYPESCRIPT_VERSION=5.9.2
 ARG OCAML_SWITCH=5.3.0+flambda
 ARG DOTNET_SDK_VERSION=9.0.304
+ARG GHC_VERSION=9.8.4
+ARG CABAL_VERSION=3.14.2.0
 ARG FISH_VERSION=4.0.2
 
 ARG BOOST_VERSION=1.88.0
@@ -60,6 +67,8 @@ RUN set -eux; \
         python3 fypp python3-joblib \
         gfortran gfortran-14 libstdc++-14-dev libeigen3-dev \
         libc6 libgcc-s1 libgssapi-krb5-2 libssl3 libstdc++6 libunwind8 zlib1g \
+        libffi8ubuntu1 libgmp10 libncurses6 libtinfo6 llvm-15 \
+        libgsl0-dev libatlas-base-dev libglpk-dev \
         opam gettext libpcre2-dev libgeos-dev meson; \
     rm -rf /var/lib/apt/lists/*
 
@@ -276,8 +285,6 @@ RUN set -eux; \
         -DBUILD_SHARED_LIBS:BOOL=OFF \
         -DCMAKE_INSTALL_RPATH_USE_LINK_PATH:BOOL=ON \
         -DCMAKE_CXX_FLAGS="-std=gnu++23 -w" \
-        -DCMAKE_EXE_LINKER_FLAGS="-fuse-ld=lld" \
-        -DCMAKE_SHARED_LINKER_FLAGS="-fuse-ld=lld" \
         ..; \
     cmake --build . --config Release --target install; \
     rm -rf /tmp/or-tools
@@ -436,6 +443,36 @@ RUN set -eux; \
     ldconfig; \
     rm -rf /tmp/pypy.tar.bz2 /tmp/pypy3.11-v${PYPY_VERSION}-*
 
+# --- Julia 1.11.6 ----
+RUN set -eux; \
+    curl -fsSL https://install.julialang.org | JULIAUP_DEPOT_PATH=${JULIAUP_DEPOT_PATH} sh -s -- --yes --default-channel "${JULIA_VERSION}"; \
+    export PATH="${JULIAUP_DEPOT_PATH}/bin:${PATH}"; \
+    julia --version; \
+    juliaup config backgroundselfupdateinterval 0; \
+    juliaup config startupselfupdateinterval 0; \
+    juliaup config versionsdbupdateinterval 0
+
+ENV PATH="${JULIAUP_DEPOT_PATH}/bin:${PATH}"
+
+RUN set -eux; \
+    julia -e ' \
+        using Pkg; \
+        Pkg.update(); \
+        for (name, version) in map(p -> String.(split(p, "@")), ARGS) \
+            Pkg.add(name=name, version=version); \
+        end' \
+        Combinatorics@1.0.3 \
+        DataStructures@0.18.22 \
+        DelimitedFiles@1.9.1 \
+        Distributions@0.25.120 \
+        InvertedIndices@1.3.1 \
+        IterTools@1.10.0 \
+        OffsetArrays@1.17.0 \
+        PrecompileTools@1.2.1 \
+        Primes@0.5.7 \
+        StaticArrays@1.9.14; \
+    julia -e 'using Combinatorics, DataStructures, DelimitedFiles, Distributions, InvertedIndices, IterTools, OffsetArrays, PrecompileTools, Primes, StaticArrays'
+
 # ---- Node.js 22.19.0 + JavaScript/TypeScript libs ----
 COPY ./node_202510_node.sh /workdir/node.sh
 
@@ -531,6 +568,33 @@ RUN set -eux; \
     dotnet publish -c Release -o publish --no-restore -v n; \
     rm -f publish/Main Main.cs; \
     rm -rf /workdir/bin /workdir/obj
+
+# ---- Haskell GHC 9.8.4 ----
+ENV PATH="${GHCUP_HOME}/bin:${PATH}"
+
+RUN set -eux; \
+    curl --proto '=https' --tlsv1.2 -sSf https://get-ghcup.haskell.org \
+        | BOOTSTRAP_HASKELL_NONINTERACTIVE=1 \
+          BOOTSTRAP_HASKELL_MINIMAL=1 \
+          GHCUP_INSTALL_BASE_PREFIX=/opt \
+          sh; \
+    ghcup install cabal "${CABAL_VERSION}" && ghcup set cabal "${CABAL_VERSION}"; \
+    ghcup install ghc "${GHC_VERSION}" && ghcup set ghc "${GHC_VERSION}"; \
+    ghc --version; \
+    cabal --version
+
+COPY ./haskell_202510_submission.cabal /workdir/submission/submission.cabal
+COPY ./haskell_202510_cabal.project /workdir/submission/cabal.project
+COPY ./haskell_202510_cabal.project.freeze /workdir/submission/cabal.project.freeze
+
+RUN set -eux; \
+    mkdir -p /workdir/submission/app; \
+    echo 'main = return () :: IO ()' > /workdir/submission/app/Main.hs; \
+    cd /workdir/submission; \
+    cabal v2-update; \
+    cabal v2-configure --flags="+atcoder"; \
+    cabal v2-build --only-dependencies; \
+    rm -f /workdir/submission/app/Main.hs
 
 # ---- Fish 4.0.2 ----
 RUN set -eux; \

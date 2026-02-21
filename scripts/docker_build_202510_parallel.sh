@@ -97,7 +97,9 @@ readonly IMAGES=(
     fish
     fortran
     go
+    haskell
     javascript
+    julia
     lean
     ocaml
     perl

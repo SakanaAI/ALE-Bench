@@ -5,7 +5,7 @@ import Regex.Regex.Elab
 
 open Parser in
 def testParser : Bool :=
-  let p := Char.ASCII.alpha
+  let p : SimpleParser Substring Char Char := Char.ASCII.alpha
   match p.run "hello" with
   | .ok _ _ => true
   | .error _ _ => false
