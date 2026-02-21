@@ -15,6 +15,32 @@ from ale_bench.tool_wrappers import run_cases
 class TestMLE:
     CODES_ROOT = Path(__file__).resolve().parent / "codes"
     INPUTS_ROOT = Path(__file__).resolve().parent / "inputs"
+    TEST_CASES = (
+        pytest.param(CodeLanguage.CPP17, JudgeVersion.V201907, id="cpp17-v201907"),
+        pytest.param(CodeLanguage.PYTHON, JudgeVersion.V201907, id="python-v201907"),
+        pytest.param(CodeLanguage.RUST, JudgeVersion.V201907, id="rust-v201907"),
+        pytest.param(CodeLanguage.CPP17, JudgeVersion.V202301, id="cpp17-v202301"),
+        pytest.param(CodeLanguage.CPP20, JudgeVersion.V202301, id="cpp20-v202301"),
+        pytest.param(CodeLanguage.CPP23, JudgeVersion.V202301, id="cpp23-v202301"),
+        pytest.param(CodeLanguage.PYTHON, JudgeVersion.V202301, id="python-v202301"),
+        pytest.param(CodeLanguage.RUST, JudgeVersion.V202301, id="rust-v202301"),
+        pytest.param(CodeLanguage.BASH, JudgeVersion.V202510, id="bash-v202510"),
+        pytest.param(CodeLanguage.CPP23, JudgeVersion.V202510, id="cpp23-v202510"),
+        pytest.param(CodeLanguage.CSHARP, JudgeVersion.V202510, id="csharp-v202510"),
+        pytest.param(CodeLanguage.FISH, JudgeVersion.V202510, id="fish-v202510"),
+        pytest.param(CodeLanguage.FORTRAN, JudgeVersion.V202510, id="fortran-v202510"),
+        pytest.param(CodeLanguage.GO, JudgeVersion.V202510, id="go-v202510"),
+        pytest.param(CodeLanguage.HASKELL, JudgeVersion.V202510, id="haskell-v202510"),
+        pytest.param(CodeLanguage.JAVASCRIPT, JudgeVersion.V202510, id="javascript-v202510"),
+        pytest.param(CodeLanguage.JULIA, JudgeVersion.V202510, id="julia-v202510"),
+        pytest.param(CodeLanguage.LEAN, JudgeVersion.V202510, id="lean-v202510"),
+        pytest.param(CodeLanguage.OCAML, JudgeVersion.V202510, id="ocaml-v202510"),
+        pytest.param(CodeLanguage.PERL, JudgeVersion.V202510, id="perl-v202510"),
+        pytest.param(CodeLanguage.PYPY, JudgeVersion.V202510, id="pypy-v202510"),
+        pytest.param(CodeLanguage.PYTHON, JudgeVersion.V202510, id="python-v202510"),
+        pytest.param(CodeLanguage.RUST, JudgeVersion.V202510, id="rust-v202510"),
+        pytest.param(CodeLanguage.TYPESCRIPT, JudgeVersion.V202510, id="typescript-v202510"),
+    )
 
     @pytest.fixture(scope="class")
     def ahc001_session(self) -> Session:
@@ -34,26 +60,27 @@ class TestMLE:
     @pytest.fixture(scope="class")
     def mle_codes(self) -> dict[CodeLanguage, str]:
         return {
+            CodeLanguage.BASH: (self.CODES_ROOT / "mle_bash.bash").read_text(),
             CodeLanguage.CPP17: (self.CODES_ROOT / "mle_cpp17.cpp").read_text(),
             CodeLanguage.CPP20: (self.CODES_ROOT / "mle_cpp20.cpp").read_text(),
             CodeLanguage.CPP23: (self.CODES_ROOT / "mle_cpp23.cpp").read_text(),
+            CodeLanguage.CSHARP: (self.CODES_ROOT / "mle_csharp.cs").read_text(),
+            CodeLanguage.FISH: (self.CODES_ROOT / "mle_fish.fish").read_text(),
+            CodeLanguage.FORTRAN: (self.CODES_ROOT / "mle_fortran.f90").read_text(),
+            CodeLanguage.GO: (self.CODES_ROOT / "mle_go.go").read_text(),
+            CodeLanguage.HASKELL: (self.CODES_ROOT / "mle_haskell.hs").read_text(),
+            CodeLanguage.JAVASCRIPT: (self.CODES_ROOT / "mle_javascript.js").read_text(),
+            CodeLanguage.JULIA: (self.CODES_ROOT / "mle_julia.jl").read_text(),
+            CodeLanguage.LEAN: (self.CODES_ROOT / "mle_lean.lean").read_text(),
+            CodeLanguage.OCAML: (self.CODES_ROOT / "mle_ocaml.ml").read_text(),
+            CodeLanguage.PERL: (self.CODES_ROOT / "mle_perl.pl").read_text(),
+            CodeLanguage.PYPY: (self.CODES_ROOT / "mle_pypy.py").read_text(),
             CodeLanguage.PYTHON: (self.CODES_ROOT / "mle_python.py").read_text(),
             CodeLanguage.RUST: (self.CODES_ROOT / "mle_rust.rs").read_text(),
+            CodeLanguage.TYPESCRIPT: (self.CODES_ROOT / "mle_typescript.ts").read_text(),
         }
 
-    @pytest.mark.parametrize(
-        ("code_language", "judge_version"),
-        [
-            pytest.param(CodeLanguage.CPP17, JudgeVersion.V201907, id="cpp17-v201907"),
-            pytest.param(CodeLanguage.CPP17, JudgeVersion.V202301, id="cpp17-v202301"),
-            pytest.param(CodeLanguage.CPP20, JudgeVersion.V202301, id="cpp20-v202301"),
-            pytest.param(CodeLanguage.CPP23, JudgeVersion.V202301, id="cpp23-v202301"),
-            pytest.param(CodeLanguage.PYTHON, JudgeVersion.V201907, id="python-v201907"),
-            pytest.param(CodeLanguage.PYTHON, JudgeVersion.V202301, id="python-v202301"),
-            pytest.param(CodeLanguage.RUST, JudgeVersion.V201907, id="rust-v201907"),
-            pytest.param(CodeLanguage.RUST, JudgeVersion.V202301, id="rust-v202301"),
-        ],
-    )
+    @pytest.mark.parametrize(("code_language", "judge_version"), TEST_CASES)
     def test_mle_batch(
         self,
         code_language: CodeLanguage,
@@ -96,19 +123,7 @@ class TestMLE:
                 f"{case_result.memory_usage} [bytes] <= {memory_limit} [bytes]"
             )
 
-    @pytest.mark.parametrize(
-        ("code_language", "judge_version"),
-        [
-            pytest.param(CodeLanguage.CPP17, JudgeVersion.V201907, id="cpp17-v201907"),
-            pytest.param(CodeLanguage.CPP17, JudgeVersion.V202301, id="cpp17-v202301"),
-            pytest.param(CodeLanguage.CPP20, JudgeVersion.V202301, id="cpp20-v202301"),
-            pytest.param(CodeLanguage.CPP23, JudgeVersion.V202301, id="cpp23-v202301"),
-            pytest.param(CodeLanguage.PYTHON, JudgeVersion.V201907, id="python-v201907"),
-            pytest.param(CodeLanguage.PYTHON, JudgeVersion.V202301, id="python-v202301"),
-            pytest.param(CodeLanguage.RUST, JudgeVersion.V201907, id="rust-v201907"),
-            pytest.param(CodeLanguage.RUST, JudgeVersion.V202301, id="rust-v202301"),
-        ],
-    )
+    @pytest.mark.parametrize(("code_language", "judge_version"), TEST_CASES)
     def test_mle_reactive(
         self,
         code_language: CodeLanguage,

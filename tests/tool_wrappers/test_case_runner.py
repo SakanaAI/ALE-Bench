@@ -45,6 +45,22 @@ TMP_CACHE_DIR = f"{ale_bench.constants.TMP_DIR}/cache"
         pytest.param("cpp23", CodeLanguage.CPP23, JudgeVersion.V202301, id="cpp23-v202301"),
         pytest.param("python", CodeLanguage.PYTHON, JudgeVersion.V202301, id="python-v202301"),
         pytest.param("rust", CodeLanguage.RUST, JudgeVersion.V202301, id="rust-v202301"),
+        pytest.param("bash", CodeLanguage.BASH, JudgeVersion.V202510, id="bash-v202510"),
+        pytest.param("cpp23", CodeLanguage.CPP23, JudgeVersion.V202510, id="cpp23-v202510"),
+        pytest.param("csharp", CodeLanguage.CSHARP, JudgeVersion.V202510, id="csharp-v202510"),
+        pytest.param("fish", CodeLanguage.FISH, JudgeVersion.V202510, id="fish-v202510"),
+        pytest.param("fortran", CodeLanguage.FORTRAN, JudgeVersion.V202510, id="fortran-v202510"),
+        pytest.param("go", CodeLanguage.GO, JudgeVersion.V202510, id="go-v202510"),
+        pytest.param("haskell", CodeLanguage.HASKELL, JudgeVersion.V202510, id="haskell-v202510"),
+        pytest.param("javascript", CodeLanguage.JAVASCRIPT, JudgeVersion.V202510, id="javascript-v202510"),
+        pytest.param("julia", CodeLanguage.JULIA, JudgeVersion.V202510, id="julia-v202510"),
+        pytest.param("lean", CodeLanguage.LEAN, JudgeVersion.V202510, id="lean-v202510"),
+        pytest.param("ocaml", CodeLanguage.OCAML, JudgeVersion.V202510, id="ocaml-v202510"),
+        pytest.param("perl", CodeLanguage.PERL, JudgeVersion.V202510, id="perl-v202510"),
+        pytest.param("pypy", CodeLanguage.PYPY, JudgeVersion.V202510, id="pypy-v202510"),
+        pytest.param("python", CodeLanguage.PYTHON, JudgeVersion.V202510, id="python-v202510"),
+        pytest.param("rust", CodeLanguage.RUST, JudgeVersion.V202510, id="rust-v202510"),
+        pytest.param("typescript", CodeLanguage.TYPESCRIPT, JudgeVersion.V202510, id="typescript-v202510"),
     ],
 )
 def test_setup_paths_compile(
@@ -99,6 +115,22 @@ def test_get_compile_volumes_nested() -> None:
         pytest.param(CodeLanguage.CPP23, JudgeVersion.V202301, "cpp23/202301", id="cpp23-v202301"),
         pytest.param(CodeLanguage.PYTHON, JudgeVersion.V202301, "python/202301", id="python-v202301"),
         pytest.param(CodeLanguage.RUST, JudgeVersion.V202301, "rust/202301", id="rust-v202301"),
+        pytest.param(CodeLanguage.BASH, JudgeVersion.V202510, "bash/202510", id="bash-v202510"),
+        pytest.param(CodeLanguage.CPP23, JudgeVersion.V202510, "cpp23/202510", id="cpp23-v202510"),
+        pytest.param(CodeLanguage.CSHARP, JudgeVersion.V202510, "csharp/202510", id="csharp-v202510"),
+        pytest.param(CodeLanguage.FISH, JudgeVersion.V202510, "fish/202510", id="fish-v202510"),
+        pytest.param(CodeLanguage.FORTRAN, JudgeVersion.V202510, "fortran/202510", id="fortran-v202510"),
+        pytest.param(CodeLanguage.GO, JudgeVersion.V202510, "go/202510", id="go-v202510"),
+        pytest.param(CodeLanguage.HASKELL, JudgeVersion.V202510, "haskell/202510", id="haskell-v202510"),
+        pytest.param(CodeLanguage.JAVASCRIPT, JudgeVersion.V202510, "javascript/202510", id="javascript-v202510"),
+        pytest.param(CodeLanguage.JULIA, JudgeVersion.V202510, "julia/202510", id="julia-v202510"),
+        pytest.param(CodeLanguage.LEAN, JudgeVersion.V202510, "lean/202510", id="lean-v202510"),
+        pytest.param(CodeLanguage.OCAML, JudgeVersion.V202510, "ocaml/202510", id="ocaml-v202510"),
+        pytest.param(CodeLanguage.PERL, JudgeVersion.V202510, "perl/202510", id="perl-v202510"),
+        pytest.param(CodeLanguage.PYPY, JudgeVersion.V202510, "pypy/202510", id="pypy-v202510"),
+        pytest.param(CodeLanguage.PYTHON, JudgeVersion.V202510, "python/202510", id="python-v202510"),
+        pytest.param(CodeLanguage.RUST, JudgeVersion.V202510, "rust/202510", id="rust-v202510"),
+        pytest.param(CodeLanguage.TYPESCRIPT, JudgeVersion.V202510, "typescript/202510", id="typescript-v202510"),
     ],
 )
 def test_build_compile_command(
@@ -367,6 +399,40 @@ def test_get_batch_run_volumes_nested() -> None:
                 f"./target/release/main < {ale_bench.constants.INPUT_FILE} > {ale_bench.constants.OUTPUT_FILE}; sync"
             ),
             id="rust-v202301",
+        ),
+        pytest.param(
+            CodeLanguage.CPP23,
+            JudgeVersion.V202510,
+            2.3,
+            (
+                "timeout 3.2 prlimit --cpu=3.1 "
+                f'/usr/bin/time -f "{ale_bench.constants.TIME_OUTPUT_FORMAT}" -o {ale_bench.constants.PROFILES_FILE} '
+                f"./a.out < {ale_bench.constants.INPUT_FILE} > {ale_bench.constants.OUTPUT_FILE}; sync"
+            ),
+            id="cpp23-v202510",
+        ),
+        pytest.param(
+            CodeLanguage.PYTHON,
+            JudgeVersion.V202510,
+            3.5,
+            (
+                "timeout 4.2 prlimit --cpu=4.1 "
+                f'/usr/bin/time -f "{ale_bench.constants.TIME_OUTPUT_FORMAT}" -o {ale_bench.constants.PROFILES_FILE} '
+                f"python3.13 -X int_max_str_digits=0 Main.py < {ale_bench.constants.INPUT_FILE} "
+                f"> {ale_bench.constants.OUTPUT_FILE}; sync"
+            ),
+            id="python-v202510",
+        ),
+        pytest.param(
+            CodeLanguage.RUST,
+            JudgeVersion.V202510,
+            8.0,
+            (
+                "timeout 9.2 prlimit --cpu=9.1 "
+                f'/usr/bin/time -f "{ale_bench.constants.TIME_OUTPUT_FORMAT}" -o {ale_bench.constants.PROFILES_FILE} '
+                f"./target/release/main < {ale_bench.constants.INPUT_FILE} > {ale_bench.constants.OUTPUT_FILE}; sync"
+            ),
+            id="rust-v202510",
         ),
     ],
 )
@@ -688,6 +754,43 @@ def test_get_reactive_judge_volumes_nested() -> None:
                 f"./target/release/main < {ale_bench.constants.INPUT_FILE} > {ale_bench.constants.OUTPUT_FILE}; sync"
             ),
             id="rust-v202301",
+        ),
+        pytest.param(
+            CodeLanguage.CPP23,
+            JudgeVersion.V202510,
+            2.4,
+            (
+                "timeout 3.2 prlimit --cpu=3.1 "
+                f"{ale_bench.constants.TESTER_BIN} "
+                f'/usr/bin/time -f "{ale_bench.constants.TIME_OUTPUT_FORMAT}" -o {ale_bench.constants.PROFILES_FILE} '
+                f"./a.out < {ale_bench.constants.INPUT_FILE} > {ale_bench.constants.OUTPUT_FILE}; sync"
+            ),
+            id="cpp23-v202510",
+        ),
+        pytest.param(
+            CodeLanguage.PYTHON,
+            JudgeVersion.V202510,
+            3.3,
+            (
+                "timeout 4.2 prlimit --cpu=4.1 "
+                f"{ale_bench.constants.TESTER_BIN} "
+                f'/usr/bin/time -f "{ale_bench.constants.TIME_OUTPUT_FORMAT}" -o {ale_bench.constants.PROFILES_FILE} '
+                f"python3.13 -X int_max_str_digits=0 Main.py < {ale_bench.constants.INPUT_FILE} "
+                f"> {ale_bench.constants.OUTPUT_FILE}; sync"
+            ),
+            id="python-v202510",
+        ),
+        pytest.param(
+            CodeLanguage.RUST,
+            JudgeVersion.V202510,
+            7.9,
+            (
+                "timeout 8.2 prlimit --cpu=8.1 "
+                f"{ale_bench.constants.TESTER_BIN} "
+                f'/usr/bin/time -f "{ale_bench.constants.TIME_OUTPUT_FORMAT}" -o {ale_bench.constants.PROFILES_FILE} '
+                f"./target/release/main < {ale_bench.constants.INPUT_FILE} > {ale_bench.constants.OUTPUT_FILE}; sync"
+            ),
+            id="rust-v202510",
         ),
     ],
 )

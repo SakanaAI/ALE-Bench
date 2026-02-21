@@ -34,6 +34,12 @@ session = ale_bench.start(
 - `run_visualization_server (bool, optional)`: If `True`, attempts to start a local visualization server for the problem. Defaults to `False`.
 - `visualization_server_port (int | None, optional)`: Specifies the port for the visualization server. If `None` and `run_visualization_server` is `True`, a free port between 9000-65535 will be automatically selected. Defaults to `None`.
 
+**Supported judge versions (`judge_version`) and languages (`code_language`):**
+- `201907`: `cpp17`, `python`, `rust`
+- `202301`: `cpp17`, `cpp20`, `cpp23`, `python`, `rust`
+- `202510`: `bash`, `cpp23`, `csharp`, `fish`, `fortran`, `go`, `haskell`, `javascript`, `julia`, `lean`, `ocaml`, `perl`, `pypy`, `python`, `rust`, `typescript`
+- `judge_version=None` currently defaults to `202301`.
+
 ## Core Methods
 
 Each method is described below with its parameters and return values.
@@ -45,7 +51,7 @@ Compiles (if needed) and runs arbitrary code inside the language-specific Docker
 - `input_str (str)`: Standard input to the program.
 - `code (str)`: The source code to run.
 - `code_language (CodeLanguage | str)`: The programming language of the code. Can be a `CodeLanguage` enum member or its string representation (e.g., "python", "cpp17").
-- `judge_version (JudgeVersion | str, optional)`: The version of the judge to use. Defaults to `None` (uses the latest or problem-specific default).
+- `judge_version (JudgeVersion | str, optional)`: The version of the judge to use. Defaults to `None` (`202301`).
 - `time_limit (float, optional)`: Custom time limit for execution in seconds. Defaults to `None` (uses problem-specific default).
 - `memory_limit (int | str, optional)`: Custom memory limit for execution (e.g., `256_000_000` for 256MB, or "256m"). Defaults to `None` (uses problem-specific default).
 
@@ -71,7 +77,7 @@ Evaluates the provided code against the given input string(s). This method is in
 - `input_str (list[str] | str)`: The input string or list of input strings for the evaluation.
 - `code (str)`: The source code to be evaluated.
 - `code_language (CodeLanguage | str)`: The programming language of the code. Can be a `CodeLanguage` enum member or its string representation (e.g., "python", "cpp17").
-- `judge_version (JudgeVersion | str, optional)`: The version of the judge to use. Defaults to `None` (uses the latest or problem-specific default).
+- `judge_version (JudgeVersion | str, optional)`: The version of the judge to use. Defaults to `None` (`202301`).
 - `time_limit (float, optional)`: Custom time limit for execution in seconds. Defaults to `None` (uses problem-specific default).
 - `memory_limit (int | str, optional)`: Custom memory limit for execution (e.g., `256_000_000` for 256MB, or "256m"). Defaults to `None` (uses problem-specific default).
 - `skip_local_visualization (bool, optional)`: If `True`, skips generating local visualizations even if available. Defaults to `False`.
@@ -86,7 +92,7 @@ A convenience method that first generates test case(s) using specified seeds and
 **Parameters:**
 - `code (str)`: The source code to be evaluated.
 - `code_language (CodeLanguage | str)`: The programming language of the code.
-- `judge_version (JudgeVersion | str, optional)`: The judge version. Defaults to `None`.
+- `judge_version (JudgeVersion | str, optional)`: The judge version. Defaults to `None` (`202301`).
 - `seed (list[int] | int, optional)`: Seed(s) for case generation. Defaults to `0`.
 - `time_limit (float, optional)`: Custom time limit in seconds. Defaults to `None`.
 - `memory_limit (int | str, optional)`: Custom memory limit. Defaults to `None`.
@@ -114,7 +120,7 @@ Evaluates the provided code against the predefined set of public test cases for 
 **Parameters:**
 - `code (str)`: The source code to evaluate.
 - `code_language (CodeLanguage | str)`: The programming language of the code.
-- `judge_version (JudgeVersion | str, optional)`: The judge version. Defaults to `None`.
+- `judge_version (JudgeVersion | str, optional)`: The judge version. Defaults to `None` (`202301`).
 - `skip_local_visualization (bool, optional)`: If `True`, skips local visualizations. Defaults to `True` for public evaluations.
 
 **Returns:**
@@ -127,7 +133,7 @@ Evaluates the provided code against the predefined set of private test cases. Th
 **Parameters:**
 - `code (str)`: The source code to evaluate.
 - `code_language (CodeLanguage | str)`: The programming language of the code.
-- `judge_version (JudgeVersion | str, optional)`: The judge version. Defaults to `None`.
+- `judge_version (JudgeVersion | str, optional)`: The judge version. Defaults to `None` (`202301`).
 
 **Returns:**
 - `Result`: A `Result` object detailing the performance on private test cases.

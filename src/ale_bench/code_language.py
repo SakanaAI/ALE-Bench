@@ -3,16 +3,34 @@
 from enum import Enum
 
 import ale_bench.constants
+from ale_bench.judge_command_profiles import (
+    JUDGE_LANGUAGE_PROFILES,
+    UNSUPPORTED_LANGUAGES_BY_JUDGE,
+    JudgeLanguageProfile,
+)
 
 
 class CodeLanguage(str, Enum):
     """Enum for code languages."""
 
-    PYTHON = "python"
+    BASH = "bash"
     CPP17 = "cpp17"
     CPP20 = "cpp20"
     CPP23 = "cpp23"
+    CSHARP = "csharp"
+    FISH = "fish"
+    FORTRAN = "fortran"
+    GO = "go"
+    HASKELL = "haskell"
+    JAVASCRIPT = "javascript"
+    JULIA = "julia"
+    LEAN = "lean"
+    OCAML = "ocaml"
+    PERL = "perl"
+    PYPY = "pypy"
+    PYTHON = "python"
     RUST = "rust"
+    TYPESCRIPT = "typescript"
     # NOTE: Add more code languages here
 
 
@@ -21,7 +39,45 @@ class JudgeVersion(str, Enum):
 
     V201907 = "201907"
     V202301 = "202301"
+    V202510 = "202510"
     # NOTE: Add more judge versions here
+
+
+LANGUAGE_DISPLAY_NAME: dict[CodeLanguage, str] = {
+    CodeLanguage.BASH: "Bash",
+    CodeLanguage.CPP17: "C++17",
+    CodeLanguage.CPP20: "C++20",
+    CodeLanguage.CPP23: "C++23",
+    CodeLanguage.CSHARP: "C#",
+    CodeLanguage.FISH: "Fish",
+    CodeLanguage.FORTRAN: "Fortran",
+    CodeLanguage.GO: "Go",
+    CodeLanguage.HASKELL: "Haskell",
+    CodeLanguage.JAVASCRIPT: "JavaScript",
+    CodeLanguage.JULIA: "Julia",
+    CodeLanguage.LEAN: "Lean",
+    CodeLanguage.OCAML: "OCaml",
+    CodeLanguage.PERL: "Perl",
+    CodeLanguage.PYPY: "PyPy",
+    CodeLanguage.PYTHON: "Python",
+    CodeLanguage.RUST: "Rust",
+    CodeLanguage.TYPESCRIPT: "TypeScript",
+}
+
+
+def _get_language_profile(code_language: CodeLanguage, judge_version: JudgeVersion) -> JudgeLanguageProfile:
+    """Get command/file profile for a language and judge version."""
+    profile_by_lang = JUDGE_LANGUAGE_PROFILES.get(judge_version.value)
+    if profile_by_lang is None:
+        msg = f"Unknown judge version: {judge_version.value}"
+        raise ValueError(msg)
+    if code_language.value not in profile_by_lang:
+        if code_language.value in UNSUPPORTED_LANGUAGES_BY_JUDGE.get(judge_version.value, set()):
+            msg = f"{LANGUAGE_DISPLAY_NAME[code_language]} is not supported in judge version {judge_version.value}."
+            raise ValueError(msg)
+        msg = f"Unknown code language or judge version: {code_language}, {judge_version}"
+        raise ValueError(msg)
+    return profile_by_lang[code_language.value]
 
 
 def get_docker_image_name(code_language: CodeLanguage, judge_version: JudgeVersion) -> str:
@@ -38,9 +94,7 @@ def get_docker_image_name(code_language: CodeLanguage, judge_version: JudgeVersi
         ValueError: If the code language is not supported in the given judge version.
 
     """
-    if (code_language in (CodeLanguage.CPP20, CodeLanguage.CPP23)) and judge_version == JudgeVersion.V201907:
-        msg = f"`{code_language.value}` are not supported in judge version 201907."
-        raise ValueError(msg)
+    _get_language_profile(code_language, judge_version)
     return f"{ale_bench.constants.DOCKER_HUB_REPO}:{code_language.value}-{judge_version.value}"
 
 
@@ -58,49 +112,7 @@ def get_compile_command(code_language: CodeLanguage, judge_version: JudgeVersion
         ValueError: If the code language is not supported in the given judge version.
 
     """
-    if code_language == CodeLanguage.CPP17:
-        if judge_version in (JudgeVersion.V201907, JudgeVersion.V202301):
-            return (
-                "g++ -std=gnu++17 -Wall -Wextra -O2 -DONLINE_JUDGE "
-                "-I/opt/boost/gcc/include -L/opt/boost/gcc/lib -I/opt/ac-library -o a.out Main.cpp"
-            )
-    elif code_language == CodeLanguage.CPP20:
-        if judge_version == JudgeVersion.V201907:
-            msg = "C++20 is not supported in judge version 201907."
-            raise ValueError(msg)
-        if judge_version == JudgeVersion.V202301:
-            return (
-                "g++-12 -std=gnu++20 -O2 -DONLINE_JUDGE -DATCODER -Wall -Wextra -mtune=native "
-                "-march=native -fconstexpr-depth=2147483647 -fconstexpr-loop-limit=2147483647 "
-                "-fconstexpr-ops-limit=2147483647 -I/opt/ac-library -I/opt/boost/gcc/include "
-                "-L/opt/boost/gcc/lib -o a.out Main.cpp -lgmpxx -lgmp -I/usr/include/eigen3"
-            )
-    elif code_language == CodeLanguage.CPP23:
-        if judge_version == JudgeVersion.V201907:
-            msg = "C++23 is not supported in judge version 201907."
-            raise ValueError(msg)
-        if judge_version == JudgeVersion.V202301:
-            return (
-                "g++-12 -std=gnu++2b -O2 -DONLINE_JUDGE -DATCODER -Wall -Wextra -mtune=native "
-                "-march=native -fconstexpr-depth=2147483647 -fconstexpr-loop-limit=2147483647 "
-                "-fconstexpr-ops-limit=2147483647 -I/opt/ac-library -I/opt/boost/gcc/include "
-                "-L/opt/boost/gcc/lib -o a.out Main.cpp -lgmpxx -lgmp -I/usr/include/eigen3"
-            )
-    elif code_language == CodeLanguage.PYTHON:
-        if judge_version == JudgeVersion.V201907:
-            # NOTE: we added `-m py_compile` to compile but it was not used in the original judge
-            return "python3.8 -m py_compile Main.py; python3.8 Main.py ONLINE_JUDGE 2> /dev/null"
-        if judge_version == JudgeVersion.V202301:
-            return "python3.11 -m py_compile Main.py; python3.11 Main.py ONLINE_JUDGE 2> /dev/null"
-    elif code_language == CodeLanguage.RUST:
-        if judge_version == JudgeVersion.V201907:
-            # NOTE: we added `RUST_BACKTRACE=0` but it was not used in the original judge (v201907)
-            return "RUST_BACKTRACE=0 cargo build --release --offline --quiet"
-        if judge_version == JudgeVersion.V202301:
-            return "RUST_BACKTRACE=0 cargo build --release --quiet --offline"
-    # NOTE: Add more code languages here
-    msg = f"Unknown code language or judge version: {code_language}, {judge_version}"
-    raise ValueError(msg)
+    return _get_language_profile(code_language, judge_version).compile_command
 
 
 def get_run_command(code_language: CodeLanguage, judge_version: JudgeVersion) -> str:
@@ -117,31 +129,7 @@ def get_run_command(code_language: CodeLanguage, judge_version: JudgeVersion) ->
         ValueError: If the code language is not supported in the given judge version.
 
     """
-    if code_language == CodeLanguage.CPP17:
-        if judge_version in (JudgeVersion.V201907, JudgeVersion.V202301):
-            return "./a.out"
-    elif code_language == CodeLanguage.CPP20:
-        if judge_version == JudgeVersion.V201907:
-            msg = "C++20 is not supported in judge version 201907."
-            raise ValueError(msg)
-        if judge_version == JudgeVersion.V202301:
-            return "./a.out"
-    elif code_language == CodeLanguage.CPP23:
-        if judge_version == JudgeVersion.V201907:
-            msg = "C++23 is not supported in judge version 201907."
-            raise ValueError(msg)
-        if judge_version == JudgeVersion.V202301:
-            return "./a.out"
-    elif code_language == CodeLanguage.PYTHON:
-        if judge_version == JudgeVersion.V201907:
-            return "python3.8 Main.py"
-        if judge_version == JudgeVersion.V202301:
-            return "python3.11 Main.py"
-    elif code_language == CodeLanguage.RUST and judge_version in (JudgeVersion.V201907, JudgeVersion.V202301):
-        return "./target/release/main"
-    # NOTE: Add more code languages here
-    msg = f"Unknown code language or judge version: {code_language}, {judge_version}"
-    raise ValueError(msg)
+    return _get_language_profile(code_language, judge_version).run_command
 
 
 def get_submission_file_path(code_language: CodeLanguage, judge_version: JudgeVersion) -> str:
@@ -158,29 +146,7 @@ def get_submission_file_path(code_language: CodeLanguage, judge_version: JudgeVe
         ValueError: If the code language is not supported in the given judge version.
 
     """
-    if code_language == CodeLanguage.CPP17:
-        if judge_version in (JudgeVersion.V201907, JudgeVersion.V202301):
-            return "Main.cpp"
-    elif code_language == CodeLanguage.CPP20:
-        if judge_version == JudgeVersion.V201907:
-            msg = "C++20 is not supported in judge version 201907."
-            raise ValueError(msg)
-        if judge_version == JudgeVersion.V202301:
-            return "Main.cpp"
-    elif code_language == CodeLanguage.CPP23:
-        if judge_version == JudgeVersion.V201907:
-            msg = "C++23 is not supported in judge version 201907."
-            raise ValueError(msg)
-        if judge_version == JudgeVersion.V202301:
-            return "Main.cpp"
-    elif code_language == CodeLanguage.PYTHON:
-        if judge_version in (JudgeVersion.V201907, JudgeVersion.V202301):
-            return "Main.py"
-    elif code_language == CodeLanguage.RUST and judge_version in (JudgeVersion.V201907, JudgeVersion.V202301):
-        return "src/main.rs"
-    # NOTE: Add more code languages here
-    msg = f"Unknown code language or judge version: {code_language}, {judge_version}"
-    raise ValueError(msg)
+    return _get_language_profile(code_language, judge_version).submission_file_path
 
 
 def get_object_file_path(code_language: CodeLanguage, judge_version: JudgeVersion) -> str:
@@ -197,28 +163,4 @@ def get_object_file_path(code_language: CodeLanguage, judge_version: JudgeVersio
         ValueError: If the code language is not supported in the given judge version.
 
     """
-    if code_language == CodeLanguage.CPP17:
-        if judge_version in (JudgeVersion.V201907, JudgeVersion.V202301):
-            return "a.out"
-    elif code_language == CodeLanguage.CPP20:
-        if judge_version == JudgeVersion.V201907:
-            msg = "C++20 is not supported in judge version 201907."
-            raise ValueError(msg)
-        if judge_version == JudgeVersion.V202301:
-            return "a.out"
-    elif code_language == CodeLanguage.CPP23:
-        if judge_version == JudgeVersion.V201907:
-            msg = "C++23 is not supported in judge version 201907."
-            raise ValueError(msg)
-        if judge_version == JudgeVersion.V202301:
-            return "a.out"
-    elif code_language == CodeLanguage.PYTHON:
-        if judge_version == JudgeVersion.V201907:
-            return "__pycache__/Main.cpython-38.pyc"
-        if judge_version == JudgeVersion.V202301:
-            return "__pycache__/Main.cpython-311.pyc"
-    elif code_language == CodeLanguage.RUST and judge_version in (JudgeVersion.V201907, JudgeVersion.V202301):
-        return "target/release/main"
-    # NOTE: Add more code languages here
-    msg = f"Unknown code language or judge version: {code_language}, {judge_version}"
-    raise ValueError(msg)
+    return _get_language_profile(code_language, judge_version).object_file_path

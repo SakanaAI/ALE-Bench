@@ -541,7 +541,7 @@ RUN set -eux; \
     tar -xf v${FORTRAN_STDLIB_VERSION}.tar.gz; \
     printf '\n\n[install]\nlibrary = true\n' >> stdlib-${FORTRAN_STDLIB_VERSION}/fpm.toml; \
     cd /tmp/fortran/stdlib-${FORTRAN_STDLIB_VERSION}; \
-    python3 config/fypp_deployment.py; \
+    /usr/bin/python3 config/fypp_deployment.py; \
     FPM_FC=gfortran-14 FPM_FFLAGS="-O2 -cpp -std=f2023" fpm build --profile release; \
     FPM_FC=gfortran-14 FPM_FFLAGS="-O2 -cpp -std=f2023" fpm install --profile release --prefix /usr/local; \
     ldconfig; \

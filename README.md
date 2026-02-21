@@ -148,7 +148,8 @@ parsed_content = ale_bench.utils.parse_statement(
 agent_response = my_agent.get_llm_response(initial_messages)
 extracted_code = my_agent.parse_code_from_response(agent_response)
 detected_language = my_agent.detect_code_language(extracted_code)
-# Ensure detected_language is one of: "cpp17", "cpp20", "cpp23", "python", "rust"
+# Ensure detected_language is supported by your selected judge_version. (e.g., "cpp23")
+# Refer to docs/session_object.md for supported languages and judge versions.
 
 # Evaluate against public test cases
 public_result = session.public_eval(extracted_code, code_language=detected_language)
