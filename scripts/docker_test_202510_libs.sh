@@ -310,7 +310,9 @@ USER_BUILD_FLAGS=(
 "-l_lightgbm"
 "-ltorch"
 "-ltorch_cpu"
-"-lc10")
+"-lc10"
+"-lboost_exception"
+"-lstdc++")
 g++ ./Main.cpp -o a.out "${USER_BUILD_FLAGS[@]}"
 ./a.out
 CMD
