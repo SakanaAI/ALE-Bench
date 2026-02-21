@@ -32,7 +32,8 @@ import Data.WideWord.Word128 (Word128)
 import Data.Word (Word64)
 import Numeric.LinearAlgebra (Matrix, ident, tr, (><))
 import System.IO (hFlush, stdout)
-import Text.Megaparsec (parse, some)
+import Data.Void (Void)
+import Text.Megaparsec (Parsec, parse, some)
 import Text.Megaparsec.Char (digitChar)
 import Text.Regex.TDFA ((=~))
 
@@ -122,7 +123,7 @@ main = do
   assert "fgl" (sort reached == [1, 2, 3])
 
   -- megaparsec
-  let parsed = parse (some digitChar) "" ("12345" :: String)
+  let parsed = parse (some digitChar :: Parsec Void String String) "" "12345"
   assert "megaparsec" (parsed == Right "12345")
 
   -- regex-tdfa

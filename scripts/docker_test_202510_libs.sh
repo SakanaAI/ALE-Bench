@@ -310,10 +310,8 @@ USER_BUILD_FLAGS=(
 "-l_lightgbm"
 "-ltorch"
 "-ltorch_cpu"
-"-lc10"
-"-lboost_exception"
-"-lstdc++")
-g++ ./Main.cpp -o a.out "${USER_BUILD_FLAGS[@]}"
+"-lc10")
+g++ ./Main.cpp -o a.out "${USER_BUILD_FLAGS[@]}" -lboost_exception -lstdc++
 ./a.out
 CMD
         ;;
@@ -321,7 +319,10 @@ CMD
         cat <<'CMD'
 export DOTNET_ROOT=/opt/dotnet
 export PATH=/opt/dotnet:/opt/dotnet/tools:$PATH
+export DOTNET_EnableWriteXorExecute=0
+export DOTNET_CLI_TELEMETRY_OPTOUT=1
 cp /repo/dockerfiles/tests/csharp/Main.cs /workdir/Main.cs
+dotnet restore --locked-mode --nologo -v q
 dotnet publish -c Release -o /workdir/publish --no-restore --nologo -v q --tl:off
 /workdir/publish/Main
 CMD
