@@ -156,7 +156,7 @@ RUN set -eux; \
         threading=single \
         variant=release \
         cflags="-w" \
-        cxxflags="-std=gnu++23 -w" \
+        cxxflags="-w" \
         -j"$(nproc)" -d0 \
         install; \
     rm -rf /tmp/boost
@@ -176,6 +176,8 @@ RUN set -eux; \
     tar -xf abseil.tar.gz; \
     cd "abseil-cpp-${ABSEIL_VERSION}"; \
     cmake -S . -B build -G Ninja \
+        -DCMAKE_C_COMPILER="${GCC_DIR}/bin/gcc" \
+        -DCMAKE_CXX_COMPILER="${GCC_DIR}/bin/g++" \
         -DCMAKE_BUILD_TYPE=Release \
         -DCMAKE_INSTALL_PREFIX="${GCC_DIR}" \
         -DABSL_ENABLE_INSTALL=ON \
@@ -203,6 +205,8 @@ RUN set -eux; \
     tar -xf ud.tar.gz; \
     cd "unordered_dense-${UNORDERED_DENSE_VERSION}"; \
     cmake -S . -B build -G Ninja \
+        -DCMAKE_C_COMPILER="${GCC_DIR}/bin/gcc" \
+        -DCMAKE_CXX_COMPILER="${GCC_DIR}/bin/g++" \
         -DCMAKE_BUILD_TYPE=Release \
         -DCMAKE_INSTALL_PREFIX="${GCC_DIR}" \
         -DCMAKE_EXE_LINKER_FLAGS="-fuse-ld=lld" \
@@ -226,6 +230,8 @@ RUN set -eux; \
     tar -xf z3.tar.gz; \
     cd z3-*; \
     cmake -S . -B build -G Ninja \
+        -DCMAKE_C_COMPILER="${GCC_DIR}/bin/gcc" \
+        -DCMAKE_CXX_COMPILER="${GCC_DIR}/bin/g++" \
         -DCMAKE_BUILD_TYPE=Release \
         -DCMAKE_INSTALL_PREFIX="${GCC_DIR}" \
         -DZ3_BUILD_TEST_EXECUTABLES=OFF \
@@ -257,6 +263,8 @@ RUN set -eux; \
     mkdir -p build; \
     cd build; \
     cmake -G Ninja \
+        -DCMAKE_C_COMPILER="${GCC_DIR}/bin/gcc" \
+        -DCMAKE_CXX_COMPILER="${GCC_DIR}/bin/g++" \
         -DBUILD_CLI:BOOL=OFF \
         -DBUILD_STATIC_LIB=ON \
         -DUSE_HOMEBREW_FALLBACK=OFF \
@@ -277,6 +285,12 @@ RUN set -eux; \
     mkdir -p build; \
     cd build; \
     cmake -G Ninja \
+        -DCMAKE_C_COMPILER="${GCC_DIR}/bin/gcc" \
+        -DCMAKE_CXX_COMPILER="${GCC_DIR}/bin/g++" \
+        -DLINK_FLAGS:STRING="-fuse-ld=lld" \
+        -DCFLAGS:STRING="-w" \
+        -DCXXFLAGS:STRING="-w" \
+        -DCMAKE_INSTALL_MESSAGE:STRING=NEVER \
         -DBUILD_CXX:BOOL=ON \
         -DBUILD_BZip2:BOOL=ON -DBUILD_ZLIB:BOOL=ON -DBUILD_Protobuf:BOOL=ON -DBUILD_re2:BOOL=ON \
         -DUSE_COINOR:BOOL=ON -DBUILD_CoinUtils:BOOL=ON -DBUILD_Osi:BOOL=ON -DBUILD_Clp:BOOL=ON -DBUILD_Cgl:BOOL=ON -DBUILD_Cbc:BOOL=ON \
