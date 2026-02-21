@@ -23,7 +23,8 @@ RUN set -eux; \
 WORKDIR /workdir
 
 RUN set -eux; \
-    curl -fsSL https://install.julialang.org | JULIAUP_DEPOT_PATH=${JULIAUP_DEPOT_PATH} sh -s -- --yes --default-channel "${JULIA_VERSION}"; \
+    curl -fsSL https://install.julialang.org \
+        | sh -s -- --yes --default-channel "${JULIA_VERSION}" --path "${JULIAUP_DEPOT_PATH}"; \
     export PATH="${JULIAUP_DEPOT_PATH}/bin:${PATH}"; \
     julia --version; \
     juliaup config backgroundselfupdateinterval 0; \

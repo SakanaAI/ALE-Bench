@@ -68,8 +68,7 @@ RUN set -eux; \
         python3 fypp python3-joblib \
         gfortran gfortran-14 libstdc++-14-dev libeigen3-dev \
         libc6 libgcc-s1 libgssapi-krb5-2 libssl3 libstdc++6 libunwind8 zlib1g \
-        libffi8ubuntu1 libgmp10 libncurses6 libtinfo6 llvm-15 \
-        libgsl0-dev libatlas-base-dev libglpk-dev \
+        libffi8 libgmp10 libncurses6 libtinfo6 llvm-19 libgsl-dev libglpk-dev \
         opam gettext libpcre2-dev libgeos-dev meson; \
     rm -rf /var/lib/apt/lists/*
 
@@ -448,7 +447,8 @@ RUN set -eux; \
 
 # --- Julia 1.11.6 ----
 RUN set -eux; \
-    curl -fsSL https://install.julialang.org | JULIAUP_DEPOT_PATH=${JULIAUP_DEPOT_PATH} sh -s -- --yes --default-channel "${JULIA_VERSION}"; \
+    curl -fsSL https://install.julialang.org \
+        | sh -s -- --yes --default-channel "${JULIA_VERSION}" --path "${JULIAUP_DEPOT_PATH}"; \
     export PATH="${JULIAUP_DEPOT_PATH}/bin:${PATH}"; \
     julia --version; \
     juliaup config backgroundselfupdateinterval 0; \

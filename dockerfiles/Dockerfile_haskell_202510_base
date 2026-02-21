@@ -19,9 +19,9 @@ RUN set -eux; \
     apt-get update; \
     apt-get install -y --no-install-recommends \
         build-essential ca-certificates curl time \
-        libffi-dev libffi8ubuntu1 libgmp-dev libgmp10 \
-        libncurses-dev libncurses6 libtinfo6 llvm-15 \
-        libgsl0-dev liblapack-dev libatlas-base-dev libglpk-dev; \
+        libffi-dev libffi8 libgmp-dev libgmp10 \
+        libncurses-dev libncurses6 libtinfo6 llvm-19 \
+        libgsl-dev liblapack-dev libopenblas-dev libglpk-dev; \
     rm -rf /var/lib/apt/lists/*
 
 ENV PATH="${GHCUP_HOME}/bin:${PATH}"
