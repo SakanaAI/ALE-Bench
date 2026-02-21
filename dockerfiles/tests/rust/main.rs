@@ -17,7 +17,7 @@ use proconio::source::once::OnceSource;
 use rand::Rng;
 use regex::Regex;
 use rustc_hash::FxHashMap;
-use smallvec::smallvec;
+use smallvec::{smallvec, SmallVec};
 use superslice::Ext;
 
 static GLOBAL_VAL: Lazy<i32> = Lazy::new(|| 42);
@@ -48,7 +48,7 @@ fn main() {
     assert!(re.is_match("aaab"));
 
     // smallvec
-    let sv = smallvec![1_u32, 2, 3, 4];
+    let sv: SmallVec<[u32; 4]> = smallvec![1_u32, 2, 3, 4];
     assert_eq!(sv.len(), 4);
 
     // petgraph
