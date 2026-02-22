@@ -9,8 +9,8 @@ ENV DEBIAN_FRONTEND=noninteractive \
     TZ=Etc/UTC \
     LANG=C.UTF-8 \
     LC_ALL=C.UTF-8 \
-    JULIAUP_DEPOT_PATH=/opt/juliaup \
-    JULIA_DEPOT_PATH=/opt/julia
+    JULIAUP_DEPOT_PATH=/workdir/.juliaup \
+    JULIA_DEPOT_PATH=/workdir/.julia
 
 ARG JULIA_VERSION=1.11.6
 
@@ -19,6 +19,9 @@ RUN set -eux; \
     apt-get install -y --no-install-recommends \
         ca-certificates curl time; \
     rm -rf /var/lib/apt/lists/*
+
+RUN set -eux; \
+    mkdir -p /workdir "${JULIAUP_DEPOT_PATH}" "${JULIA_DEPOT_PATH}"
 
 WORKDIR /workdir
 

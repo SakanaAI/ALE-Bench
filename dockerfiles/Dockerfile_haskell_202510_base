@@ -10,7 +10,10 @@ ENV DEBIAN_FRONTEND=noninteractive \
     LANG=C.UTF-8 \
     LC_ALL=C.UTF-8 \
     GHCUP_INSTALL_BASE_PREFIX=/opt \
-    GHCUP_HOME=/opt/.ghcup
+    GHCUP_HOME=/opt/.ghcup \
+    XDG_CONFIG_HOME=/workdir/.config \
+    XDG_CACHE_HOME=/workdir/.cache \
+    XDG_STATE_HOME=/workdir/.local/state
 
 ARG GHC_VERSION=9.8.4
 ARG CABAL_VERSION=3.14.2.0
@@ -31,6 +34,9 @@ RUN set -eux; \
     rm -rf /var/lib/apt/lists/*
 
 ENV PATH="${GHCUP_HOME}/bin:${PATH}"
+
+RUN set -eux; \
+    mkdir -p /workdir "${XDG_CONFIG_HOME}" "${XDG_CACHE_HOME}" "${XDG_STATE_HOME}"
 
 WORKDIR /workdir
 

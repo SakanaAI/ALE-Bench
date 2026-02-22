@@ -14,8 +14,17 @@ ENV DEBIAN_FRONTEND=noninteractive \
     CPATH= \
     PIP_DISABLE_PIP_VERSION_CHECK=1 \
     PIP_NO_CACHE_DIR=1 \
-    JULIAUP_DEPOT_PATH=/opt/juliaup \
-    JULIA_DEPOT_PATH=/opt/julia \
+    JULIAUP_DEPOT_PATH=/workdir/.juliaup \
+    JULIA_DEPOT_PATH=/workdir/.julia \
+    GOPATH=/workdir/.go \
+    GOMODCACHE=/workdir/.go/pkg/mod \
+    GOCACHE=/workdir/.go/.cache/go-build \
+    DOTNET_CLI_HOME=/workdir/.dotnet \
+    NUGET_PACKAGES=/workdir/.nuget/packages \
+    XDG_CONFIG_HOME=/workdir/.config \
+    XDG_CACHE_HOME=/workdir/.cache \
+    XDG_STATE_HOME=/workdir/.local/state \
+    ELAN_HOME=/workdir/.elan \
     DOTNET_EnableWriteXorExecute=0 \
     GHCUP_INSTALL_BASE_PREFIX=/opt \
     GHCUP_HOME=/opt/.ghcup
@@ -77,7 +86,7 @@ RUN set -eux; \
     rm -rf /var/lib/apt/lists/*
 
 RUN set -eux; \
-    mkdir -p /workdir
+    mkdir -p /workdir "${GOMODCACHE}" "${GOCACHE}" "${JULIAUP_DEPOT_PATH}" "${JULIA_DEPOT_PATH}" "${DOTNET_CLI_HOME}" "${NUGET_PACKAGES}" "${XDG_CONFIG_HOME}" "${XDG_CACHE_HOME}" "${XDG_STATE_HOME}" "${ELAN_HOME}"
 
 WORKDIR /workdir
 
@@ -633,7 +642,7 @@ RUN set -eux; \
     rm -rf /tmp/fish
 
 # ---- Lean 4.22.0 ----
-ENV PATH="/root/.elan/bin:${PATH}"
+ENV PATH="${ELAN_HOME}/bin:${PATH}"
 
 COPY ./lean_202510_Main.lean /tmp/Main.lean
 COPY ./lean_202510_lakefile.toml.template /tmp/lakefile.toml.template

@@ -8,7 +8,10 @@ ENV DEBIAN_FRONTEND=noninteractive \
     DEBCONF_NONINTERACTIVE_SEEN=true \
     TZ=Etc/UTC \
     LANG=C.UTF-8 \
-    LC_ALL=C.UTF-8
+    LC_ALL=C.UTF-8 \
+    GOPATH=/workdir/.go \
+    GOMODCACHE=/workdir/.go/pkg/mod \
+    GOCACHE=/workdir/.go/.cache/go-build
 
 ARG TARGETARCH
 ARG GO_VERSION=1.25.1
@@ -18,6 +21,9 @@ RUN set -eux; \
     apt-get install -y --no-install-recommends \
         ca-certificates curl tar time; \
     rm -rf /var/lib/apt/lists/*
+
+RUN set -eux; \
+    mkdir -p /workdir "${GOMODCACHE}" "${GOCACHE}"
 
 WORKDIR /workdir
 

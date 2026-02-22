@@ -11,6 +11,8 @@ Options:
   --tag <TAG>               Image tag suffix (default: 202510)
   --langs <CSV>             Comma-separated languages to test
   --heavy-seconds <N>       Heavy workload duration in seconds (default: 2)
+  --uid, -u <UID>           User ID for docker run (default: 0)
+  --gid, -g <GID>           Group ID for docker run (default: 0)
   --quiet, -q               Suppress stderr on success
   --list                    Show supported languages and exit
   -h, --help                Show this help
@@ -50,6 +52,8 @@ TAG="202510"
 HEAVY_SECONDS="2"
 QUIET=0
 LANGS=("${SUPPORTED_LANGS[@]}")
+USER_ID=0
+GROUP_ID=0
 
 contains_lang() {
     local target="$1"
@@ -88,6 +92,14 @@ while [[ $# -gt 0 ]]; do
         printf '%s\n' "${SUPPORTED_LANGS[@]}"
         exit 0
         ;;
+    -u | --uid)
+        USER_ID="${2:-}"
+        shift 2
+        ;;
+    -g | --gid)
+        GROUP_ID="${2:-}"
+        shift 2
+        ;;
     -h | --help)
         usage
         exit 0
@@ -112,6 +124,16 @@ fi
 
 if ! [[ "${HEAVY_SECONDS}" =~ ^[0-9]+$ ]] || [[ "${HEAVY_SECONDS}" -lt 1 ]]; then
     echo "Invalid --heavy-seconds value: ${HEAVY_SECONDS} (must be integer >= 1)" >&2
+    exit 1
+fi
+
+if ! [[ "${USER_ID}" =~ ^[0-9]+$ ]]; then
+    echo "Invalid --uid value: ${USER_ID} (must be integer >= 0)" >&2
+    exit 1
+fi
+
+if ! [[ "${GROUP_ID}" =~ ^[0-9]+$ ]]; then
+    echo "Invalid --gid value: ${GROUP_ID} (must be integer >= 0)" >&2
     exit 1
 fi
 
@@ -509,11 +531,16 @@ run_one() {
         --cpus=1 \
         --memory=2g \
         --network=none \
+        --user "${USER_ID}:${GROUP_ID}" \
+        -e HOME=/workdir \
+        -e XDG_CACHE_HOME=/workdir/.cache \
+        -e XDG_CONFIG_HOME=/workdir/.config \
+        -e XDG_DATA_HOME=/workdir/.local/share \
         -e HEAVY_SECONDS="${HEAVY_SECONDS}" \
         -v "${REPO_ROOT}:/repo:ro" \
         -w /workdir \
         "${image}" \
-        bash -lc "set -Eeuo pipefail; ${cmd}" 2>"${stderr_file}"
+        bash -lc "set -Eeuo pipefail; mkdir -p \"\${HOME}\" \"\${XDG_CACHE_HOME}\" \"\${XDG_CONFIG_HOME}\" \"\${XDG_DATA_HOME}\"; ${cmd}" 2>"${stderr_file}"
     local exit_code=$?
     local end_time
     end_time="$(date +%s.%N)"

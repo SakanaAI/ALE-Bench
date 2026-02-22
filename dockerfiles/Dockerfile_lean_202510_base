@@ -9,7 +9,8 @@ ENV DEBIAN_FRONTEND=noninteractive \
     TZ=Etc/UTC \
     LANG=C.UTF-8 \
     LC_ALL=C.UTF-8 \
-    PATH=/root/.elan/bin:${PATH}
+    ELAN_HOME=/workdir/.elan \
+    PATH=/workdir/.elan/bin:${PATH}
 
 ARG LEAN_VERSION=v4.22.0
 
@@ -17,6 +18,9 @@ RUN set -eux; \
     apt-get update; \
     apt-get install -y --no-install-recommends ca-certificates curl git xz-utils build-essential time; \
     rm -rf /var/lib/apt/lists/*
+
+RUN set -eux; \
+    mkdir -p /workdir "${ELAN_HOME}"
 
 WORKDIR /workdir
 
