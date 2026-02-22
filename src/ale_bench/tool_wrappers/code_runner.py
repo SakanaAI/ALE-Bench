@@ -61,7 +61,7 @@ def run_compile_container(
     with docker_client() as client:
         container = client.containers.run(
             image=get_docker_image_name(code_language, judge_version),
-            command=f"/bin/sh -c '{compile_command}'",
+            command=["/bin/bash", "--noprofile", "--norc", "-c", compile_command],
             remove=False,
             auto_remove=False,
             cpu_period=100000,
@@ -146,7 +146,7 @@ def run_run_container(
         start_at = time.perf_counter()
         container = client.containers.run(
             image=get_docker_image_name(code_language, judge_version),
-            command=f"/bin/sh -c '{run_command}'",
+            command=["/bin/bash", "--noprofile", "--norc", "-c", run_command],
             remove=False,
             auto_remove=False,
             cpu_period=100000,

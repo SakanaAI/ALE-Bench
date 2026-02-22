@@ -141,11 +141,15 @@ def test_build_compile_command(
     object_file_relative_path = Path(object_file_relative_path_str)
     command = get_compile_command(code_language, judge_version)
     build_command = build_compile_command(code_language, judge_version, object_file_relative_path)
-    assert build_command == (
-        f"{command}; "
-        f"cp {ale_bench.constants.WORK_DIR}/{object_file_relative_path} /tmp/{object_file_relative_path_str}; "
-        f"chmod 744 /tmp/{object_file_relative_path_str}"
+    expected = f"{command}; "
+    if object_file_relative_path.parent != Path():
+        expected += f"mkdir -p {ale_bench.constants.TMP_DIR}/{object_file_relative_path.parent}; "
+    expected += (
+        f"cp {ale_bench.constants.WORK_DIR}/{object_file_relative_path} "
+        f"{ale_bench.constants.TMP_DIR}/{object_file_relative_path_str}; "
+        f"chmod 744 {ale_bench.constants.TMP_DIR}/{object_file_relative_path_str}"
     )
+    assert build_command == expected
 
 
 @pytest.mark.parametrize(

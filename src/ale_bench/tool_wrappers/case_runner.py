@@ -103,10 +103,14 @@ def build_compile_command(
 
     """
     compile_command = get_compile_command(code_language, judge_version)
+    object_file_parent = object_file_relative_path.parent
+    if str(object_file_parent) != ".":
+        compile_command += f"; mkdir -p {ale_bench.constants.TMP_DIR}/{object_file_parent}"
     compile_command += (
-        f"; cp {ale_bench.constants.WORK_DIR}/{object_file_relative_path} /tmp/{object_file_relative_path}"
+        f"; cp {ale_bench.constants.WORK_DIR}/{object_file_relative_path} "
+        f"{ale_bench.constants.TMP_DIR}/{object_file_relative_path}"
     )
-    compile_command += f"; chmod 744 /tmp/{object_file_relative_path}"
+    compile_command += f"; chmod 744 {ale_bench.constants.TMP_DIR}/{object_file_relative_path}"
     return compile_command
 
 
@@ -489,7 +493,7 @@ def run_compile_container(
     with docker_client() as client:
         container = client.containers.run(
             image=get_docker_image_name(code_language, judge_version),
-            command=f"/bin/sh -c '{compile_command}'",
+            command=["/bin/bash", "--noprofile", "--norc", "-c", compile_command],
             remove=False,
             auto_remove=False,
             cpu_period=100000,
@@ -585,7 +589,7 @@ def run_batch_run_container(
         start_at = time.perf_counter()
         container = client.containers.run(
             image=get_docker_image_name(code_language, judge_version),
-            command=f"/bin/sh -c '{run_command}'",
+            command=["/bin/bash", "--noprofile", "--norc", "-c", run_command],
             remove=False,
             auto_remove=False,
             cpu_period=100000,
@@ -656,7 +660,7 @@ def run_batch_judge_container(
     with docker_client() as client:
         container = client.containers.run(
             image=ale_bench.constants.RUST_TOOL_DOCKER_IMAGE,
-            command=f"/bin/sh -c '{judge_command}'",
+            command=["/bin/bash", "--noprofile", "--norc", "-c", judge_command],
             remove=False,
             auto_remove=False,
             cpu_period=100000,
@@ -744,7 +748,7 @@ def run_reactive_judge_container(
         start_at = time.perf_counter()
         container = client.containers.run(
             image=get_docker_image_name(code_language, judge_version),
-            command=f"/bin/sh -c '{judge_command}'",
+            command=["/bin/bash", "--noprofile", "--norc", "-c", judge_command],
             remove=False,
             auto_remove=False,
             cpu_period=100000,
@@ -816,7 +820,7 @@ def run_vis_container(vis_command: str, vis_volumes: dict[str, dict[str, str]]) 
     with docker_client() as client:
         container = client.containers.run(
             image=ale_bench.constants.RUST_TOOL_DOCKER_IMAGE,
-            command=f"/bin/sh -c '{vis_command}'",
+            command=["/bin/bash", "--noprofile", "--norc", "-c", vis_command],
             remove=False,
             auto_remove=False,
             cpu_period=100000,
