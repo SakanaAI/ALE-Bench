@@ -306,7 +306,6 @@ JUDGE_LANGUAGE_PROFILES: dict[str, dict[str, JudgeLanguageProfile]] = {
                 "export PATH=/opt/dotnet:/opt/dotnet/tools:$PATH; "
                 "export DOTNET_EnableWriteXorExecute=0; "
                 "export DOTNET_CLI_TELEMETRY_OPTOUT=1; "
-                "dotnet restore --locked-mode --nologo -v q; "
                 "dotnet publish -c Release -o publish --no-restore --nologo -v q --tl:off"
             ),
             run_command="./publish/Main",

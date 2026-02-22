@@ -1,10 +1,15 @@
-// https://atcoder.jp/contests/abc001/submissions/63920298
+#include <cstddef>
+#include <cstdint>
 #include <vector>
 
 int main() {
-    std::vector<unsigned long long> v(128 * 1024 * 1024, 'a');  // Allocate 1 GiB of memory
-    for (unsigned long long i = 0; i < (unsigned long long)v.size(); ++i) {
-        v[i] = i;
+    constexpr std::size_t allocBytes = 1056ULL * 1024ULL * 1024ULL;
+    constexpr std::size_t pageSize = 4096;
+
+    std::vector<std::uint8_t> buffer(allocBytes, 0);
+    volatile std::uint8_t* touched = buffer.data();
+    for (std::size_t i = 0; i < allocBytes; i += pageSize) {
+        touched[i] = static_cast<std::uint8_t>(i);
     }
     return 0;
 }

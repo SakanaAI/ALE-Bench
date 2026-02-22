@@ -21,13 +21,14 @@ ENV DEBIAN_FRONTEND=noninteractive \
     GOCACHE=/workdir/.go/.cache/go-build \
     DOTNET_CLI_HOME=/workdir/.dotnet \
     NUGET_PACKAGES=/workdir/.nuget/packages \
+    DOTNET_EnableWriteXorExecute=0 \
+    DOTNET_CLI_TELEMETRY_OPTOUT=1 \
     XDG_CONFIG_HOME=/workdir/.config \
     XDG_CACHE_HOME=/workdir/.cache \
     XDG_STATE_HOME=/workdir/.local/state \
-    ELAN_HOME=/workdir/.elan \
-    DOTNET_EnableWriteXorExecute=0 \
     GHCUP_INSTALL_BASE_PREFIX=/opt \
-    GHCUP_HOME=/opt/.ghcup
+    GHCUP_HOME=/opt/.ghcup \
+    ELAN_HOME=/workdir/.elan
 
 ARG TARGETARCH
 ARG TARGETVARIANT
@@ -77,10 +78,9 @@ RUN set -eux; \
         libncurses5-dev libncurses-dev libncursesw5-dev \
         libffi-dev liblzma-dev uuid-dev tk-dev llvm-bolt libbolt-19-dev \
         libgdbm-dev libgdbm-compat-dev libexpat1-dev \
-        libopenblas-dev liblapack-dev libicu-dev \
-        python3 fypp python3-joblib \
+        libopenblas-dev liblapack-dev python3 fypp python3-joblib \
         gfortran gfortran-14 libstdc++-14-dev libeigen3-dev \
-        libc6 libgcc-s1 libgssapi-krb5-2 libssl3 libstdc++6 libunwind8 zlib1g \
+        libc6 libgcc-s1 libgssapi-krb5-2 libicu74 liblttng-ust1 libssl3 libstdc++6 libunwind8 zlib1g \
         libffi8 libgmp10 libncurses6 libtinfo6 llvm-15 libgsl-dev libglpk-dev \
         opam gettext libpcre2-dev libgeos-dev meson; \
     rm -rf /var/lib/apt/lists/*
@@ -580,8 +580,7 @@ RUN set -eux; \
 
 # ---- .NET SDK 9.0.304 ----
 ENV DOTNET_ROOT=/opt/dotnet \
-    PATH=/opt/dotnet:/opt/dotnet/tools:${PATH} \
-    DOTNET_CLI_TELEMETRY_OPTOUT=1
+    PATH=/opt/dotnet:/opt/dotnet/tools:${PATH}
 
 RUN set -eux; \
     curl -fsSLo /tmp/dotnet-install.sh https://dot.net/v1/dotnet-install.sh; \
@@ -594,10 +593,8 @@ COPY ./csharp_202510_Main.cs /workdir/Main.cs
 COPY ./csharp_202510_packages.lock.json /workdir/packages.lock.json
 
 RUN set -eux; \
-    dotnet restore --locked-mode; \
-    dotnet publish -c Release -o publish --no-restore -v n; \
-    rm -f publish/Main Main.cs; \
-    rm -rf /workdir/bin /workdir/obj
+    dotnet publish -c Release -o publish -v n; \
+    rm -f publish/Main Main.cs
 
 # ---- Haskell GHC 9.8.4 ----
 ENV PATH="${GHCUP_HOME}/bin:${PATH}"

@@ -362,8 +362,6 @@ export PATH=/opt/dotnet:/opt/dotnet/tools:$PATH
 export DOTNET_EnableWriteXorExecute=0
 export DOTNET_CLI_TELEMETRY_OPTOUT=1
 cp /repo/dockerfiles/tests/csharp/Main.cs /workdir/Main.cs
-/usr/bin/time -f "[time][csharp][restore] real=%e user=%U sys=%S maxrss_kb=%M" \
-  dotnet restore --locked-mode --nologo -v q
 /usr/bin/time -f "[time][csharp][compile] real=%e user=%U sys=%S maxrss_kb=%M" \
   dotnet publish -c Release -o /workdir/publish --no-restore --nologo -v q --tl:off
 /usr/bin/time -f "[time][csharp][execute] real=%e user=%U sys=%S maxrss_kb=%M" /workdir/publish/Main

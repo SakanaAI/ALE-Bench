@@ -80,6 +80,12 @@ class TestMLE:
             CodeLanguage.TYPESCRIPT: (self.CODES_ROOT / "mle_typescript.ts").read_text(),
         }
 
+    @staticmethod
+    def get_memory_limit_for_mle(code_language: CodeLanguage) -> int:
+        if code_language in {CodeLanguage.BASH, CodeLanguage.FISH}:
+            return 64 * 1024 * 1024  # 64 MiB
+        return 1024 * 1024 * 1024  # 1 GiB
+
     @pytest.mark.parametrize(("code_language", "judge_version"), TEST_CASES)
     def test_mle_batch(
         self,
@@ -89,7 +95,7 @@ class TestMLE:
         mle_codes: dict[CodeLanguage, str],
         ahc001_session: Session,
     ) -> None:
-        memory_limit = 1024 * 1024 * 1024  # 1 GiB
+        memory_limit = self.get_memory_limit_for_mle(code_language)
         problem_id = "ahc001"
         input_str = inputs[problem_id]
 
@@ -132,7 +138,7 @@ class TestMLE:
         mle_codes: dict[CodeLanguage, str],
         ahc003_session: Session,
     ) -> None:
-        memory_limit = 1024 * 1024 * 1024  # 1 GiB
+        memory_limit = self.get_memory_limit_for_mle(code_language)
         problem_id = "ahc003"
         input_str = inputs[problem_id]
         num_cases = 4
