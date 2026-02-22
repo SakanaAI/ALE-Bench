@@ -512,7 +512,7 @@ def run_compile_container(
             # NOTE: It will catch ReadTimeout, ConnectTimeout and ConnectionError.
             # NOTE: ConnectionError occurs when the compile code timed out with sleep.
             except (Timeout, RequestsConnectionError):
-                if code_language != CodeLanguage.PYTHON:
+                if code_language not in {CodeLanguage.PYTHON, CodeLanguage.PYPY, CodeLanguage.JULIA}:
                     return CaseResult(
                         input_str=None,
                         output_str=None,
@@ -543,10 +543,10 @@ def run_compile_container(
     if any(
         [
             exit_code != 0,
-            # NOTE: As for Python, it is fine if .pyc file is not created during the compilation step.
-            code_language != CodeLanguage.PYTHON and object_size == 0,
-            # NOTE: We regard SyntaxError as a compilation error for Python
-            code_language == CodeLanguage.PYTHON and "SyntaxError" in stderr,
+            # NOTE: As for Python/PyPy/Julia, it is fine if the compile-step artifact is not created.
+            code_language not in {CodeLanguage.PYTHON, CodeLanguage.PYPY, CodeLanguage.JULIA} and object_size == 0,
+            # NOTE: We regard SyntaxError as a compilation error for Python/PyPy.
+            code_language in {CodeLanguage.PYTHON, CodeLanguage.PYPY} and "SyntaxError" in stderr,
         ]
     ):
         return CaseResult(
@@ -876,6 +876,7 @@ def parse_profiles(
         raise ValueError(msg)
     # Check if the profiles content is empty or if it indicates a timeout
     is_tle = False
+    exited_with_status_137 = False
     if profiles_content == "":
         if execution_time_host > time_limit:  # NOTE: ex. `python -c "import time; time.sleep(10)"`
             return CaseResult(
@@ -901,11 +902,18 @@ def parse_profiles(
         )
     if profiles_content.startswith("Command terminated by signal 9"):
         # NOTE: Sigkill is sent by `prlimit` and included to the profiles file
-        profiles_content = profiles_content.split("\n", 1)[1]  # Remove the first line
+        # NOTE: The first line is "Command terminated by signal 9", and the rest is the profiles content.
+        _status_line, _, rest = profiles_content.partition("\n")
+        profiles_content = rest
         is_tle = True
     elif profiles_content.startswith("Command exited with non-zero status"):
-        # NOTE: This indicates that the run command failed
-        profiles_content = profiles_content.split("\n", 1)[1]  # Remove the first line
+        # NOTE: This indicates that the run command failed.
+        # NOTE: For wrapper commands (e.g. `sh node.sh ...`), SIGKILL may surface as exit status 137.
+        status_line, _, rest = profiles_content.partition("\n")
+        status_code_str = status_line.rsplit(" ", 1)[-1].rstrip(".")
+        if status_code_str.isdigit() and int(status_code_str) == 137:
+            exited_with_status_137 = True
+        profiles_content = rest
     # Parse the profiles content
     profiles_content = profiles_content.strip()
     try:
@@ -938,8 +946,9 @@ def parse_profiles(
     exit_status = profiles.exit_status
     execution_time = max(profiles.elapsed_time_seconds, profiles.user_cpu_seconds + profiles.system_cpu_seconds)
     memory_usage = profiles.max_resident_set_size_kbytes * 1024
+    is_timeout_via_wrapper = exited_with_status_137 and execution_time > time_limit
     # Check the resource usage
-    if exit_status != 0:
+    if exit_status != 0 and not is_timeout_via_wrapper:
         return CaseResult(
             input_str=input_str,
             output_str=output_str,
@@ -950,7 +959,7 @@ def parse_profiles(
             execution_time=min(execution_time, time_limit + 0.1),  # NOTE: slight longer than time limit
             memory_usage=memory_usage,
         )
-    if execution_time > time_limit or is_tle:
+    if execution_time > time_limit or is_tle or is_timeout_via_wrapper:
         return CaseResult(
             input_str=input_str,
             output_str=output_str,

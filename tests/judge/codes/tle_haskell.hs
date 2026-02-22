@@ -1,4 +1,4 @@
+import Control.Monad (forever)
+
 main :: IO ()
-main = loop
-  where
-    loop = loop
+main = forever $ return ()

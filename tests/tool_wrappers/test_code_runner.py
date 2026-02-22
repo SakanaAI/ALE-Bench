@@ -307,6 +307,42 @@ sample_profiles_content = """{{
             2.0,
             1073741824,
             1.99,
+            (
+                "Command exited with non-zero status 137\n"
+                f"{sample_profiles_content.format('137', '0:02.01', '2.01', '0.01', '2.00', '16384')}"
+            ),
+            CodeRunResult(
+                stdin="",
+                stdout="",
+                stderr="",
+                exit_status=ExitStatus.TIME_LIMIT_EXCEEDED.value,
+                execution_time=2.01,
+                memory_usage=16777216,
+            ),
+            id="non_zero_137_tle",
+        ),
+        pytest.param(
+            2.0,
+            1073741824,
+            1.99,
+            (
+                "Command exited with non-zero status 137\n"
+                f"{sample_profiles_content.format('137', '0:02.00', '2.00', '0.00', '2.00', '16384')}"
+            ),
+            CodeRunResult(
+                stdin="",
+                stdout="",
+                stderr="",
+                exit_status=137,
+                execution_time=2.00,
+                memory_usage=16777216,
+            ),
+            id="non_zero_137_re",
+        ),
+        pytest.param(
+            2.0,
+            1073741824,
+            1.99,
             sample_profiles_content.format("0", "0:02.00", "2.00", "0.00", "2.00", "1048577"),
             CodeRunResult(
                 stdin="",

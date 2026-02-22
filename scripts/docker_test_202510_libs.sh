@@ -409,7 +409,7 @@ CMD
 cp /repo/dockerfiles/tests/javascript/Main.js /workdir/Main.js
 /usr/bin/time -f "[time][javascript][compile] real=%e user=%U sys=%S maxrss_kb=%M" node --check /workdir/Main.js
 /usr/bin/time -f "[time][javascript][execute] real=%e user=%U sys=%S maxrss_kb=%M" \
-  /workdir/node.sh 1024 /workdir/Main.js ONLINE_JUDGE ATCODER
+  /workdir/node.sh 1048576 /workdir/Main.js ONLINE_JUDGE ATCODER
 CMD
         ;;
     julia)
@@ -487,7 +487,7 @@ cp /repo/dockerfiles/tests/typescript/Main.ts /workdir/Main.ts
 /usr/bin/time -f "[time][typescript][compile] real=%e user=%U sys=%S maxrss_kb=%M" \
   bash -lc 'tsc /workdir/Main.ts --target ESNext --moduleResolution nodenext --module NodeNext --noEmitOnError --pretty true | ansifilter 1>&2'
 /usr/bin/time -f "[time][typescript][execute] real=%e user=%U sys=%S maxrss_kb=%M" \
-  /workdir/node.sh 1024 /workdir/Main.js ONLINE_JUDGE ATCODER
+  /workdir/node.sh 1048576 /workdir/Main.js ONLINE_JUDGE ATCODER
 CMD
         ;;
     *)
