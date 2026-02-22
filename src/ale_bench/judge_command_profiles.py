@@ -306,7 +306,7 @@ JUDGE_LANGUAGE_PROFILES: dict[str, dict[str, JudgeLanguageProfile]] = {
                 "export PATH=/opt/dotnet:/opt/dotnet/tools:$PATH; "
                 "export DOTNET_EnableWriteXorExecute=0; "
                 "export DOTNET_CLI_TELEMETRY_OPTOUT=1; "
-                "dotnet publish -c Release -o publish --no-restore --nologo -v q --tl:off"
+                "dotnet publish -c Release -o publish --no-restore --nologo -v q --tl:off 1>&2"
             ),
             run_command="dotnet publish/Main.dll",
             submission_file_path="Main.cs",
@@ -354,7 +354,7 @@ JUDGE_LANGUAGE_PROFILES: dict[str, dict[str, JudgeLanguageProfile]] = {
                 "export PATH=$PATH:/workdir/.juliaup/bin; "
                 "export JULIA_DEPOT_PATH=/workdir/.julia; "
                 'julia -e \'Meta.parse("begin " * read("Main.jl",String) * " end")\' '
-                "&& julia Main.jl ONLINE_JUDGE 2> /dev/null && printf 'ok\\n' > ok"
+                "&& printf 'ok\\n' > ok && julia Main.jl ONLINE_JUDGE 2> /dev/null"
             ),
             run_command="julia --threads=auto --startup-file=no --history-file=no Main.jl",
             submission_file_path="Main.jl",
@@ -396,7 +396,7 @@ JUDGE_LANGUAGE_PROFILES: dict[str, dict[str, JudgeLanguageProfile]] = {
             object_file_path="__pycache__/Main.cpython-313.pyc",
         ),
         "rust": JudgeLanguageProfile(
-            compile_command="cargo build --release --quiet --offline",
+            compile_command="RUST_BACKTRACE=0 cargo build --release --quiet --offline",
             run_command="./target/release/main",
             submission_file_path="src/main.rs",
             object_file_path="target/release/main",
