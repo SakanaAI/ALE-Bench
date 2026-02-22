@@ -294,12 +294,14 @@ JUDGE_LANGUAGE_PROFILES: dict[str, dict[str, JudgeLanguageProfile]] = {
             submission_file_path="Main.bash",
             object_file_path="ok",
         ),
+        # NOTE: 2025-10 C++ is intentionally fixed to the GCC profile in this repository.
         "cpp23": JudgeLanguageProfile(
             compile_command=CPP23_202510_COMPILE_COMMAND,
             run_command="./a.out",
             submission_file_path="Main.cpp",
             object_file_path="a.out",
         ),
+        # NOTE: We execute the published DLL directly (`Main.dll`) instead of `./publish/Main`.
         "csharp": JudgeLanguageProfile(
             compile_command=(
                 "export DOTNET_ROOT=/opt/dotnet; "
@@ -318,6 +320,7 @@ JUDGE_LANGUAGE_PROFILES: dict[str, dict[str, JudgeLanguageProfile]] = {
             submission_file_path="Main.fish",
             object_file_path="ok",
         ),
+        # NOTE: We intentionally pin the compiler command to `gfortran-14`.
         "fortran": JudgeLanguageProfile(
             compile_command=(
                 "gfortran-14 -I/workdir -I/usr/local/include -L/usr/local/lib -Wl,-rpath,/usr/local/lib "

@@ -50,7 +50,7 @@ def run_compile_container(
     Args:
         code_language (CodeLanguage): The code language.
         judge_version (JudgeVersion): The judge version.
-        host_paths_compile (ostPathsCompile): The paths for the runner tool in the compilation step.
+        host_paths_compile (HostPathsCompile): The paths for the runner tool in the compilation step.
         compile_volumes (dict[str, dict[str, str]]): The volumes for the compile command with the setup.
         compile_command (str): The compile command.
 
@@ -131,7 +131,7 @@ def run_run_container(
     run_command: str,
     stdin: str,
 ) -> CodeRunResult | tuple[float, str]:
-    """Run the run command in a Docker container for batch problems.
+    """Run the run command in a Docker container.
 
     Args:
         code_language (CodeLanguage): The code language.
@@ -143,7 +143,7 @@ def run_run_container(
 
     Returns:
         CodeRunResult | tuple[float, str]:
-            The case result if the run fails, otherwise the execution time in seconds and the standard error.
+            The code run result if the run fails, otherwise the execution time in seconds and the standard error.
 
     """
     with docker_client() as client:
@@ -209,8 +209,8 @@ def parse_profiles(
         profiles_content (str): The content of the profiles file.
         execution_time_host (float): The execution time on the host in seconds.
         stdin (str): The input string of the problem included in the case result.
-        stdout (str | None): The output string of the problem included in the case result.
-        stderr (str | None): The error string of the problem included in the case result.
+        stdout (str): The output string of the problem included in the case result.
+        stderr (str): The error string of the problem included in the case result.
 
     Returns:
         CodeRunResult | tuple[float, int]:

@@ -167,7 +167,7 @@ def get_batch_run_volumes(host_paths: HostPathsBatchRun, temp_dir: Path) -> dict
     """Get the volumes for the run command with the setup.
 
     Args:
-        host_paths (HostPathsRun): The paths for the runner tool.
+        host_paths (HostPathsBatchRun): The paths for the runner tool.
         temp_dir (Path): The temporary directory.
 
     Returns:
@@ -195,7 +195,6 @@ def build_batch_run_command(code_language: CodeLanguage, judge_version: JudgeVer
     Args:
         code_language (CodeLanguage): The code language.
         judge_version (JudgeVersion): The judge version.
-        problem_type (ProblemType): The problem type.
         time_limit (float): The time limit in seconds.
 
     Returns:
@@ -482,7 +481,7 @@ def run_compile_container(
     Args:
         code_language (CodeLanguage): The code language.
         judge_version (JudgeVersion): The judge version.
-        host_paths_compile (ostPathsCompile): The paths for the runner tool in the compilation step.
+        host_paths_compile (HostPathsCompile): The paths for the runner tool in the compilation step.
         compile_volumes (dict[str, dict[str, str]]): The volumes for the compile command with the setup.
         compile_command (str): The compile command.
 
@@ -645,7 +644,7 @@ def run_batch_judge_container(
     output_str: str | None,
     error_str: str | None,
 ) -> CaseResult | int:
-    """Run the run command in a Docker container for batch problems.
+    """Run the judge command in a Docker container for batch problems.
 
     Args:
         judge_volumes (dict[str, dict[str, str]]): The volumes for the judge command with the setup.
@@ -730,7 +729,7 @@ def run_reactive_judge_container(
     input_str: str | None,
     output_file_path: Path | None,
 ) -> CaseResult | tuple[float, int, str]:
-    """Run the run command in a Docker container for batch problems.
+    """Run the judge command in a Docker container for reactive problems.
 
     Args:
         code_language (CodeLanguage): The code language.
@@ -742,7 +741,7 @@ def run_reactive_judge_container(
         output_file_path (Path | None): The path to the output file. If None, contents of the output file is not used.
 
     Returns:
-        CaseResult | tuple[float, int]: The case result if the run fails,
+        CaseResult | tuple[float, int, str]: The case result if the run fails,
             otherwise the execution time in seconds, the score and the standard error.
 
     """

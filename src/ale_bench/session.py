@@ -294,7 +294,7 @@ class Session:
             input_str (list[str] | str): The input string(s) for the evaluation.
             code (str): The code to evaluate.
             code_language (CodeLanguage | str): The code language.
-            judge_version (JudgeVersion | str, optional): The judge version. Defaults to None.
+            judge_version (JudgeVersion | str, optional): The judge version. Defaults to None (202301).
             time_limit (float, optional): The time limit in seconds. Defaults to None.
             memory_limit (int | str, optional): The memory limit in bytes. Defaults to None.
             skip_local_visualization (bool, optional): Whether to skip local visualization. Defaults to False.
@@ -390,7 +390,7 @@ class Session:
         Args:
             code (str): The code to evaluate.
             code_language (CodeLanguage | str): The code language.
-            judge_version (JudgeVersion | str, optional): The judge version. Defaults to None.
+            judge_version (JudgeVersion | str, optional): The judge version. Defaults to None (202301).
             seed (list[int] | int, optional): The seed for the case generation. Defaults to 0.
             time_limit (float, optional): The time limit in seconds. Defaults to None.
             memory_limit (int | str, optional): The memory limit in bytes. Defaults to None.
@@ -491,7 +491,7 @@ class Session:
         Args:
             code (str): The code to evaluate.
             code_language (CodeLanguage | str): The code language.
-            judge_version (JudgeVersion | str, optional): The judge version. Defaults to None.
+            judge_version (JudgeVersion | str, optional): The judge version. Defaults to None (202301).
             skip_local_visualization (bool, optional): Whether to skip local visualization. Defaults to True.
 
         Returns:
@@ -570,7 +570,7 @@ class Session:
         Args:
             code (str): The code to evaluate.
             code_language (CodeLanguage | str): The code language.
-            judge_version (JudgeVersion | str, optional): The judge version. Defaults to None.
+            judge_version (JudgeVersion | str, optional): The judge version. Defaults to None (202301).
 
         Returns:
             Result: The result of the evaluation.
