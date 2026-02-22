@@ -1,0 +1,32 @@
+FROM ubuntu:24.04
+
+LABEL org.opencontainers.image.source=https://github.com/SakanaAI/ALE-Bench
+
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+
+ENV DEBIAN_FRONTEND=noninteractive \
+    DEBCONF_NONINTERACTIVE_SEEN=true \
+    TZ=Etc/UTC \
+    LANG=C.UTF-8 \
+    LC_ALL=C.UTF-8
+
+ARG OCAML_SWITCH=5.3.0+flambda
+
+ENV OPAMROOT=/opt/opam \
+    OPAMYES=1 \
+    OPAMSWITCH=${OCAML_SWITCH} \
+    PATH="/opt/opam/${OCAML_SWITCH}/bin:${PATH}"
+
+RUN set -eux; \
+    apt-get update; \
+    apt-get install -y --no-install-recommends \
+        ca-certificates time opam libgmp-dev pkg-config; \
+    rm -rf /var/lib/apt/lists/*
+
+WORKDIR /workdir
+
+RUN set -eux; \
+    opam init -a --bare --disable-sandboxing --no-setup --shell=bash; \
+    opam switch create "${OCAML_SWITCH}" ocaml-variants.5.3.0+options ocaml-option-flambda.1; \
+    eval "$(opam env --switch=${OCAML_SWITCH})"; \
+    opam install num=1.6 zarith=1.14 containers=3.16 core=v0.17.1 iter=1.9 batteries=3.9.0

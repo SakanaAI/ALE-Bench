@@ -1,0 +1,46 @@
+FROM ubuntu:24.04
+
+LABEL org.opencontainers.image.source=https://github.com/SakanaAI/ALE-Bench
+
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+
+ENV DEBIAN_FRONTEND=noninteractive \
+    DEBCONF_NONINTERACTIVE_SEEN=true \
+    TZ=Etc/UTC \
+    LANG=C.UTF-8 \
+    LC_ALL=C.UTF-8 \
+    DOTNET_CLI_HOME=/workdir/.dotnet \
+    NUGET_PACKAGES=/workdir/.nuget/packages \
+    DOTNET_EnableWriteXorExecute=0 \
+    DOTNET_CLI_TELEMETRY_OPTOUT=1
+
+ARG DOTNET_SDK_VERSION=9.0.304
+
+RUN set -eux; \
+    apt-get update; \
+    apt-get install -y --no-install-recommends \
+    ca-certificates curl time \
+    libc6 libgcc-s1 libgssapi-krb5-2 libicu74 liblttng-ust1 libssl3 libstdc++6 libunwind8 zlib1g; \
+    rm -rf /var/lib/apt/lists/*
+
+RUN set -eux; \
+    mkdir -p /workdir "${DOTNET_CLI_HOME}" "${NUGET_PACKAGES}"
+
+WORKDIR /workdir
+
+ENV DOTNET_ROOT=/opt/dotnet \
+    PATH=/opt/dotnet:/opt/dotnet/tools:${PATH}
+
+RUN set -eux; \
+    curl -fsSLo /tmp/dotnet-install.sh https://dot.net/v1/dotnet-install.sh; \
+    bash /tmp/dotnet-install.sh --version "${DOTNET_SDK_VERSION}" --install-dir /opt/dotnet; \
+    rm -f /tmp/dotnet-install.sh; \
+    dotnet --info > /dev/null
+
+COPY ./csharp_202510_Main.csproj /workdir/Main.csproj
+COPY ./csharp_202510_Main.cs /workdir/Main.cs
+COPY ./csharp_202510_packages.lock.json /workdir/packages.lock.json
+
+RUN set -eux; \
+    dotnet publish -c Release -o publish -v n; \
+    rm -f publish/Main publish/Main.dll Main.cs

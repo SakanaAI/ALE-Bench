@@ -103,10 +103,14 @@ def build_compile_command(
 
     """
     compile_command = get_compile_command(code_language, judge_version)
+    object_file_parent = object_file_relative_path.parent
+    if str(object_file_parent) != ".":
+        compile_command += f"; mkdir -p {ale_bench.constants.TMP_DIR}/{object_file_parent}"
     compile_command += (
-        f"; cp {ale_bench.constants.WORK_DIR}/{object_file_relative_path} /tmp/{object_file_relative_path}"
+        f"; cp {ale_bench.constants.WORK_DIR}/{object_file_relative_path} "
+        f"{ale_bench.constants.TMP_DIR}/{object_file_relative_path}"
     )
-    compile_command += f"; chmod 744 /tmp/{object_file_relative_path}"
+    compile_command += f"; chmod 744 {ale_bench.constants.TMP_DIR}/{object_file_relative_path}"
     return compile_command
 
 
@@ -163,7 +167,7 @@ def get_batch_run_volumes(host_paths: HostPathsBatchRun, temp_dir: Path) -> dict
     """Get the volumes for the run command with the setup.
 
     Args:
-        host_paths (HostPathsRun): The paths for the runner tool.
+        host_paths (HostPathsBatchRun): The paths for the runner tool.
         temp_dir (Path): The temporary directory.
 
     Returns:
@@ -191,7 +195,6 @@ def build_batch_run_command(code_language: CodeLanguage, judge_version: JudgeVer
     Args:
         code_language (CodeLanguage): The code language.
         judge_version (JudgeVersion): The judge version.
-        problem_type (ProblemType): The problem type.
         time_limit (float): The time limit in seconds.
 
     Returns:
@@ -478,7 +481,7 @@ def run_compile_container(
     Args:
         code_language (CodeLanguage): The code language.
         judge_version (JudgeVersion): The judge version.
-        host_paths_compile (ostPathsCompile): The paths for the runner tool in the compilation step.
+        host_paths_compile (HostPathsCompile): The paths for the runner tool in the compilation step.
         compile_volumes (dict[str, dict[str, str]]): The volumes for the compile command with the setup.
         compile_command (str): The compile command.
 
@@ -489,7 +492,7 @@ def run_compile_container(
     with docker_client() as client:
         container = client.containers.run(
             image=get_docker_image_name(code_language, judge_version),
-            command=f"/bin/sh -c '{compile_command}'",
+            command=["/bin/bash", "--noprofile", "--norc", "-c", compile_command],
             remove=False,
             auto_remove=False,
             cpu_period=100000,
@@ -508,7 +511,7 @@ def run_compile_container(
             # NOTE: It will catch ReadTimeout, ConnectTimeout and ConnectionError.
             # NOTE: ConnectionError occurs when the compile code timed out with sleep.
             except (Timeout, RequestsConnectionError):
-                if code_language != CodeLanguage.PYTHON:
+                if code_language not in {CodeLanguage.PYTHON, CodeLanguage.PYPY, CodeLanguage.JULIA}:
                     return CaseResult(
                         input_str=None,
                         output_str=None,
@@ -539,10 +542,12 @@ def run_compile_container(
     if any(
         [
             exit_code != 0,
-            # NOTE: As for Python, it is fine if .pyc file is not created during the compilation step.
-            code_language != CodeLanguage.PYTHON and object_size == 0,
-            # NOTE: We regard SyntaxError as a compilation error for Python
-            code_language == CodeLanguage.PYTHON and "SyntaxError" in stderr,
+            # NOTE: As for Python/PyPy/Julia, it is fine if the compile-step artifact is not created.
+            code_language not in {CodeLanguage.PYTHON, CodeLanguage.PYPY, CodeLanguage.JULIA} and object_size == 0,
+            # NOTE: We regard SyntaxError as a compilation error for Python/PyPy.
+            code_language in {CodeLanguage.PYTHON, CodeLanguage.PYPY} and "SyntaxError" in stderr,
+            # NOTE: We regard ParseError as a compilation error for Julia.
+            code_language == CodeLanguage.JULIA and "ParseError" in stderr,
         ]
     ):
         return CaseResult(
@@ -585,7 +590,7 @@ def run_batch_run_container(
         start_at = time.perf_counter()
         container = client.containers.run(
             image=get_docker_image_name(code_language, judge_version),
-            command=f"/bin/sh -c '{run_command}'",
+            command=["/bin/bash", "--noprofile", "--norc", "-c", run_command],
             remove=False,
             auto_remove=False,
             cpu_period=100000,
@@ -639,7 +644,7 @@ def run_batch_judge_container(
     output_str: str | None,
     error_str: str | None,
 ) -> CaseResult | int:
-    """Run the run command in a Docker container for batch problems.
+    """Run the judge command in a Docker container for batch problems.
 
     Args:
         judge_volumes (dict[str, dict[str, str]]): The volumes for the judge command with the setup.
@@ -656,7 +661,7 @@ def run_batch_judge_container(
     with docker_client() as client:
         container = client.containers.run(
             image=ale_bench.constants.RUST_TOOL_DOCKER_IMAGE,
-            command=f"/bin/sh -c '{judge_command}'",
+            command=["/bin/bash", "--noprofile", "--norc", "-c", judge_command],
             remove=False,
             auto_remove=False,
             cpu_period=100000,
@@ -724,7 +729,7 @@ def run_reactive_judge_container(
     input_str: str | None,
     output_file_path: Path | None,
 ) -> CaseResult | tuple[float, int, str]:
-    """Run the run command in a Docker container for batch problems.
+    """Run the judge command in a Docker container for reactive problems.
 
     Args:
         code_language (CodeLanguage): The code language.
@@ -736,7 +741,7 @@ def run_reactive_judge_container(
         output_file_path (Path | None): The path to the output file. If None, contents of the output file is not used.
 
     Returns:
-        CaseResult | tuple[float, int]: The case result if the run fails,
+        CaseResult | tuple[float, int, str]: The case result if the run fails,
             otherwise the execution time in seconds, the score and the standard error.
 
     """
@@ -744,7 +749,7 @@ def run_reactive_judge_container(
         start_at = time.perf_counter()
         container = client.containers.run(
             image=get_docker_image_name(code_language, judge_version),
-            command=f"/bin/sh -c '{judge_command}'",
+            command=["/bin/bash", "--noprofile", "--norc", "-c", judge_command],
             remove=False,
             auto_remove=False,
             cpu_period=100000,
@@ -816,7 +821,7 @@ def run_vis_container(vis_command: str, vis_volumes: dict[str, dict[str, str]]) 
     with docker_client() as client:
         container = client.containers.run(
             image=ale_bench.constants.RUST_TOOL_DOCKER_IMAGE,
-            command=f"/bin/sh -c '{vis_command}'",
+            command=["/bin/bash", "--noprofile", "--norc", "-c", vis_command],
             remove=False,
             auto_remove=False,
             cpu_period=100000,
@@ -872,6 +877,7 @@ def parse_profiles(
         raise ValueError(msg)
     # Check if the profiles content is empty or if it indicates a timeout
     is_tle = False
+    exited_with_status_137 = False
     if profiles_content == "":
         if execution_time_host > time_limit:  # NOTE: ex. `python -c "import time; time.sleep(10)"`
             return CaseResult(
@@ -897,11 +903,18 @@ def parse_profiles(
         )
     if profiles_content.startswith("Command terminated by signal 9"):
         # NOTE: Sigkill is sent by `prlimit` and included to the profiles file
-        profiles_content = profiles_content.split("\n", 1)[1]  # Remove the first line
+        # NOTE: The first line is "Command terminated by signal 9", and the rest is the profiles content.
+        _status_line, _, rest = profiles_content.partition("\n")
+        profiles_content = rest
         is_tle = True
     elif profiles_content.startswith("Command exited with non-zero status"):
-        # NOTE: This indicates that the run command failed
-        profiles_content = profiles_content.split("\n", 1)[1]  # Remove the first line
+        # NOTE: This indicates that the run command failed.
+        # NOTE: For wrapper commands (e.g. `sh node.sh ...`), SIGKILL may surface as exit status 137.
+        status_line, _, rest = profiles_content.partition("\n")
+        status_code_str = status_line.rsplit(" ", 1)[-1].rstrip(".")
+        if status_code_str.isdigit() and int(status_code_str) == ale_bench.constants.ERROR_CODE_137:
+            exited_with_status_137 = True
+        profiles_content = rest
     # Parse the profiles content
     profiles_content = profiles_content.strip()
     try:
@@ -934,8 +947,9 @@ def parse_profiles(
     exit_status = profiles.exit_status
     execution_time = max(profiles.elapsed_time_seconds, profiles.user_cpu_seconds + profiles.system_cpu_seconds)
     memory_usage = profiles.max_resident_set_size_kbytes * 1024
+    is_timeout_via_wrapper = exited_with_status_137 and execution_time > time_limit
     # Check the resource usage
-    if exit_status != 0:
+    if exit_status != 0 and not is_timeout_via_wrapper:
         return CaseResult(
             input_str=input_str,
             output_str=output_str,
@@ -946,7 +960,7 @@ def parse_profiles(
             execution_time=min(execution_time, time_limit + 0.1),  # NOTE: slight longer than time limit
             memory_usage=memory_usage,
         )
-    if execution_time > time_limit or is_tle:
+    if execution_time > time_limit or is_tle or is_timeout_via_wrapper:
         return CaseResult(
             input_str=input_str,
             output_str=output_str,

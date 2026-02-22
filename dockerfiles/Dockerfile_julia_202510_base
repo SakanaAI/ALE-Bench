@@ -1,0 +1,56 @@
+FROM ubuntu:24.04
+
+LABEL org.opencontainers.image.source=https://github.com/SakanaAI/ALE-Bench
+
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+
+ENV DEBIAN_FRONTEND=noninteractive \
+    DEBCONF_NONINTERACTIVE_SEEN=true \
+    TZ=Etc/UTC \
+    LANG=C.UTF-8 \
+    LC_ALL=C.UTF-8 \
+    JULIAUP_DEPOT_PATH=/workdir/.juliaup \
+    JULIA_DEPOT_PATH=/workdir/.julia
+
+ARG JULIA_VERSION=1.11.6
+
+RUN set -eux; \
+    apt-get update; \
+    apt-get install -y --no-install-recommends \
+        ca-certificates curl time; \
+    rm -rf /var/lib/apt/lists/*
+
+RUN set -eux; \
+    mkdir -p /workdir "${JULIA_DEPOT_PATH}"
+
+WORKDIR /workdir
+
+RUN set -eux; \
+    curl -fsSL https://install.julialang.org \
+        | sh -s -- --yes --default-channel "${JULIA_VERSION}" --path "${JULIAUP_DEPOT_PATH}"; \
+    export PATH="${JULIAUP_DEPOT_PATH}/bin:${PATH}"; \
+    julia --version; \
+    juliaup config backgroundselfupdateinterval 0; \
+    juliaup config startupselfupdateinterval 0; \
+    juliaup config versionsdbupdateinterval 0
+
+ENV PATH="${JULIAUP_DEPOT_PATH}/bin:${PATH}"
+
+RUN set -eux; \
+    julia -e ' \
+        using Pkg; \
+        Pkg.update(); \
+        for (name, version) in map(p -> String.(split(p, "@")), ARGS) \
+            Pkg.add(name=name, version=version); \
+        end' \
+        Combinatorics@1.0.3 \
+        DataStructures@0.18.22 \
+        DelimitedFiles@1.9.1 \
+        Distributions@0.25.120 \
+        InvertedIndices@1.3.1 \
+        IterTools@1.10.0 \
+        OffsetArrays@1.17.0 \
+        PrecompileTools@1.2.1 \
+        Primes@0.5.7 \
+        StaticArrays@1.9.14; \
+    julia -e 'using Combinatorics, DataStructures, DelimitedFiles, Distributions, InvertedIndices, IterTools, OffsetArrays, PrecompileTools, Primes, StaticArrays'

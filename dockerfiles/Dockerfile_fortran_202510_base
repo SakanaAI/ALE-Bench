@@ -1,0 +1,49 @@
+FROM ubuntu:24.04
+
+LABEL org.opencontainers.image.source=https://github.com/SakanaAI/ALE-Bench
+
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+
+ENV DEBIAN_FRONTEND=noninteractive \
+    DEBCONF_NONINTERACTIVE_SEEN=true \
+    TZ=Etc/UTC \
+    LANG=C.UTF-8 \
+    LC_ALL=C.UTF-8
+
+ARG FPM_VERSION=0.10.1
+ARG FORTRAN_STDLIB_VERSION=0.7.0
+
+RUN set -eux; \
+    apt-get update; \
+    apt-get install -y --no-install-recommends \
+        ca-certificates curl git time \
+        gfortran gfortran-14 python3 fypp python3-joblib libstdc++-14-dev; \
+    rm -rf /var/lib/apt/lists/*
+
+WORKDIR /workdir
+
+RUN set -eux; \
+    curl -fsSLo /usr/local/bin/fpm "https://github.com/fortran-lang/fpm/releases/download/v${FPM_VERSION}/fpm-${FPM_VERSION}-linux-x86_64"; \
+    chmod +x /usr/local/bin/fpm
+
+RUN set -eux; \
+    mkdir -p /tmp/fortran; \
+    cd /tmp/fortran; \
+    curl -fsSLo "v${FORTRAN_STDLIB_VERSION}.tar.gz" "https://github.com/fortran-lang/stdlib/archive/refs/tags/v${FORTRAN_STDLIB_VERSION}.tar.gz"; \
+    tar -xf v${FORTRAN_STDLIB_VERSION}.tar.gz; \
+    printf '\n\n[install]\nlibrary = true\n' >> stdlib-${FORTRAN_STDLIB_VERSION}/fpm.toml; \
+    cd /tmp/fortran/stdlib-${FORTRAN_STDLIB_VERSION}; \
+    python3 config/fypp_deployment.py; \
+    FPM_FC=gfortran-14 FPM_FFLAGS="-O2 -cpp -std=f2023" fpm build --profile release; \
+    FPM_FC=gfortran-14 FPM_FFLAGS="-O2 -cpp -std=f2023" fpm install --profile release --prefix /usr/local; \
+    ldconfig; \
+    rm -rf /tmp/fortran
+
+COPY ./fortran_202510_Main.f90 /workdir/Main.f90
+
+RUN set -eux; \
+    cd /workdir; \
+    git clone --depth 1 https://github.com/ue1221/ac-library-fortran.git acl; \
+    gfortran-14 -I/usr/local/include -O2 -cpp -ffree-line-length-none -std=f2023 Main.f90 -lstdlib; \
+    ./a.out; \
+    rm -f Main.f90 a.out mod_union_find.mod

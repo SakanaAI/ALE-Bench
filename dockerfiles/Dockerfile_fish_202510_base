@@ -1,0 +1,37 @@
+FROM ubuntu:24.04
+
+LABEL org.opencontainers.image.source=https://github.com/SakanaAI/ALE-Bench
+
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+
+ENV DEBIAN_FRONTEND=noninteractive \
+    DEBCONF_NONINTERACTIVE_SEEN=true \
+    TZ=Etc/UTC \
+    LANG=C.UTF-8 \
+    LC_ALL=C.UTF-8
+
+ARG FISH_VERSION=4.0.2
+
+RUN set -eux; \
+    apt-get update; \
+    apt-get install -y --no-install-recommends \
+        ca-certificates curl time \
+        build-essential cmake ninja-build gettext libpcre2-dev libncurses-dev \
+        rustc cargo; \
+    rm -rf /var/lib/apt/lists/*
+
+WORKDIR /workdir
+
+RUN set -eux; \
+    mkdir -p /tmp/fish; \
+    cd /tmp/fish; \
+    curl -fsSLo fish.tar.xz "https://github.com/fish-shell/fish-shell/releases/download/${FISH_VERSION}/fish-${FISH_VERSION}.tar.xz"; \
+    tar -xf fish.tar.xz; \
+    cd "fish-${FISH_VERSION}"; \
+    cmake -S . -B build -G Ninja \
+        -DCMAKE_BUILD_TYPE=Release \
+        -DCMAKE_INSTALL_PREFIX=/usr/local; \
+    cmake --build build; \
+    cmake --install build; \
+    fish --version; \
+    rm -rf /tmp/fish

@@ -1,0 +1,21 @@
+packages: ./submission.cabal
+
+constraints: bitvec +libgmp,
+             -- clock +llvm,
+             text +simdutf,
+             vector-algorithms +llvm
+optimization: 2
+
+package *
+    compiler: ghc
+    ghc-options: -fllvm -Wall
+
+allow-newer: witherable:containers,
+             semialign:containers,
+             scientific:containers,
+             parallel:containers,
+             megaparsec:containers,
+             foldl:containers,
+             linear-generics:containers,
+             indexed-traversable:containers,
+             hashable:containers

@@ -1,0 +1,65 @@
+FROM ubuntu:24.04
+
+LABEL org.opencontainers.image.source=https://github.com/SakanaAI/ALE-Bench
+
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+
+ENV DEBIAN_FRONTEND=noninteractive \
+    DEBCONF_NONINTERACTIVE_SEEN=true \
+    TZ=Etc/UTC \
+    LANG=C.UTF-8 \
+    LC_ALL=C.UTF-8 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    PIP_NO_CACHE_DIR=1
+
+ARG PYTHON_VERSION=3.13.7
+
+RUN set -eux; \
+    apt-get update; \
+    apt-get install -y --no-install-recommends \
+        ca-certificates curl git time \
+        build-essential gdb lcov pkg-config \
+        libbz2-dev libffi-dev libgdbm-dev libgdbm-compat-dev liblzma-dev libexpat1-dev \
+        libncurses5-dev libncursesw5-dev libreadline-dev libsqlite3-dev libssl-dev \
+        tk-dev uuid-dev zlib1g-dev xz-utils llvm-bolt libbolt-19-dev \
+        libopenblas-dev liblapack-dev libgeos-dev meson gfortran; \
+    rm -rf /var/lib/apt/lists/*
+
+WORKDIR /workdir
+
+RUN set -eux; \
+    mkdir -p /tmp/python-src; \
+    cd /tmp/python-src; \
+    curl -fsSLo "Python-${PYTHON_VERSION}.tar.xz" "https://www.python.org/ftp/python/${PYTHON_VERSION}/Python-${PYTHON_VERSION}.tar.xz"; \
+    tar -xf "Python-${PYTHON_VERSION}.tar.xz"; \
+    ln -sf /usr/lib/llvm-19/lib/libbolt_rt_instr.a /usr/lib/libbolt_rt_instr.a; \
+    cd "Python-${PYTHON_VERSION}"; \
+    ./configure \
+        --enable-optimizations \
+        --with-lto=full \
+        --with-strict-overflow \
+        --enable-bolt \
+        --prefix=/usr/local \
+        --enable-shared \
+        --with-ensurepip=install \
+        CC=/usr/bin/gcc CXX=/usr/bin/g++; \
+    make -j"$(nproc)" CC=/usr/bin/gcc CXX=/usr/bin/g++; \
+    make altinstall CC=/usr/bin/gcc CXX=/usr/bin/g++; \
+    ldconfig; \
+    rm -rf /tmp/python-src
+
+COPY ./python_202510_freeze.txt /tmp/freeze.txt
+
+RUN set -eux; \
+    python3.13 -m pip install --no-cache-dir -U pip setuptools; \
+    python3.13 -m pip install --no-cache-dir -r /tmp/freeze.txt --no-warn-script-location; \
+    python3.13 -m pip install --no-cache-dir torch==2.8.0+cpu --index-url https://download.pytorch.org/whl/cpu --no-warn-script-location; \
+    curl -fsSLo /tmp/numba.tar.gz "https://files.pythonhosted.org/packages/1c/a0/e21f57604304aa03ebb8e098429222722ad99176a4f979d34af1d1ee80da/numba-0.61.2.tar.gz"; \
+    mkdir -p /tmp/numba; \
+    tar -C /tmp/numba --strip-components=1 -xf /tmp/numba.tar.gz; \
+    cd /tmp/numba; \
+    sed -i 's/ext_cuda_extras, //' setup.py; \
+    rm -rf numba/cuda; \
+    python3.13 -m pip install --no-cache-dir .; \
+    rm -f /tmp/freeze.txt /tmp/numba.tar.gz; \
+    rm -rf /tmp/numba

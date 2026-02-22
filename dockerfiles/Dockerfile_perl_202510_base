@@ -1,0 +1,32 @@
+FROM ubuntu:24.04
+
+LABEL org.opencontainers.image.source=https://github.com/SakanaAI/ALE-Bench
+
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+
+ENV DEBIAN_FRONTEND=noninteractive \
+    DEBCONF_NONINTERACTIVE_SEEN=true \
+    TZ=Etc/UTC \
+    LANG=C.UTF-8 \
+    LC_ALL=C.UTF-8
+
+ARG PERL_VERSION=5.38.2
+
+RUN set -eux; \
+    apt-get update; \
+    apt-get install -y --no-install-recommends \
+        ca-certificates curl build-essential time; \
+    rm -rf /var/lib/apt/lists/*
+
+WORKDIR /workdir
+
+RUN set -eux; \
+    mkdir -p /tmp/perl; \
+    cd /tmp/perl; \
+    curl -fsSLo perl.tar.xz "https://www.cpan.org/src/5.0/perl-${PERL_VERSION}.tar.xz"; \
+    tar -xf perl.tar.xz; \
+    cd "perl-${PERL_VERSION}"; \
+    sh Configure -des -Dprefix=/usr/local; \
+    make -j"$(nproc)"; \
+    make install; \
+    rm -rf /tmp/perl

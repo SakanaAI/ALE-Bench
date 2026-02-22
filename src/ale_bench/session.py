@@ -15,7 +15,7 @@ from PIL import Image
 from docker.errors import NotFound
 
 import ale_bench.constants
-from ale_bench.code_language import CodeLanguage, JudgeVersion
+from ale_bench.code_language import CodeLanguage, JudgeVersion, get_compile_command
 from ale_bench.data import Problem, RankPerformanceMap, Standings, start_visualization_server
 from ale_bench.error import AleBenchError
 from ale_bench.result import CaseResult, CodeRunResult, ResourceUsage, Result
@@ -159,7 +159,8 @@ class Session:
             input_str (str): Standard input passed to the program.
             code (str): Source code to run.
             code_language (CodeLanguage | str): Language of the source code.
-            judge_version (JudgeVersion | str | None): Toolchain version (e.g., 201907/202301). Defaults to 202301.
+            judge_version (JudgeVersion | str | None): Toolchain version (e.g., 201907/202301/202510).
+                Defaults to 202301.
             time_limit (float | None): CPU/timeout limit in seconds. Defaults to the problem's time limit.
             memory_limit (int | str | None): Memory limit in bytes. Defaults to the problem's memory limit.
 
@@ -293,7 +294,7 @@ class Session:
             input_str (list[str] | str): The input string(s) for the evaluation.
             code (str): The code to evaluate.
             code_language (CodeLanguage | str): The code language.
-            judge_version (JudgeVersion | str, optional): The judge version. Defaults to None.
+            judge_version (JudgeVersion | str, optional): The judge version. Defaults to None (202301).
             time_limit (float, optional): The time limit in seconds. Defaults to None.
             memory_limit (int | str, optional): The memory limit in bytes. Defaults to None.
             skip_local_visualization (bool, optional): Whether to skip local visualization. Defaults to False.
@@ -389,7 +390,7 @@ class Session:
         Args:
             code (str): The code to evaluate.
             code_language (CodeLanguage | str): The code language.
-            judge_version (JudgeVersion | str, optional): The judge version. Defaults to None.
+            judge_version (JudgeVersion | str, optional): The judge version. Defaults to None (202301).
             seed (list[int] | int, optional): The seed for the case generation. Defaults to 0.
             time_limit (float, optional): The time limit in seconds. Defaults to None.
             memory_limit (int | str, optional): The memory limit in bytes. Defaults to None.
@@ -490,7 +491,7 @@ class Session:
         Args:
             code (str): The code to evaluate.
             code_language (CodeLanguage | str): The code language.
-            judge_version (JudgeVersion | str, optional): The judge version. Defaults to None.
+            judge_version (JudgeVersion | str, optional): The judge version. Defaults to None (202301).
             skip_local_visualization (bool, optional): Whether to skip local visualization. Defaults to True.
 
         Returns:
@@ -569,7 +570,7 @@ class Session:
         Args:
             code (str): The code to evaluate.
             code_language (CodeLanguage | str): The code language.
-            judge_version (JudgeVersion | str, optional): The judge version. Defaults to None.
+            judge_version (JudgeVersion | str, optional): The judge version. Defaults to None (202301).
 
         Returns:
             Result: The result of the evaluation.
@@ -1127,9 +1128,10 @@ class Session:
             except ValueError as e:
                 msg = f"Invalid judge version. Available options: {', '.join(JudgeVersion.__members__)}"
                 raise AleBenchError(msg) from e
-        if judge_version == JudgeVersion.V201907 and (code_language in (CodeLanguage.CPP20, CodeLanguage.CPP23)):
-            msg = "The judge version 201907 does not support C++20 or C++23."
-            raise AleBenchError(msg)
+        try:
+            get_compile_command(code_language, judge_version)
+        except ValueError as e:
+            raise AleBenchError(str(e)) from e
 
         # Check `time_limit`
         if time_limit is None:

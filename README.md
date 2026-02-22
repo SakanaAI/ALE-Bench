@@ -65,17 +65,24 @@ https://github.com/user-attachments/assets/50a8de5a-b519-4aef-8e54-c60ac9dcbb90
     ```
 
 4.  **Build Docker Images:**
-    This script will build the necessary Docker execution images for ALE-Bench. It automatically pulls pre-built base images from Docker Hub (repository: `yimjk/ale-bench`) and then creates local images tagged as `ale-bench:<language>-<version>` with appropriate permissions for your user.
+    Build the Docker execution images required for your target judge versions.
+    Scripts automatically pull pre-built base images from Docker Hub (repository: `yimjk/ale-bench`) and then creates local images tagged as `ale-bench:<language>-<version>` with appropriate permissions for your user.
     ```sh
+    # 201907 + 202301 images
     bash ./scripts/docker_build_all.sh $(id -u) $(id -g)
-    # Or you can build images for specific version (202301)
+
+    # Build images for a specific version
     bash ./scripts/docker_build_202301.sh $(id -u) $(id -g)
+    bash ./scripts/docker_build_202510.sh $(id -u) $(id -g)
     ```
-    If you prefer to pull all base images beforehand, you can optionally run:
+    If you prefer to pull base images beforehand, you can optionally run:
     ```sh
+    # 201907 + 202301 base images
     bash ./scripts/docker_pull_all.sh
-    # Or pull images for specific version (202301)
+
+    # Pull base images for a specific version
     bash ./scripts/docker_pull_202301.sh
+    bash ./scripts/docker_pull_202510.sh
     ```
 
 5.  **[Optional] Download Data via Hugging Face Repository:**
@@ -148,7 +155,8 @@ parsed_content = ale_bench.utils.parse_statement(
 agent_response = my_agent.get_llm_response(initial_messages)
 extracted_code = my_agent.parse_code_from_response(agent_response)
 detected_language = my_agent.detect_code_language(extracted_code)
-# Ensure detected_language is one of: "cpp17", "cpp20", "cpp23", "python", "rust"
+# Ensure detected_language is supported by your selected judge_version. (e.g., "cpp23")
+# Refer to docs/session_object.md for supported languages and judge versions.
 
 # Evaluate against public test cases
 public_result = session.public_eval(extracted_code, code_language=detected_language)

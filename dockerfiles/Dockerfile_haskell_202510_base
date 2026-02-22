@@ -1,0 +1,65 @@
+FROM ubuntu:24.04
+
+LABEL org.opencontainers.image.source=https://github.com/SakanaAI/ALE-Bench
+
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+
+ENV DEBIAN_FRONTEND=noninteractive \
+    DEBCONF_NONINTERACTIVE_SEEN=true \
+    TZ=Etc/UTC \
+    LANG=C.UTF-8 \
+    LC_ALL=C.UTF-8 \
+    GHCUP_INSTALL_BASE_PREFIX=/opt \
+    GHCUP_HOME=/opt/.ghcup \
+    XDG_CONFIG_HOME=/workdir/.config \
+    XDG_CACHE_HOME=/workdir/.cache \
+    XDG_STATE_HOME=/workdir/.local/state
+
+ARG GHC_VERSION=9.8.4
+ARG CABAL_VERSION=3.14.2.0
+
+RUN set -eux; \
+    apt-get update; \
+    apt-get install -y --no-install-recommends ca-certificates curl gnupg; \
+    curl -fsSL https://apt.llvm.org/llvm-snapshot.gpg.key \
+        | gpg --dearmor -o /usr/share/keyrings/llvm-archive-keyring.gpg; \
+    echo "deb [signed-by=/usr/share/keyrings/llvm-archive-keyring.gpg] https://apt.llvm.org/unstable/ llvm-toolchain-15 main" \
+        > /etc/apt/sources.list.d/llvm-15.list; \
+    apt-get update; \
+    apt-get install -y --no-install-recommends \
+        build-essential time \
+        libffi-dev libffi8 libgmp-dev libgmp10 \
+        libncurses-dev libncurses6 libtinfo6 llvm-15 \
+        libgsl-dev liblapack-dev libopenblas-dev libglpk-dev; \
+    rm -rf /var/lib/apt/lists/*
+
+ENV PATH="${GHCUP_HOME}/bin:${PATH}"
+
+RUN set -eux; \
+    mkdir -p /workdir "${XDG_CONFIG_HOME}" "${XDG_CACHE_HOME}" "${XDG_STATE_HOME}"
+
+WORKDIR /workdir
+
+RUN set -eux; \
+    curl --proto '=https' --tlsv1.2 -sSf https://get-ghcup.haskell.org \
+        | BOOTSTRAP_HASKELL_NONINTERACTIVE=1 \
+          BOOTSTRAP_HASKELL_MINIMAL=1 \
+          GHCUP_INSTALL_BASE_PREFIX=/opt \
+          sh; \
+    ghcup install cabal "${CABAL_VERSION}" && ghcup set cabal "${CABAL_VERSION}"; \
+    ghcup install ghc "${GHC_VERSION}" && ghcup set ghc "${GHC_VERSION}"; \
+    ghc --version; \
+    cabal --version
+
+COPY ./haskell_202510_submission.cabal /workdir/submission/submission.cabal
+COPY ./haskell_202510_cabal.project /workdir/submission/cabal.project
+COPY ./haskell_202510_cabal.project.freeze /workdir/submission/cabal.project.freeze
+
+RUN set -eux; \
+    mkdir -p /workdir/submission/app; \
+    echo 'main = return () :: IO ()' > /workdir/submission/app/Main.hs; \
+    cd /workdir/submission; \
+    cabal v2-update; \
+    cabal v2-configure --flags="+atcoder"; \
+    cabal v2-build --only-dependencies; \
+    rm -f /workdir/submission/app/Main.hs

@@ -1,0 +1,59 @@
+FROM ubuntu:24.04
+
+LABEL org.opencontainers.image.source=https://github.com/SakanaAI/ALE-Bench
+
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+
+ENV DEBIAN_FRONTEND=noninteractive \
+    DEBCONF_NONINTERACTIVE_SEEN=true \
+    TZ=Etc/UTC \
+    LANG=C.UTF-8 \
+    LC_ALL=C.UTF-8
+
+ARG TARGETARCH
+ARG PYPY_VERSION=7.3.20
+
+RUN set -eux; \
+    apt-get update; \
+    apt-get install -y --no-install-recommends \
+        ca-certificates curl git bzip2 time \
+        build-essential gfortran libopenblas-dev liblapack-dev pkg-config libgeos-dev meson; \
+    rm -rf /var/lib/apt/lists/*
+
+WORKDIR /workdir
+
+RUN set -eux; \
+    arch="${TARGETARCH:-$(uname -m)}"; \
+    case "${arch}" in \
+        amd64|x86_64) pypy_arch="linux64" ;; \
+        arm64|aarch64) pypy_arch="linux-aarch64" ;; \
+        *) echo "unsupported architecture for PyPy: ${arch}" >&2; exit 1 ;; \
+    esac; \
+    cd /tmp; \
+    curl -fsSLo pypy.tar.bz2 --retry 5 --retry-all-errors "https://downloads.python.org/pypy/pypy3.11-v${PYPY_VERSION}-${pypy_arch}.tar.bz2"; \
+    tar -xf pypy.tar.bz2; \
+    cd "pypy3.11-v${PYPY_VERSION}-${pypy_arch}"; \
+    ./bin/pypy3 -m ensurepip; \
+    ./bin/pip3 install --upgrade pip; \
+    ./bin/pip3 install --break-system-packages \
+        "numpy==2.3.2" \
+        "scipy==1.15.3" \
+        "networkx==3.5" \
+        "sympy==1.14.0" \
+        "sortedcontainers==2.4.0" \
+        "more-itertools==10.7.0" \
+        "shapely==2.1.1" \
+        "bitarray==3.6.0" \
+        "PuLP==3.2.2" \
+        "mpmath==1.3.0" \
+        "pandas==2.3.1" \
+        "z3-solver==4.15.1.0" \
+        "scikit-learn==1.7.1" \
+        "cppyy==3.5.0" \
+        "acl-cpp-python==0.6.2" \
+        "git+https://github.com/not522/ac-library-python@27fdbb71cd0d566bdeb12746db59c9d908c6b5d5"; \
+    cp -a ./bin/* /usr/local/bin/; \
+    cp -a ./include/* /usr/local/include/; \
+    cp -a ./lib/* /usr/local/lib/; \
+    ldconfig; \
+    rm -rf /tmp/pypy.tar.bz2 /tmp/pypy3.11-v${PYPY_VERSION}-*

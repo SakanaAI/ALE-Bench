@@ -88,6 +88,9 @@ PROFILES_FILE = f"{TMP_DIR}/profiles.json"
 LOCAL_VIS_SVG = f"{WORK_DIR}/out.svg"
 LOCAL_VIS_HTML = f"{WORK_DIR}/vis.html"
 
+# Error codes
+ERROR_CODE_137 = 137  # Exit status for a SIGKILL-terminated process (128 + 9)
+
 # Score
 REJECTED_ABSOLUTE_SCORE = 0
 

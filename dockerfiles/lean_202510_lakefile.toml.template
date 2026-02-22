@@ -1,0 +1,15 @@
+[[require]]
+name = "Regex"
+git = "https://github.com/pandaman64/lean-regex"
+rev = "__LEAN_VERSION__"
+subDir = "regex"
+
+[[require]]
+name = "mathlib"
+scope = "leanprover-community"
+rev = "__LEAN_VERSION__"
+
+[[require]]
+name = "Parser"
+scope = "fgdorais"
+rev = "617f4fa"

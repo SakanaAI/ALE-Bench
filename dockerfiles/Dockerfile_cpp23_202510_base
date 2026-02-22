@@ -1,0 +1,264 @@
+FROM ubuntu:24.04
+
+LABEL org.opencontainers.image.source=https://github.com/SakanaAI/ALE-Bench
+
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+
+ENV DEBIAN_FRONTEND=noninteractive \
+    DEBCONF_NONINTERACTIVE_SEEN=true \
+    TZ=Etc/UTC \
+    LANG=C.UTF-8 \
+    LC_ALL=C.UTF-8 \
+    LD_LIBRARY_PATH= \
+    LIBRARY_PATH= \
+    CPATH=
+
+ARG GCC_VERSION=15.2.0
+ARG BOOST_VERSION=1.88.0
+ARG ACL_VERSION=1.6
+ARG ABSEIL_VERSION=20250512.1
+ARG IMMER_VERSION=0.8.1
+ARG UNORDERED_DENSE_VERSION=4.5.0
+ARG RANGE_V3_VERSION=0.12.0
+ARG Z3_VERSION=4.15.2
+ARG LIBTORCH_VERSION=2.8.0
+ARG LIGHTGBM_VERSION=4.6.0
+ARG ORTOOLS_VERSION=9.14
+
+RUN set -eux; \
+    apt-get update; \
+    apt-get install -y --no-install-recommends \
+        ca-certificates curl git time \
+        xz-utils unzip bzip2 tar file \
+        build-essential cmake ninja-build lld pkg-config python3 \
+        zlib1g-dev libzstd-dev libgmp-dev libmpfr-dev libmpc-dev libisl-dev \
+        libopenblas-dev liblapack-dev libeigen3-dev; \
+    rm -rf /var/lib/apt/lists/*
+
+WORKDIR /workdir
+
+ENV GCC_DIR=/opt/gcc-${GCC_VERSION}
+
+RUN set -eux; \
+    mkdir -p /tmp/gcc-src; \
+    cd /tmp/gcc-src; \
+    curl -fsSLo gcc.tar.xz "https://ftp.gnu.org/gnu/gcc/gcc-${GCC_VERSION}/gcc-${GCC_VERSION}.tar.xz"; \
+    tar -xf gcc.tar.xz; \
+    cd "gcc-${GCC_VERSION}"; \
+    ./contrib/download_prerequisites; \
+    mkdir -p build; \
+    cd build; \
+    ../configure \
+        --prefix="${GCC_DIR}" \
+        --enable-languages=c++ \
+        --disable-bootstrap \
+        --disable-multilib \
+        --disable-libsanitizer \
+        --disable-checking \
+        --disable-nls \
+        --disable-gcov \
+        --disable-libada \
+        --disable-libgm2; \
+    make -j"$(nproc)"; \
+    make install; \
+    echo "${GCC_DIR}/lib64" > /etc/ld.so.conf.d/gcc-${GCC_VERSION}.conf; \
+    echo "${GCC_DIR}/lib" >> /etc/ld.so.conf.d/gcc-${GCC_VERSION}.conf; \
+    ldconfig; \
+    rm -rf /tmp/gcc-src
+
+RUN set -eux; \
+    mkdir -p "${GCC_DIR}/share/eigen3/cmake"; \
+    cp -Trf /usr/include/eigen3 "${GCC_DIR}/include"; \
+    cp -f \
+        /usr/share/eigen3/cmake/Eigen3Targets.cmake \
+        /usr/share/eigen3/cmake/Eigen3Config.cmake \
+        "${GCC_DIR}/share/eigen3/cmake"; \
+    sed -i \
+        -e "s|include/eigen3|include|g" \
+        "${GCC_DIR}/share/eigen3/cmake/Eigen3Targets.cmake"
+
+ENV PATH="${GCC_DIR}/bin:${PATH}" \
+    LD_LIBRARY_PATH="${GCC_DIR}/lib64:${GCC_DIR}/lib:${LD_LIBRARY_PATH}"
+
+RUN set -eux; \
+    mkdir -p /tmp/boost; \
+    cd /tmp/boost; \
+    curl -fsSLo boost.tar.bz2 "https://archives.boost.io/release/${BOOST_VERSION}/source/boost_${BOOST_VERSION//./_}.tar.bz2"; \
+    tar -xf boost.tar.bz2; \
+    cd "boost_${BOOST_VERSION//./_}"; \
+    echo "using gcc : : g++ ;" > ./user-config.jam; \
+    ./bootstrap.sh \
+        --with-toolset=gcc \
+        --without-libraries=mpi,graph_parallel,python \
+        --prefix="${GCC_DIR}"; \
+    ./b2 \
+        toolset=gcc \
+        link=static \
+        threading=single \
+        variant=release \
+        cflags="-w" \
+        cxxflags="" \
+        --user-config="./user-config.jam" \
+        -j"$(nproc)" -d0 \
+        install; \
+    rm -rf /tmp/boost
+
+RUN set -eux; \
+    mkdir -p /tmp/acl; \
+    cd /tmp/acl; \
+    curl -fsSLo acl.tar.gz "https://github.com/atcoder/ac-library/archive/refs/tags/v${ACL_VERSION}.tar.gz"; \
+    tar -xf acl.tar.gz; \
+    cp -r "ac-library-${ACL_VERSION}/atcoder" "${GCC_DIR}/include/"; \
+    rm -rf /tmp/acl
+
+RUN set -eux; \
+    mkdir -p /tmp/abseil; \
+    cd /tmp/abseil; \
+    curl -fsSLo abseil.tar.gz "https://github.com/abseil/abseil-cpp/archive/refs/tags/${ABSEIL_VERSION}.tar.gz"; \
+    tar -xf abseil.tar.gz; \
+    cd "abseil-cpp-${ABSEIL_VERSION}"; \
+    cmake -S . -B build -G Ninja \
+        -DCMAKE_C_COMPILER="${GCC_DIR}/bin/gcc" \
+        -DCMAKE_CXX_COMPILER="${GCC_DIR}/bin/g++" \
+        -DCMAKE_INSTALL_PREFIX="${GCC_DIR}" \
+        -DABSL_ENABLE_INSTALL=ON \
+        -DABSL_PROPAGATE_CXX_STD=ON \
+        -DABSL_USE_SYSTEM_INCLUDES=ON \
+        -DCMAKE_CXX_FLAGS="-fPIC -std=gnu++23 -w -L${GCC_DIR}/lib64 -Wl,-R${GCC_DIR}/lib64"; \
+    cmake --build build; \
+    cmake --install build; \
+    rm -rf /tmp/abseil
+
+RUN set -eux; \
+    mkdir -p /tmp/immer; \
+    cd /tmp/immer; \
+    curl -fsSLo immer.tar.gz "https://github.com/arximboldi/immer/archive/refs/tags/v${IMMER_VERSION}.tar.gz"; \
+    tar -xf immer.tar.gz; \
+    cp -Trf "immer-${IMMER_VERSION}/immer" "${GCC_DIR}/include/immer"; \
+    rm -rf /tmp/immer
+
+RUN set -eux; \
+    mkdir -p /tmp/unordered_dense; \
+    cd /tmp/unordered_dense; \
+    curl -fsSLo ud.tar.gz "https://github.com/martinus/unordered_dense/archive/refs/tags/v${UNORDERED_DENSE_VERSION}.tar.gz"; \
+    tar -xf ud.tar.gz; \
+    cd "unordered_dense-${UNORDERED_DENSE_VERSION}"; \
+    cmake -S . -B build -G Ninja \
+        -DCMAKE_C_COMPILER="${GCC_DIR}/bin/gcc" \
+        -DCMAKE_CXX_COMPILER="${GCC_DIR}/bin/g++" \
+        -DCMAKE_INSTALL_PREFIX="${GCC_DIR}"; \
+    cmake --build build; \
+    cmake --install build; \
+    rm -rf /tmp/unordered_dense
+
+RUN set -eux; \
+    mkdir -p /tmp/range-v3; \
+    cd /tmp/range-v3; \
+    curl -fsSLo range-v3.tar.gz "https://github.com/ericniebler/range-v3/archive/refs/tags/${RANGE_V3_VERSION}.tar.gz"; \
+    tar -xf range-v3.tar.gz; \
+    cp -Trf "range-v3-${RANGE_V3_VERSION}/include" "${GCC_DIR}/include"; \
+    rm -rf /tmp/range-v3
+
+RUN set -eux; \
+    mkdir -p /tmp/z3; \
+    cd /tmp/z3; \
+    curl -fsSLo z3.tar.gz "https://github.com/Z3Prover/z3/archive/refs/tags/z3-${Z3_VERSION}.tar.gz"; \
+    tar -xf z3.tar.gz; \
+    cd z3-*; \
+    cmake -S . -B build -G Ninja \
+        -DCMAKE_C_COMPILER="${GCC_DIR}/bin/gcc" \
+        -DCMAKE_CXX_COMPILER="${GCC_DIR}/bin/g++" \
+        -DCMAKE_BUILD_TYPE=Release \
+        -DCMAKE_INSTALL_PREFIX="${GCC_DIR}" \
+        -DZ3_BUILD_TEST_EXECUTABLES=OFF \
+        -DZ3_BUILD_PYTHON_BINDINGS=OFF \
+        -DCMAKE_CXX_FLAGS="-std=gnu++23 -w -L${GCC_DIR}/lib64 -Wl,-R${GCC_DIR}/lib64"; \
+    cmake --build build; \
+    cmake --install build; \
+    rm -rf /tmp/z3
+
+RUN set -eux; \
+    curl -fsSLo /tmp/libtorch.zip "https://download.pytorch.org/libtorch/cpu/libtorch-shared-with-deps-${LIBTORCH_VERSION}%2Bcpu.zip"; \
+    unzip -q /tmp/libtorch.zip -d /tmp; \
+    rm -f /tmp/libtorch/lib/libprotobuf.a /tmp/libtorch/lib/libprotobuf-lite.a /tmp/libtorch/lib/libprotoc.a; \
+    cp -Trf /tmp/libtorch/include "${GCC_DIR}/include"; \
+    cp -Trf /tmp/libtorch/lib "${GCC_DIR}/lib"; \
+    ldconfig; \
+    rm -rf /tmp/libtorch.zip /tmp/libtorch
+
+RUN set -eux; \
+    mkdir -p /tmp/lightgbm; \
+    cd /tmp/lightgbm; \
+    curl -fsSLo lightgbm.tar.gz "https://github.com/microsoft/LightGBM/releases/download/v${LIGHTGBM_VERSION}/lightgbm-${LIGHTGBM_VERSION}.tar.gz"; \
+    mkdir -p lightgbm-src; \
+    tar -xf lightgbm.tar.gz -C lightgbm-src --strip-components=1; \
+    cd lightgbm-src; \
+    rm -rf ./lightgbm ./external_libs/eigen; \
+    mkdir -p build; \
+    cd build; \
+    cmake -G Ninja \
+        -DCMAKE_C_COMPILER="${GCC_DIR}/bin/gcc" \
+        -DCMAKE_CXX_COMPILER="${GCC_DIR}/bin/g++" \
+        -DBUILD_CLI:BOOL=OFF \
+        -DBUILD_STATIC_LIB=ON \
+        -DUSE_HOMEBREW_FALLBACK=OFF \
+        -DCMAKE_INSTALL_PREFIX="${GCC_DIR}" \
+        -DCMAKE_CXX_FLAGS="-std=gnu++23 -w -L${GCC_DIR}/lib64 -Wl,-R${GCC_DIR}/lib64 -I${GCC_DIR}/include -fopenmp" \
+        ..; \
+    cmake --build . --target install; \
+    rm -rf /tmp/lightgbm
+
+RUN set -eux; \
+    mkdir -p /tmp/or-tools; \
+    cd /tmp/or-tools; \
+    curl -fsSLo or-tools.tar.gz "https://github.com/google/or-tools/archive/refs/tags/v${ORTOOLS_VERSION}.tar.gz"; \
+    tar -xf or-tools.tar.gz; \
+    cd or-tools-*; \
+    mkdir -p build; \
+    cd build; \
+    cmake -G Ninja \
+        -DCMAKE_C_COMPILER="${GCC_DIR}/bin/gcc" \
+        -DCMAKE_CXX_COMPILER="${GCC_DIR}/bin/g++" \
+        -DLINK_FLAGS:STRING="-fuse-ld=lld" \
+        -DCFLAGS:STRING="-w" \
+        -DCXXFLAGS:STRING="-w" \
+        -DCMAKE_INSTALL_MESSAGE:STRING=NEVER \
+        -DBUILD_CXX:BOOL=ON \
+        -DBUILD_BZip2:BOOL=ON -DBUILD_ZLIB:BOOL=ON -DBUILD_Protobuf:BOOL=ON -DBUILD_re2:BOOL=ON \
+        -DUSE_COINOR:BOOL=ON -DBUILD_CoinUtils:BOOL=ON -DBUILD_Osi:BOOL=ON -DBUILD_Clp:BOOL=ON -DBUILD_Cgl:BOOL=ON -DBUILD_Cbc:BOOL=ON \
+        -DUSE_GLPK:BOOL=ON -DBUILD_GLPK:BOOL=ON \
+        -DUSE_HIGHS:BOOL=ON -DBUILD_HIGHS:BOOL=ON \
+        -DUSE_SCIP:BOOL=ON -DBUILD_SCIP:BOOL=ON -DBUILD_soplex:BOOL=ON -DBUILD_Boost:BOOL=ON \
+        -DBUILD_SAMPLES:BOOL=OFF -DBUILD_EXAMPLES:BOOL=OFF \
+        -DBUILD_TESTING:BOOL=OFF \
+        -DCMAKE_PREFIX_PATH="${GCC_DIR}" \
+        -DCMAKE_INSTALL_PREFIX="${GCC_DIR}" \
+        -DBUILD_SHARED_LIBS:BOOL=OFF \
+        -DCMAKE_INSTALL_RPATH_USE_LINK_PATH:BOOL=ON \
+        -DCMAKE_CXX_FLAGS="-std=gnu++23 -w -L${GCC_DIR}/lib64 -Wl,-R${GCC_DIR}/lib64" \
+        ..; \
+    cmake --build . --config Release --target install; \
+    rm -rf /tmp/or-tools
+
+RUN set -eux; \
+    g++ bits/std.cc bits/std.compat.cc \
+        -DATCODER \
+        -DONLINE_JUDGE \
+        -O2 \
+        -Wall \
+        -Wextra \
+        -fconstexpr-depth=1024 \
+        -fconstexpr-loop-limit=524288 \
+        -fconstexpr-ops-limit=2097152 \
+        -flto=auto \
+        -fmodules \
+        -ftrivial-auto-var-init=zero \
+        -march=native \
+        -pthread \
+        -std=gnu++23 \
+        "-Wl,--as-needed" \
+        "-L${GCC_DIR}/lib64" \
+        "-Wl,-R${GCC_DIR}/lib64" \
+        -c -fmodule-only -fsearch-include-path
+
+ENV CPATH="${GCC_DIR}/include/torch/csrc/api/include:${CPATH}"

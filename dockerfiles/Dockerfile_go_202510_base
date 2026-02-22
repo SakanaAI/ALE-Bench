@@ -1,0 +1,59 @@
+FROM ubuntu:24.04
+
+LABEL org.opencontainers.image.source=https://github.com/SakanaAI/ALE-Bench
+
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+
+ENV DEBIAN_FRONTEND=noninteractive \
+    DEBCONF_NONINTERACTIVE_SEEN=true \
+    TZ=Etc/UTC \
+    LANG=C.UTF-8 \
+    LC_ALL=C.UTF-8 \
+    GOPATH=/workdir/.go \
+    GOMODCACHE=/workdir/.go/pkg/mod \
+    GOCACHE=/workdir/.go/.cache/go-build
+
+ARG TARGETARCH
+ARG GO_VERSION=1.25.1
+
+RUN set -eux; \
+    apt-get update; \
+    apt-get install -y --no-install-recommends \
+        ca-certificates curl tar time; \
+    rm -rf /var/lib/apt/lists/*
+
+RUN set -eux; \
+    mkdir -p /workdir "${GOMODCACHE}" "${GOCACHE}"
+
+WORKDIR /workdir
+
+RUN set -eux; \
+    arch="${TARGETARCH:-$(uname -m)}"; \
+    case "${arch}" in \
+        amd64|x86_64) go_arch="amd64" ;; \
+        arm64|aarch64) go_arch="arm64" ;; \
+        arm) go_arch="armv6l" ;; \
+        386|i686) go_arch="386" ;; \
+        ppc64le) go_arch="ppc64le" ;; \
+        s390x) go_arch="s390x" ;; \
+        riscv64) go_arch="riscv64" ;; \
+        mips64le) go_arch="mips64le" ;; \
+        *) echo "unsupported architecture for Go: ${arch}" >&2; exit 1 ;; \
+    esac; \
+    cd /tmp; \
+    curl -fsSLo "go.tar.gz" "https://go.dev/dl/go${GO_VERSION}.linux-${go_arch}.tar.gz"; \
+    rm -rf /opt/go; \
+    tar -C /opt -xf "go.tar.gz"; \
+    rm -f "go.tar.gz"
+
+ENV PATH="${PATH}:/opt/go/bin"
+
+RUN set -eux; \
+    go mod init atcoder.jp/golang; \
+    go get \
+        github.com/emirpasic/gods@v1.18.1 \
+        gonum.org/v1/gonum@v0.16.0 \
+        github.com/liyue201/gostl@v1.2.0 \
+        github.com/benbjohnson/immutable@v0.4.3 \
+        golang.org/x/exp@v0.0.0-20250711185948-6ae5c78190dc \
+        github.com/monkukui/ac-library-go@2caa314afb5ad142f497cf3c1a5c7d5740184c0d

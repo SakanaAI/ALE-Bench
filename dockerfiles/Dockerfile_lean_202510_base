@@ -1,0 +1,41 @@
+FROM ubuntu:24.04
+
+LABEL org.opencontainers.image.source=https://github.com/SakanaAI/ALE-Bench
+
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+
+ENV DEBIAN_FRONTEND=noninteractive \
+    DEBCONF_NONINTERACTIVE_SEEN=true \
+    TZ=Etc/UTC \
+    LANG=C.UTF-8 \
+    LC_ALL=C.UTF-8 \
+    ELAN_HOME=/workdir/.elan \
+    PATH=/workdir/.elan/bin:${PATH}
+
+ARG LEAN_VERSION=v4.22.0
+
+RUN set -eux; \
+    apt-get update; \
+    apt-get install -y --no-install-recommends ca-certificates curl git xz-utils build-essential time; \
+    rm -rf /var/lib/apt/lists/*
+
+RUN set -eux; \
+    mkdir -p /workdir "${ELAN_HOME}"
+
+WORKDIR /workdir
+
+COPY ./lean_202510_Main.lean /tmp/Main.lean
+COPY ./lean_202510_lakefile.toml.template /tmp/lakefile.toml.template
+
+RUN set -eux; \
+    curl -fsSLo /tmp/elan-init.sh https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh; \
+    chmod +x /tmp/elan-init.sh; \
+    /tmp/elan-init.sh -y --default-toolchain "leanprover/lean4:${LEAN_VERSION}"; \
+    rm -f /tmp/elan-init.sh; \
+    lake new atcoder exe; \
+    cd atcoder; \
+    sed "s|__LEAN_VERSION__|${LEAN_VERSION}|g" /tmp/lakefile.toml.template >> lakefile.toml; \
+    cp /tmp/Main.lean Main.lean; \
+    lake exe cache get; \
+    lake build; \
+    rm -f .lake/build/bin/atcoder /tmp/lakefile.toml.template /tmp/Main.lean

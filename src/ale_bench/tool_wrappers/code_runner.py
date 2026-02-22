@@ -50,7 +50,7 @@ def run_compile_container(
     Args:
         code_language (CodeLanguage): The code language.
         judge_version (JudgeVersion): The judge version.
-        host_paths_compile (ostPathsCompile): The paths for the runner tool in the compilation step.
+        host_paths_compile (HostPathsCompile): The paths for the runner tool in the compilation step.
         compile_volumes (dict[str, dict[str, str]]): The volumes for the compile command with the setup.
         compile_command (str): The compile command.
 
@@ -61,7 +61,7 @@ def run_compile_container(
     with docker_client() as client:
         container = client.containers.run(
             image=get_docker_image_name(code_language, judge_version),
-            command=f"/bin/sh -c '{compile_command}'",
+            command=["/bin/bash", "--noprofile", "--norc", "-c", compile_command],
             remove=False,
             auto_remove=False,
             cpu_period=100000,
@@ -78,7 +78,7 @@ def run_compile_container(
             try:
                 container.wait(timeout=ale_bench.constants.COMPILE_TIMEOUT)
             except (Timeout, RequestsConnectionError):
-                if code_language != CodeLanguage.PYTHON:
+                if code_language not in {CodeLanguage.PYTHON, CodeLanguage.PYPY, CodeLanguage.JULIA}:
                     return CodeRunResult(
                         stdin="",
                         stdout="",
@@ -104,8 +104,12 @@ def run_compile_container(
     if any(
         [
             exit_code != 0,
-            code_language != CodeLanguage.PYTHON and object_size == 0,
-            code_language == CodeLanguage.PYTHON and "SyntaxError" in stderr,
+            # NOTE: As for Python/PyPy/Julia, it is fine if the compile-step artifact is not created.
+            code_language not in {CodeLanguage.PYTHON, CodeLanguage.PYPY, CodeLanguage.JULIA} and object_size == 0,
+            # NOTE: We regard SyntaxError as a compilation error for Python/PyPy.
+            code_language in {CodeLanguage.PYTHON, CodeLanguage.PYPY} and "SyntaxError" in stderr,
+            # NOTE: We regard ParseError as a compilation error for Julia.
+            code_language == CodeLanguage.JULIA and "ParseError" in stderr,
         ]
     ):
         return CodeRunResult(
@@ -127,7 +131,7 @@ def run_run_container(
     run_command: str,
     stdin: str,
 ) -> CodeRunResult | tuple[float, str]:
-    """Run the run command in a Docker container for batch problems.
+    """Run the run command in a Docker container.
 
     Args:
         code_language (CodeLanguage): The code language.
@@ -139,14 +143,14 @@ def run_run_container(
 
     Returns:
         CodeRunResult | tuple[float, str]:
-            The case result if the run fails, otherwise the execution time in seconds and the standard error.
+            The code run result if the run fails, otherwise the execution time in seconds and the standard error.
 
     """
     with docker_client() as client:
         start_at = time.perf_counter()
         container = client.containers.run(
             image=get_docker_image_name(code_language, judge_version),
-            command=f"/bin/sh -c '{run_command}'",
+            command=["/bin/bash", "--noprofile", "--norc", "-c", run_command],
             remove=False,
             auto_remove=False,
             cpu_period=100000,
@@ -205,8 +209,8 @@ def parse_profiles(
         profiles_content (str): The content of the profiles file.
         execution_time_host (float): The execution time on the host in seconds.
         stdin (str): The input string of the problem included in the case result.
-        stdout (str | None): The output string of the problem included in the case result.
-        stderr (str | None): The error string of the problem included in the case result.
+        stdout (str): The output string of the problem included in the case result.
+        stderr (str): The error string of the problem included in the case result.
 
     Returns:
         CodeRunResult | tuple[float, int]:
@@ -218,6 +222,7 @@ def parse_profiles(
         raise ValueError(msg)
     # Check if the profiles content is empty or if it indicates a timeout
     is_tle = False
+    exited_with_status_137 = False
     if profiles_content == "":
         if execution_time_host > time_limit:  # NOTE: ex. `python -c "import time; time.sleep(10)"`
             return CodeRunResult(
@@ -239,11 +244,18 @@ def parse_profiles(
         )
     if profiles_content.startswith("Command terminated by signal 9"):
         # NOTE: Sigkill is sent by `prlimit` and included to the profiles file
-        profiles_content = profiles_content.split("\n", 1)[1]  # Remove the first line
+        # NOTE: The first line is "Command terminated by signal 9", and the rest is the profiles content.
+        _status_line, _, rest = profiles_content.partition("\n")
+        profiles_content = rest
         is_tle = True
     elif profiles_content.startswith("Command exited with non-zero status"):
-        # NOTE: This indicates that the run command failed
-        profiles_content = profiles_content.split("\n", 1)[1]  # Remove the first line
+        # NOTE: This indicates that the run command failed.
+        # NOTE: For wrapper commands (e.g. `sh node.sh ...`), SIGKILL may surface as exit status 137.
+        status_line, _, rest = profiles_content.partition("\n")
+        status_code_str = status_line.rsplit(" ", 1)[-1].rstrip(".")
+        if status_code_str.isdigit() and int(status_code_str) == ale_bench.constants.ERROR_CODE_137:
+            exited_with_status_137 = True
+        profiles_content = rest
     # Parse the profiles content
     profiles_content = profiles_content.strip()
     try:
@@ -272,8 +284,9 @@ def parse_profiles(
     exit_status = profiles.exit_status
     execution_time = max(profiles.elapsed_time_seconds, profiles.user_cpu_seconds + profiles.system_cpu_seconds)
     memory_usage = profiles.max_resident_set_size_kbytes * 1024
+    is_timeout_via_wrapper = exited_with_status_137 and execution_time > time_limit
     # Check the resource usage
-    if exit_status != 0:
+    if exit_status != 0 and not is_timeout_via_wrapper:
         return CodeRunResult(
             stdin=stdin,
             stdout=stdout,
@@ -282,7 +295,7 @@ def parse_profiles(
             execution_time=min(execution_time, time_limit + 0.1),  # NOTE: slight longer than time limit
             memory_usage=memory_usage,
         )
-    if execution_time > time_limit or is_tle:
+    if execution_time > time_limit or is_tle or is_timeout_via_wrapper:
         return CodeRunResult(
             stdin=stdin,
             stdout=stdout,

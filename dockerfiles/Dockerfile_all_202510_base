@@ -1,0 +1,637 @@
+FROM ubuntu:24.04
+
+LABEL org.opencontainers.image.source=https://github.com/SakanaAI/ALE-Bench
+
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+
+ENV DEBIAN_FRONTEND=noninteractive \
+    DEBCONF_NONINTERACTIVE_SEEN=true \
+    TZ=Etc/UTC \
+    LANG=C.UTF-8 \
+    LC_ALL=C.UTF-8 \
+    LD_LIBRARY_PATH= \
+    LIBRARY_PATH= \
+    CPATH= \
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    PIP_NO_CACHE_DIR=1 \
+    JULIAUP_DEPOT_PATH=/workdir/.juliaup \
+    JULIA_DEPOT_PATH=/workdir/.julia \
+    GOPATH=/workdir/.go \
+    GOMODCACHE=/workdir/.go/pkg/mod \
+    GOCACHE=/workdir/.go/.cache/go-build \
+    DOTNET_CLI_HOME=/workdir/.dotnet \
+    NUGET_PACKAGES=/workdir/.nuget/packages \
+    DOTNET_EnableWriteXorExecute=0 \
+    DOTNET_CLI_TELEMETRY_OPTOUT=1 \
+    XDG_CONFIG_HOME=/workdir/.config \
+    XDG_CACHE_HOME=/workdir/.cache \
+    XDG_STATE_HOME=/workdir/.local/state \
+    GHCUP_INSTALL_BASE_PREFIX=/opt \
+    GHCUP_HOME=/opt/.ghcup
+
+ARG TARGETARCH
+ARG TARGETVARIANT
+ARG BASH_VER=5.3
+ARG PERL_VERSION=5.38.2
+ARG GCC_VERSION=15.2.0
+ARG RUST_VERSION=1.89.0
+ARG GO_VERSION=1.25.1
+ARG PYTHON_VERSION=3.13.7
+ARG PYPY_VERSION=7.3.20
+ARG JULIA_VERSION=1.11.6
+ARG NODE_VERSION=22.19.0
+ARG TYPESCRIPT_VERSION=5.9.2
+ARG OCAML_SWITCH=5.3.0+flambda
+ARG DOTNET_SDK_VERSION=9.0.304
+ARG GHC_VERSION=9.8.4
+ARG CABAL_VERSION=3.14.2.0
+ARG FISH_VERSION=4.0.2
+
+ARG BOOST_VERSION=1.88.0
+ARG ACL_VERSION=1.6
+ARG ABSEIL_VERSION=20250512.1
+ARG IMMER_VERSION=0.8.1
+ARG UNORDERED_DENSE_VERSION=4.5.0
+ARG RANGE_V3_VERSION=0.12.0
+ARG Z3_VERSION=4.15.2
+ARG LIBTORCH_VERSION=2.8.0
+ARG LIGHTGBM_VERSION=4.6.0
+ARG ORTOOLS_VERSION=9.14
+ARG FPM_VERSION=0.10.1
+ARG FORTRAN_STDLIB_VERSION=0.7.0
+
+RUN set -eux; \
+    apt-get update; \
+    apt-get install -y --no-install-recommends ca-certificates curl gnupg; \
+    curl -fsSL https://apt.llvm.org/llvm-snapshot.gpg.key \
+        | gpg --dearmor -o /usr/share/keyrings/llvm-archive-keyring.gpg; \
+    echo "deb [signed-by=/usr/share/keyrings/llvm-archive-keyring.gpg] https://apt.llvm.org/unstable/ llvm-toolchain-15 main" \
+        > /etc/apt/sources.list.d/llvm-15.list; \
+    apt-get update; \
+    apt-get install -y --no-install-recommends \
+        git time  build-essential cmake gdb lcov ninja-build lld pkg-config \
+        ansifilter xz-utils unzip bzip2 tar file patch \
+        zlib1g-dev libzstd-dev libgmp-dev libmpfr-dev libmpc-dev libisl-dev \
+        libssl-dev libbz2-dev libreadline-dev libsqlite3-dev \
+        libncurses5-dev libncurses-dev libncursesw5-dev \
+        libffi-dev liblzma-dev uuid-dev tk-dev llvm-bolt libbolt-19-dev \
+        libgdbm-dev libgdbm-compat-dev libexpat1-dev \
+        libopenblas-dev liblapack-dev python3 fypp python3-joblib \
+        gfortran gfortran-14 libstdc++-14-dev libeigen3-dev \
+        libc6 libgcc-s1 libgssapi-krb5-2 libicu74 liblttng-ust1 libssl3 libstdc++6 libunwind8 zlib1g \
+        libffi8 libgmp10 libncurses6 libtinfo6 llvm-15 libgsl-dev libglpk-dev \
+        opam gettext libpcre2-dev libgeos-dev meson; \
+    rm -rf /var/lib/apt/lists/*
+
+RUN set -eux; \
+    mkdir -p /workdir "${GOMODCACHE}" "${GOCACHE}" "${JULIA_DEPOT_PATH}" "${DOTNET_CLI_HOME}" "${NUGET_PACKAGES}" "${XDG_CONFIG_HOME}" "${XDG_CACHE_HOME}" "${XDG_STATE_HOME}"
+
+WORKDIR /workdir
+
+# ---- Bash 5.3 ----
+RUN set -eux; \
+    cd /tmp; \
+    curl -fsSLo bash.tar.gz "https://ftp.gnu.org/gnu/bash/bash-${BASH_VER}.tar.gz"; \
+    mkdir bash; \
+    tar -C bash --strip-components=1 -xf bash.tar.gz; \
+    cd bash; \
+    ./configure --enable-largefile --without-bash-malloc; \
+    make -j"$(nproc)"; \
+    make install; \
+    rm -rf /tmp/bash
+
+# ---- Perl 5.38.2 ----
+RUN set -eux; \
+    mkdir -p /tmp/perl; \
+    cd /tmp/perl; \
+    curl -fsSLo perl.tar.xz "https://www.cpan.org/src/5.0/perl-${PERL_VERSION}.tar.xz"; \
+    tar -xf perl.tar.xz; \
+    cd "perl-${PERL_VERSION}"; \
+    sh Configure -des -Dprefix=/usr/local; \
+    make -j"$(nproc)"; \
+    make install; \
+    rm -rf /tmp/perl
+
+# ---- C++23 (GCC 15.2.0 + AtCoder 2025-10 libraries) ----
+ENV GCC_DIR=/opt/gcc-${GCC_VERSION}
+
+RUN set -eux; \
+    mkdir -p /tmp/gcc-src; \
+    cd /tmp/gcc-src; \
+    curl -fsSLo gcc.tar.xz "https://ftp.gnu.org/gnu/gcc/gcc-${GCC_VERSION}/gcc-${GCC_VERSION}.tar.xz"; \
+    tar -xf gcc.tar.xz; \
+    cd "gcc-${GCC_VERSION}"; \
+    ./contrib/download_prerequisites; \
+    mkdir -p build; \
+    cd build; \
+    ../configure \
+        --prefix="${GCC_DIR}" \
+        --enable-languages=c++ \
+        --disable-bootstrap \
+        --disable-multilib \
+        --disable-libsanitizer \
+        --disable-checking \
+        --disable-nls \
+        --disable-gcov \
+        --disable-libada \
+        --disable-libgm2; \
+    make -j"$(nproc)"; \
+    make install; \
+    echo "${GCC_DIR}/lib64" > /etc/ld.so.conf.d/gcc-${GCC_VERSION}.conf; \
+    echo "${GCC_DIR}/lib" >> /etc/ld.so.conf.d/gcc-${GCC_VERSION}.conf; \
+    ldconfig; \
+    rm -rf /tmp/gcc-src
+
+RUN set -eux; \
+    mkdir -p "${GCC_DIR}/share/eigen3/cmake"; \
+    cp -Trf /usr/include/eigen3 "${GCC_DIR}/include"; \
+    cp -f \
+        /usr/share/eigen3/cmake/Eigen3Targets.cmake \
+        /usr/share/eigen3/cmake/Eigen3Config.cmake \
+        "${GCC_DIR}/share/eigen3/cmake"; \
+    sed -i \
+        -e "s|include/eigen3|include|g" \
+        "${GCC_DIR}/share/eigen3/cmake/Eigen3Targets.cmake"
+
+ENV PATH="${GCC_DIR}/bin:${PATH}" \
+    LD_LIBRARY_PATH="${GCC_DIR}/lib64:${GCC_DIR}/lib:${LD_LIBRARY_PATH}"
+
+RUN set -eux; \
+    mkdir -p /tmp/boost; \
+    cd /tmp/boost; \
+    curl -fsSLo boost.tar.bz2 "https://archives.boost.io/release/${BOOST_VERSION}/source/boost_${BOOST_VERSION//./_}.tar.bz2"; \
+    tar -xf boost.tar.bz2; \
+    cd "boost_${BOOST_VERSION//./_}"; \
+    echo "using gcc : : g++ ;" > ./user-config.jam; \
+    ./bootstrap.sh \
+        --with-toolset=gcc \
+        --without-libraries=mpi,graph_parallel,python \
+        --prefix="${GCC_DIR}"; \
+    ./b2 \
+        toolset=gcc \
+        link=static \
+        threading=single \
+        variant=release \
+        cflags="-w" \
+        cxxflags="" \
+        --user-config="./user-config.jam" \
+        -j"$(nproc)" -d0 \
+        install; \
+    rm -rf /tmp/boost
+
+RUN set -eux; \
+    mkdir -p /tmp/acl; \
+    cd /tmp/acl; \
+    curl -fsSLo acl.tar.gz "https://github.com/atcoder/ac-library/archive/refs/tags/v${ACL_VERSION}.tar.gz"; \
+    tar -xf acl.tar.gz; \
+    cp -r "ac-library-${ACL_VERSION}/atcoder" "${GCC_DIR}/include/"; \
+    rm -rf /tmp/acl
+
+RUN set -eux; \
+    mkdir -p /tmp/abseil; \
+    cd /tmp/abseil; \
+    curl -fsSLo abseil.tar.gz "https://github.com/abseil/abseil-cpp/archive/refs/tags/${ABSEIL_VERSION}.tar.gz"; \
+    tar -xf abseil.tar.gz; \
+    cd "abseil-cpp-${ABSEIL_VERSION}"; \
+    cmake -S . -B build -G Ninja \
+        -DCMAKE_C_COMPILER="${GCC_DIR}/bin/gcc" \
+        -DCMAKE_CXX_COMPILER="${GCC_DIR}/bin/g++" \
+        -DCMAKE_INSTALL_PREFIX="${GCC_DIR}" \
+        -DABSL_ENABLE_INSTALL=ON \
+        -DABSL_PROPAGATE_CXX_STD=ON \
+        -DABSL_USE_SYSTEM_INCLUDES=ON \
+        -DCMAKE_CXX_FLAGS="-fPIC -std=gnu++23 -w -L${GCC_DIR}/lib64 -Wl,-R${GCC_DIR}/lib64"; \
+    cmake --build build; \
+    cmake --install build; \
+    rm -rf /tmp/abseil
+
+RUN set -eux; \
+    mkdir -p /tmp/immer; \
+    cd /tmp/immer; \
+    curl -fsSLo immer.tar.gz "https://github.com/arximboldi/immer/archive/refs/tags/v${IMMER_VERSION}.tar.gz"; \
+    tar -xf immer.tar.gz; \
+    cp -Trf "immer-${IMMER_VERSION}/immer" "${GCC_DIR}/include/immer"; \
+    rm -rf /tmp/immer
+
+RUN set -eux; \
+    mkdir -p /tmp/unordered_dense; \
+    cd /tmp/unordered_dense; \
+    curl -fsSLo ud.tar.gz "https://github.com/martinus/unordered_dense/archive/refs/tags/v${UNORDERED_DENSE_VERSION}.tar.gz"; \
+    tar -xf ud.tar.gz; \
+    cd "unordered_dense-${UNORDERED_DENSE_VERSION}"; \
+    cmake -S . -B build -G Ninja \
+        -DCMAKE_C_COMPILER="${GCC_DIR}/bin/gcc" \
+        -DCMAKE_CXX_COMPILER="${GCC_DIR}/bin/g++" \
+        -DCMAKE_INSTALL_PREFIX="${GCC_DIR}"; \
+    cmake --build build; \
+    cmake --install build; \
+    rm -rf /tmp/unordered_dense
+
+RUN set -eux; \
+    mkdir -p /tmp/range-v3; \
+    cd /tmp/range-v3; \
+    curl -fsSLo range-v3.tar.gz "https://github.com/ericniebler/range-v3/archive/refs/tags/${RANGE_V3_VERSION}.tar.gz"; \
+    tar -xf range-v3.tar.gz; \
+    cp -Trf "range-v3-${RANGE_V3_VERSION}/include" "${GCC_DIR}/include"; \
+    rm -rf /tmp/range-v3
+
+RUN set -eux; \
+    mkdir -p /tmp/z3; \
+    cd /tmp/z3; \
+    curl -fsSLo z3.tar.gz "https://github.com/Z3Prover/z3/archive/refs/tags/z3-${Z3_VERSION}.tar.gz"; \
+    tar -xf z3.tar.gz; \
+    cd z3-*; \
+    cmake -S . -B build -G Ninja \
+        -DCMAKE_C_COMPILER="${GCC_DIR}/bin/gcc" \
+        -DCMAKE_CXX_COMPILER="${GCC_DIR}/bin/g++" \
+        -DCMAKE_BUILD_TYPE=Release \
+        -DCMAKE_INSTALL_PREFIX="${GCC_DIR}" \
+        -DZ3_BUILD_TEST_EXECUTABLES=OFF \
+        -DZ3_BUILD_PYTHON_BINDINGS=OFF \
+        -DCMAKE_CXX_FLAGS="-std=gnu++23 -w -L${GCC_DIR}/lib64 -Wl,-R${GCC_DIR}/lib64"; \
+    cmake --build build; \
+    cmake --install build; \
+    rm -rf /tmp/z3
+
+RUN set -eux; \
+    curl -fsSLo /tmp/libtorch.zip "https://download.pytorch.org/libtorch/cpu/libtorch-shared-with-deps-${LIBTORCH_VERSION}%2Bcpu.zip"; \
+    unzip -q /tmp/libtorch.zip -d /tmp; \
+    rm -f /tmp/libtorch/lib/libprotobuf.a /tmp/libtorch/lib/libprotobuf-lite.a /tmp/libtorch/lib/libprotoc.a; \
+    cp -Trf /tmp/libtorch/include "${GCC_DIR}/include"; \
+    cp -Trf /tmp/libtorch/lib "${GCC_DIR}/lib"; \
+    ldconfig; \
+    rm -rf /tmp/libtorch.zip /tmp/libtorch
+
+RUN set -eux; \
+    mkdir -p /tmp/lightgbm; \
+    cd /tmp/lightgbm; \
+    curl -fsSLo lightgbm.tar.gz "https://github.com/microsoft/LightGBM/releases/download/v${LIGHTGBM_VERSION}/lightgbm-${LIGHTGBM_VERSION}.tar.gz"; \
+    mkdir -p lightgbm-src; \
+    tar -xf lightgbm.tar.gz -C lightgbm-src --strip-components=1; \
+    cd lightgbm-src; \
+    rm -rf ./lightgbm ./external_libs/eigen; \
+    mkdir -p build; \
+    cd build; \
+    cmake -G Ninja \
+        -DCMAKE_C_COMPILER="${GCC_DIR}/bin/gcc" \
+        -DCMAKE_CXX_COMPILER="${GCC_DIR}/bin/g++" \
+        -DBUILD_CLI:BOOL=OFF \
+        -DBUILD_STATIC_LIB=ON \
+        -DUSE_HOMEBREW_FALLBACK=OFF \
+        -DCMAKE_INSTALL_PREFIX="${GCC_DIR}" \
+        -DCMAKE_CXX_FLAGS="-std=gnu++23 -w -L${GCC_DIR}/lib64 -Wl,-R${GCC_DIR}/lib64 -I${GCC_DIR}/include -fopenmp" \
+        ..; \
+    cmake --build . --target install; \
+    rm -rf /tmp/lightgbm
+
+RUN set -eux; \
+    mkdir -p /tmp/or-tools; \
+    cd /tmp/or-tools; \
+    curl -fsSLo or-tools.tar.gz "https://github.com/google/or-tools/archive/refs/tags/v${ORTOOLS_VERSION}.tar.gz"; \
+    tar -xf or-tools.tar.gz; \
+    cd or-tools-*; \
+    mkdir -p build; \
+    cd build; \
+    cmake -G Ninja \
+        -DCMAKE_C_COMPILER="${GCC_DIR}/bin/gcc" \
+        -DCMAKE_CXX_COMPILER="${GCC_DIR}/bin/g++" \
+        -DLINK_FLAGS:STRING="-fuse-ld=lld" \
+        -DCFLAGS:STRING="-w" \
+        -DCXXFLAGS:STRING="-w" \
+        -DCMAKE_INSTALL_MESSAGE:STRING=NEVER \
+        -DBUILD_CXX:BOOL=ON \
+        -DBUILD_BZip2:BOOL=ON -DBUILD_ZLIB:BOOL=ON -DBUILD_Protobuf:BOOL=ON -DBUILD_re2:BOOL=ON \
+        -DUSE_COINOR:BOOL=ON -DBUILD_CoinUtils:BOOL=ON -DBUILD_Osi:BOOL=ON -DBUILD_Clp:BOOL=ON -DBUILD_Cgl:BOOL=ON -DBUILD_Cbc:BOOL=ON \
+        -DUSE_GLPK:BOOL=ON -DBUILD_GLPK:BOOL=ON \
+        -DUSE_HIGHS:BOOL=ON -DBUILD_HIGHS:BOOL=ON \
+        -DUSE_SCIP:BOOL=ON -DBUILD_SCIP:BOOL=ON -DBUILD_soplex:BOOL=ON -DBUILD_Boost:BOOL=ON \
+        -DBUILD_SAMPLES:BOOL=OFF -DBUILD_EXAMPLES:BOOL=OFF \
+        -DBUILD_TESTING:BOOL=OFF \
+        -DCMAKE_PREFIX_PATH="${GCC_DIR}" \
+        -DCMAKE_INSTALL_PREFIX="${GCC_DIR}" \
+        -DBUILD_SHARED_LIBS:BOOL=OFF \
+        -DCMAKE_INSTALL_RPATH_USE_LINK_PATH:BOOL=ON \
+        -DCMAKE_CXX_FLAGS="-std=gnu++23 -w -L${GCC_DIR}/lib64 -Wl,-R${GCC_DIR}/lib64" \
+        ..; \
+    cmake --build . --config Release --target install; \
+    rm -rf /tmp/or-tools
+
+RUN set -eux; \
+    g++ bits/std.cc bits/std.compat.cc \
+        -DATCODER \
+        -DONLINE_JUDGE \
+        -O2 \
+        -Wall \
+        -Wextra \
+        -fconstexpr-depth=1024 \
+        -fconstexpr-loop-limit=524288 \
+        -fconstexpr-ops-limit=2097152 \
+        -flto=auto \
+        -fmodules \
+        -ftrivial-auto-var-init=zero \
+        -march=native \
+        -pthread \
+        -std=gnu++23 \
+        "-Wl,--as-needed" \
+        "-L${GCC_DIR}/lib64" \
+        "-Wl,-R${GCC_DIR}/lib64" \
+        -c -fmodule-only -fsearch-include-path
+
+ENV CPATH="${GCC_DIR}/include/torch/csrc/api/include:${CPATH}"
+
+# ---- Rust 1.89.0 ----
+ENV RUSTUP_HOME=/opt/rustup \
+    CARGO_HOME=/opt/cargo \
+    RUST_BACKTRACE=0
+ENV PATH="${CARGO_HOME}/bin:${PATH}"
+
+RUN set -eux; \
+    curl -fsSLo /tmp/rustup-init.sh https://sh.rustup.rs; \
+    sh /tmp/rustup-init.sh -y --profile minimal --default-toolchain "${RUST_VERSION}"; \
+    cargo -vV; \
+    [ "$(command -v cargo)" = "${CARGO_HOME}/bin/cargo" ]; \
+    [ "$(cargo -vV | sed -n 's/release: \(.*\)/\1/p')" = "${RUST_VERSION}" ]; \
+    rm -f /tmp/rustup-init.sh
+
+COPY ./rust_202510_config.toml /workdir/.cargo/config.toml
+COPY ./rust_202510_Cargo.toml /workdir/Cargo.toml
+COPY ./rust_202510_Cargo.lock /workdir/Cargo.lock
+COPY ./rust_202510_main.rs /workdir/src/main.rs
+
+RUN set -eux; \
+    cargo build -vv --release; \
+    rm -f /workdir/target/release/main
+
+# ---- Go 1.25.1 ----
+RUN set -eux; \
+    arch="${TARGETARCH:-$(uname -m)}"; \
+    case "${arch}" in \
+        amd64|x86_64) go_arch="amd64" ;; \
+        arm64|aarch64) go_arch="arm64" ;; \
+        arm) go_arch="armv6l" ;; \
+        386|i686) go_arch="386" ;; \
+        ppc64le) go_arch="ppc64le" ;; \
+        s390x) go_arch="s390x" ;; \
+        riscv64) go_arch="riscv64" ;; \
+        mips64le) go_arch="mips64le" ;; \
+        *) echo "unsupported architecture for Go: ${arch}" >&2; exit 1 ;; \
+    esac; \
+    cd /tmp; \
+    curl -fsSLo "go.tar.gz" "https://go.dev/dl/go${GO_VERSION}.linux-${go_arch}.tar.gz"; \
+    rm -rf /opt/go; \
+    tar -C /opt -xf "go.tar.gz"; \
+    rm -f "go.tar.gz"
+
+ENV PATH="${PATH}:/opt/go/bin"
+
+RUN set -eux; \
+    go mod init atcoder.jp/golang; \
+    go get \
+        github.com/emirpasic/gods@v1.18.1 \
+        gonum.org/v1/gonum@v0.16.0 \
+        github.com/liyue201/gostl@v1.2.0 \
+        github.com/benbjohnson/immutable@v0.4.3 \
+        golang.org/x/exp@v0.0.0-20250711185948-6ae5c78190dc \
+        github.com/monkukui/ac-library-go@2caa314afb5ad142f497cf3c1a5c7d5740184c0d
+
+# ---- CPython 3.13.7 ----
+# error if not libbolt_rt_instr.a in /usr/lib
+RUN set -eux; \
+    mkdir -p /tmp/python-src; \
+    cd /tmp/python-src; \
+    curl -fsSLo "Python-${PYTHON_VERSION}.tar.xz" "https://www.python.org/ftp/python/${PYTHON_VERSION}/Python-${PYTHON_VERSION}.tar.xz"; \
+    tar -xf "Python-${PYTHON_VERSION}.tar.xz"; \
+    ln -sf /usr/lib/llvm-19/lib/libbolt_rt_instr.a /usr/lib/libbolt_rt_instr.a; \
+    cd "Python-${PYTHON_VERSION}"; \
+    ./configure \
+        --enable-optimizations \
+        --with-lto=full \
+        --with-strict-overflow \
+        --enable-bolt \
+        --prefix=/usr/local \
+        --enable-shared \
+        --with-ensurepip=install \
+        CC=/usr/bin/gcc CXX=/usr/bin/g++; \
+    make -j"$(nproc)" CC=/usr/bin/gcc CXX=/usr/bin/g++; \
+    make altinstall CC=/usr/bin/gcc CXX=/usr/bin/g++; \
+    ldconfig; \
+    rm -rf /tmp/python-src
+
+COPY ./python_202510_freeze.txt /tmp/freeze.txt
+
+RUN set -eux; \
+    python3.13 -m pip install --no-cache-dir -U pip setuptools; \
+    python3.13 -m pip install --no-cache-dir -r /tmp/freeze.txt --no-warn-script-location; \
+    python3.13 -m pip install --no-cache-dir torch==2.8.0+cpu --index-url https://download.pytorch.org/whl/cpu --no-warn-script-location; \
+    curl -fsSLo /tmp/numba.tar.gz "https://files.pythonhosted.org/packages/1c/a0/e21f57604304aa03ebb8e098429222722ad99176a4f979d34af1d1ee80da/numba-0.61.2.tar.gz"; \
+    mkdir -p /tmp/numba; \
+    tar -C /tmp/numba --strip-components=1 -xf /tmp/numba.tar.gz; \
+    cd /tmp/numba; \
+    sed -i 's/ext_cuda_extras, //' setup.py; \
+    rm -rf numba/cuda; \
+    python3.13 -m pip install --no-cache-dir .; \
+    rm -f /tmp/freeze.txt /tmp/numba.tar.gz; \
+    rm -rf /tmp/numba
+
+# ---- PyPy 3.11-v7.3.20 ----
+RUN set -eux; \
+    arch="${TARGETARCH:-$(uname -m)}"; \
+    case "${arch}" in \
+        amd64|x86_64) pypy_arch="linux64" ;; \
+        arm64|aarch64) pypy_arch="linux-aarch64" ;; \
+        *) echo "unsupported architecture for PyPy: ${arch}" >&2; exit 1 ;; \
+    esac; \
+    cd /tmp; \
+    curl -fsSLo pypy.tar.bz2 --retry 5 --retry-all-errors "https://downloads.python.org/pypy/pypy3.11-v${PYPY_VERSION}-${pypy_arch}.tar.bz2"; \
+    tar -xf pypy.tar.bz2; \
+    cd "pypy3.11-v${PYPY_VERSION}-${pypy_arch}"; \
+    ./bin/pypy3 -m ensurepip; \
+    ./bin/pip3 install --upgrade pip; \
+    ./bin/pip3 install --break-system-packages \
+        "numpy==2.3.2" \
+        "scipy==1.15.3" \
+        "networkx==3.5" \
+        "sympy==1.14.0" \
+        "sortedcontainers==2.4.0" \
+        "more-itertools==10.7.0" \
+        "shapely==2.1.1" \
+        "bitarray==3.6.0" \
+        "PuLP==3.2.2" \
+        "mpmath==1.3.0" \
+        "pandas==2.3.1" \
+        "z3-solver==4.15.1.0" \
+        "scikit-learn==1.7.1" \
+        "cppyy==3.5.0" \
+        "acl-cpp-python==0.6.2" \
+        "git+https://github.com/not522/ac-library-python@27fdbb71cd0d566bdeb12746db59c9d908c6b5d5"; \
+    cp -a ./bin/* /usr/local/bin/; \
+    cp -a ./include/* /usr/local/include/; \
+    cp -a ./lib/* /usr/local/lib/; \
+    ldconfig; \
+    rm -rf /tmp/pypy.tar.bz2 /tmp/pypy3.11-v${PYPY_VERSION}-*
+
+# --- Julia 1.11.6 ----
+RUN set -eux; \
+    curl -fsSL https://install.julialang.org \
+        | sh -s -- --yes --default-channel "${JULIA_VERSION}" --path "${JULIAUP_DEPOT_PATH}"; \
+    export PATH="${JULIAUP_DEPOT_PATH}/bin:${PATH}"; \
+    julia --version; \
+    juliaup config backgroundselfupdateinterval 0; \
+    juliaup config startupselfupdateinterval 0; \
+    juliaup config versionsdbupdateinterval 0
+
+ENV PATH="${JULIAUP_DEPOT_PATH}/bin:${PATH}"
+
+RUN set -eux; \
+    julia -e ' \
+        using Pkg; \
+        Pkg.update(); \
+        for (name, version) in map(p -> String.(split(p, "@")), ARGS) \
+            Pkg.add(name=name, version=version); \
+        end' \
+        Combinatorics@1.0.3 \
+        DataStructures@0.18.22 \
+        DelimitedFiles@1.9.1 \
+        Distributions@0.25.120 \
+        InvertedIndices@1.3.1 \
+        IterTools@1.10.0 \
+        OffsetArrays@1.17.0 \
+        PrecompileTools@1.2.1 \
+        Primes@0.5.7 \
+        StaticArrays@1.9.14; \
+    julia -e 'using Combinatorics, DataStructures, DelimitedFiles, Distributions, InvertedIndices, IterTools, OffsetArrays, PrecompileTools, Primes, StaticArrays'
+
+# ---- Node.js 22.19.0 + JavaScript/TypeScript libs ----
+COPY ./node_202510_node.sh /workdir/node.sh
+
+RUN set -eux; \
+    arch="${TARGETARCH:-$(uname -m)}"; \
+    variant="${TARGETVARIANT:-}"; \
+    case "${arch}" in \
+        amd64|x86_64) node_arch="x64" ;; \
+        arm64|aarch64) node_arch="arm64" ;; \
+        ppc64le) node_arch="ppc64le" ;; \
+        s390x) node_arch="s390x" ;; \
+        arm) \
+            case "${variant}" in \
+                v7|/v7|'') node_arch="armv7l" ;; \
+                *) echo "unsupported TARGETVARIANT for arm: ${variant}" >&2; exit 1 ;; \
+            esac ;; \
+        *) echo "unsupported architecture for Node.js: ${arch}" >&2; exit 1 ;; \
+    esac; \
+    curl -fsSLo /tmp/node.tar.xz "https://nodejs.org/dist/v${NODE_VERSION}/node-v${NODE_VERSION}-linux-${node_arch}.tar.xz"; \
+    tar -C /usr/local --strip-components=1 -xf /tmp/node.tar.xz --wildcards '*/bin' '*/share' '*/lib' '*/include'; \
+    rm -f /tmp/node.tar.xz; \
+    ln -sf /usr/local/lib/node_modules /node_modules; \
+    npm i -g \
+        "ac-library-js@0.1.1" \
+        "data-structure-typed@2.0.4" \
+        "immutable@5.1.3" \
+        "lodash@4.17.21" \
+        "mathjs@14.7.0" \
+        "tstl@3.0.0" \
+        "typescript@${TYPESCRIPT_VERSION}" \
+        "@types/node@22.18.1" \
+        "@types/lodash@4.17.20"; \
+    chmod +x /workdir/node.sh
+
+ENV NODE_PATH=/usr/local/lib/node_modules
+
+# ---- Fortran (gfortran-14.2.0 + stdlib v0.7.0) ----
+RUN set -eux; \
+    curl -fsSLo /usr/local/bin/fpm "https://github.com/fortran-lang/fpm/releases/download/v${FPM_VERSION}/fpm-${FPM_VERSION}-linux-x86_64"; \
+    chmod +x /usr/local/bin/fpm
+
+RUN set -eux; \
+    mkdir -p /tmp/fortran; \
+    cd /tmp/fortran; \
+    curl -fsSLo "v${FORTRAN_STDLIB_VERSION}.tar.gz" "https://github.com/fortran-lang/stdlib/archive/refs/tags/v${FORTRAN_STDLIB_VERSION}.tar.gz"; \
+    tar -xf v${FORTRAN_STDLIB_VERSION}.tar.gz; \
+    printf '\n\n[install]\nlibrary = true\n' >> stdlib-${FORTRAN_STDLIB_VERSION}/fpm.toml; \
+    cd /tmp/fortran/stdlib-${FORTRAN_STDLIB_VERSION}; \
+    /usr/bin/python3 config/fypp_deployment.py; \
+    FPM_FC=gfortran-14 FPM_FFLAGS="-O2 -cpp -std=f2023" fpm build --profile release; \
+    FPM_FC=gfortran-14 FPM_FFLAGS="-O2 -cpp -std=f2023" fpm install --profile release --prefix /usr/local; \
+    ldconfig; \
+    rm -rf /tmp/fortran
+
+COPY ./fortran_202510_Main.f90 /workdir/Main.f90
+
+RUN set -eux; \
+    cd /workdir; \
+    git clone --depth 1 https://github.com/ue1221/ac-library-fortran.git acl; \
+    gfortran-14 -I/usr/local/include -O2 -cpp -ffree-line-length-none -std=f2023 Main.f90 -lstdlib; \
+    ./a.out; \
+    rm -f Main.f90 a.out mod_union_find.mod
+
+# ---- OCaml 5.3.0+flambda ----
+ENV OPAMROOT=/opt/opam \
+    OPAMYES=1 \
+    OPAMSWITCH=${OCAML_SWITCH} \
+    PATH="/opt/opam/${OCAML_SWITCH}/bin:${PATH}"
+
+RUN set -eux; \
+    opam init -a --bare --disable-sandboxing --no-setup --shell=bash; \
+    opam switch create "${OCAML_SWITCH}" ocaml-variants.5.3.0+options ocaml-option-flambda.1; \
+    eval "$(opam env --switch=${OCAML_SWITCH})"; \
+    opam install num=1.6 zarith=1.14 containers=3.16 core=v0.17.1 iter=1.9 batteries=3.9.0
+
+# ---- .NET SDK 9.0.304 ----
+ENV DOTNET_ROOT=/opt/dotnet \
+    PATH=/opt/dotnet:/opt/dotnet/tools:${PATH}
+
+RUN set -eux; \
+    curl -fsSLo /tmp/dotnet-install.sh https://dot.net/v1/dotnet-install.sh; \
+    bash /tmp/dotnet-install.sh --version "${DOTNET_SDK_VERSION}" --install-dir /opt/dotnet; \
+    rm -f /tmp/dotnet-install.sh; \
+    dotnet --info > /dev/null
+
+COPY ./csharp_202510_Main.csproj /workdir/Main.csproj
+COPY ./csharp_202510_Main.cs /workdir/Main.cs
+COPY ./csharp_202510_packages.lock.json /workdir/packages.lock.json
+
+RUN set -eux; \
+    dotnet publish -c Release -o publish -v n; \
+    rm -f publish/Main publish/Main.dll Main.cs
+
+# ---- Haskell GHC 9.8.4 ----
+ENV PATH="${GHCUP_HOME}/bin:${PATH}"
+
+RUN set -eux; \
+    curl --proto '=https' --tlsv1.2 -sSf https://get-ghcup.haskell.org \
+        | BOOTSTRAP_HASKELL_NONINTERACTIVE=1 \
+          BOOTSTRAP_HASKELL_MINIMAL=1 \
+          GHCUP_INSTALL_BASE_PREFIX=/opt \
+          sh; \
+    ghcup install cabal "${CABAL_VERSION}" && ghcup set cabal "${CABAL_VERSION}"; \
+    ghcup install ghc "${GHC_VERSION}" && ghcup set ghc "${GHC_VERSION}"; \
+    ghc --version; \
+    cabal --version
+
+COPY ./haskell_202510_submission.cabal /workdir/submission/submission.cabal
+COPY ./haskell_202510_cabal.project /workdir/submission/cabal.project
+COPY ./haskell_202510_cabal.project.freeze /workdir/submission/cabal.project.freeze
+
+RUN set -eux; \
+    mkdir -p /workdir/submission/app; \
+    echo 'main = return () :: IO ()' > /workdir/submission/app/Main.hs; \
+    cd /workdir/submission; \
+    cabal v2-update; \
+    cabal v2-configure --flags="+atcoder"; \
+    cabal v2-build --only-dependencies; \
+    rm -f /workdir/submission/app/Main.hs
+
+# ---- Fish 4.0.2 ----
+RUN set -eux; \
+    mkdir -p /tmp/fish; \
+    cd /tmp/fish; \
+    curl -fsSLo fish.tar.xz "https://github.com/fish-shell/fish-shell/releases/download/${FISH_VERSION}/fish-${FISH_VERSION}.tar.xz"; \
+    tar -xf fish.tar.xz; \
+    cd "fish-${FISH_VERSION}"; \
+    cmake -S . -B build -G Ninja \
+        -DCMAKE_BUILD_TYPE=Release \
+        -DCMAKE_INSTALL_PREFIX=/usr/local; \
+    cmake --build build; \
+    cmake --install build; \
+    fish --version; \
+    rm -rf /tmp/fish

@@ -1,0 +1,43 @@
+FROM ubuntu:24.04
+
+LABEL org.opencontainers.image.source=https://github.com/SakanaAI/ALE-Bench
+
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+
+ENV DEBIAN_FRONTEND=noninteractive \
+    DEBCONF_NONINTERACTIVE_SEEN=true \
+    TZ=Etc/UTC \
+    LANG=C.UTF-8 \
+    LC_ALL=C.UTF-8
+
+ARG RUST_VERSION=1.89.0
+
+RUN set -eux; \
+    apt-get update; \
+    apt-get install -y --no-install-recommends \
+        ca-certificates curl build-essential time; \
+    rm -rf /var/lib/apt/lists/*
+
+ENV RUSTUP_HOME=/opt/rustup \
+    CARGO_HOME=/opt/cargo \
+    RUST_BACKTRACE=0
+ENV PATH="${CARGO_HOME}/bin:${PATH}"
+
+WORKDIR /workdir
+
+RUN set -eux; \
+    curl -fsSLo /tmp/rustup-init.sh https://sh.rustup.rs; \
+    sh /tmp/rustup-init.sh -y --profile minimal --default-toolchain "${RUST_VERSION}"; \
+    cargo -vV; \
+    [ "$(command -v cargo)" = "${CARGO_HOME}/bin/cargo" ]; \
+    [ "$(cargo -vV | sed -n 's/release: \(.*\)/\1/p')" = "${RUST_VERSION}" ]; \
+    rm -f /tmp/rustup-init.sh
+
+COPY ./rust_202510_config.toml /workdir/.cargo/config.toml
+COPY ./rust_202510_Cargo.toml /workdir/Cargo.toml
+COPY ./rust_202510_Cargo.lock /workdir/Cargo.lock
+COPY ./rust_202510_main.rs /workdir/src/main.rs
+
+RUN set -eux; \
+    cargo build -vv --release; \
+    rm -f /workdir/target/release/main

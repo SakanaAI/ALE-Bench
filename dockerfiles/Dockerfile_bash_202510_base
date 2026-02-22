@@ -1,0 +1,32 @@
+FROM ubuntu:24.04
+
+LABEL org.opencontainers.image.source=https://github.com/SakanaAI/ALE-Bench
+
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+
+ENV DEBIAN_FRONTEND=noninteractive \
+    DEBCONF_NONINTERACTIVE_SEEN=true \
+    TZ=Etc/UTC \
+    LANG=C.UTF-8 \
+    LC_ALL=C.UTF-8
+
+ARG BASH_VER=5.3
+
+RUN set -eux; \
+    apt-get update; \
+    apt-get install -y --no-install-recommends \
+        ca-certificates curl build-essential time; \
+    rm -rf /var/lib/apt/lists/*
+
+WORKDIR /workdir
+
+RUN set -eux; \
+    cd /tmp; \
+    curl -fsSLo bash.tar.gz "https://ftp.gnu.org/gnu/bash/bash-${BASH_VER}.tar.gz"; \
+    mkdir bash; \
+    tar -C bash --strip-components=1 -xf bash.tar.gz; \
+    cd bash; \
+    ./configure --enable-largefile --without-bash-malloc; \
+    make -j"$(nproc)"; \
+    make install; \
+    rm -rf /tmp/bash
