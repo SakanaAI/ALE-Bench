@@ -352,8 +352,8 @@ JUDGE_LANGUAGE_PROFILES: dict[str, dict[str, JudgeLanguageProfile]] = {
         ),
         "julia": JudgeLanguageProfile(
             compile_command=(
-                "export PATH=$PATH:/opt/juliaup/bin; "
-                "export JULIA_DEPOT_PATH=/opt/julia; "
+                "export PATH=$PATH:/workdir/.juliaup/bin; "
+                "export JULIA_DEPOT_PATH=/workdir/.julia; "
                 'julia -e \'Meta.parse("begin " * read("Main.jl",String) * " end")\' '
                 "&& printf 'ok\\n' > ok && julia Main.jl ONLINE_JUDGE 2> /dev/null"
             ),
@@ -362,7 +362,7 @@ JUDGE_LANGUAGE_PROFILES: dict[str, dict[str, JudgeLanguageProfile]] = {
             object_file_path="ok",
         ),
         "lean": JudgeLanguageProfile(
-            compile_command="export PATH=~/.elan/bin:$PATH; cd atcoder; lake -q build 1>&2",
+            compile_command="export PATH=/workdir/.elan/bin:$PATH; cd atcoder; lake -q build 1>&2",
             run_command="./atcoder/.lake/build/bin/atcoder",
             submission_file_path="atcoder/Main.lean",
             object_file_path="atcoder/.lake/build/bin/atcoder",

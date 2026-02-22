@@ -417,8 +417,8 @@ CMD
     julia)
         cat <<'CMD'
 cp /repo/dockerfiles/tests/julia/Main.jl /workdir/Main.jl
-export PATH=$PATH:/opt/juliaup/bin
-export JULIA_DEPOT_PATH=/opt/julia
+export PATH=$PATH:/workdir/.juliaup/bin
+export JULIA_DEPOT_PATH=/workdir/.julia
 /usr/bin/time -f "[time][julia][compile] real=%e user=%U sys=%S maxrss_kb=%M" \
   julia -e 'Meta.parse("begin " * read("Main.jl",String) * " end")'
 /usr/bin/time -f "[time][julia][execute] real=%e user=%U sys=%S maxrss_kb=%M" \
@@ -427,6 +427,7 @@ CMD
         ;;
     lean)
         cat <<'CMD'
+export PATH=/workdir/.elan/bin:$PATH
 cp /repo/dockerfiles/tests/lean/Main.lean /workdir/atcoder/Main.lean
 cd /workdir/atcoder
 /usr/bin/time -f "[time][lean][compile] real=%e user=%U sys=%S maxrss_kb=%M" lake -q build
