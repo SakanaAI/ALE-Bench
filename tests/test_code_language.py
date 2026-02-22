@@ -79,7 +79,7 @@ def test_typescript_202510_command_and_paths() -> None:
     ("code_language", "submission_file_path", "object_file_path", "run_command"),
     [
         pytest.param(CodeLanguage.BASH, "Main.bash", "ok", "bash Main.bash", id="bash"),
-        pytest.param(CodeLanguage.CSHARP, "Main.cs", "publish/Main", "./publish/Main", id="csharp"),
+        pytest.param(CodeLanguage.CSHARP, "Main.cs", "publish/Main.dll", "dotnet publish/Main.dll", id="csharp"),
         pytest.param(CodeLanguage.FISH, "Main.fish", "ok", "fish Main.fish", id="fish"),
         pytest.param(CodeLanguage.FORTRAN, "Main.f90", "a.out", "./a.out", id="fortran"),
         pytest.param(CodeLanguage.GO, "main.go", "a.out", "./a.out", id="go"),

@@ -308,9 +308,9 @@ JUDGE_LANGUAGE_PROFILES: dict[str, dict[str, JudgeLanguageProfile]] = {
                 "export DOTNET_CLI_TELEMETRY_OPTOUT=1; "
                 "dotnet publish -c Release -o publish --no-restore --nologo -v q --tl:off"
             ),
-            run_command="./publish/Main",
+            run_command="dotnet publish/Main.dll",
             submission_file_path="Main.cs",
-            object_file_path="publish/Main",
+            object_file_path="publish/Main.dll",
         ),
         "fish": JudgeLanguageProfile(
             compile_command="fish -n Main.fish && printf 'ok\\n' > ok",
@@ -354,7 +354,7 @@ JUDGE_LANGUAGE_PROFILES: dict[str, dict[str, JudgeLanguageProfile]] = {
                 "export PATH=$PATH:/workdir/.juliaup/bin; "
                 "export JULIA_DEPOT_PATH=/workdir/.julia; "
                 'julia -e \'Meta.parse("begin " * read("Main.jl",String) * " end")\' '
-                "&& printf 'ok\\n' > ok && julia Main.jl ONLINE_JUDGE 2> /dev/null"
+                "&& julia Main.jl ONLINE_JUDGE 2> /dev/null && printf 'ok\\n' > ok"
             ),
             run_command="julia --threads=auto --startup-file=no --history-file=no Main.jl",
             submission_file_path="Main.jl",

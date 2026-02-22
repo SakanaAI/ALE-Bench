@@ -592,7 +592,7 @@ COPY ./csharp_202510_packages.lock.json /workdir/packages.lock.json
 
 RUN set -eux; \
     dotnet publish -c Release -o publish -v n; \
-    rm -f publish/Main Main.cs
+    rm -f publish/Main publish/Main.dll Main.cs
 
 # ---- Haskell GHC 9.8.4 ----
 ENV PATH="${GHCUP_HOME}/bin:${PATH}"
