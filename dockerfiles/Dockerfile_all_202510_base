@@ -84,7 +84,7 @@ RUN set -eux; \
     rm -rf /var/lib/apt/lists/*
 
 RUN set -eux; \
-    mkdir -p /workdir "${GOMODCACHE}" "${GOCACHE}" "${JULIAUP_DEPOT_PATH}" "${JULIA_DEPOT_PATH}" "${DOTNET_CLI_HOME}" "${NUGET_PACKAGES}" "${XDG_CONFIG_HOME}" "${XDG_CACHE_HOME}" "${XDG_STATE_HOME}"
+    mkdir -p /workdir "${GOMODCACHE}" "${GOCACHE}" "${JULIA_DEPOT_PATH}" "${DOTNET_CLI_HOME}" "${NUGET_PACKAGES}" "${XDG_CONFIG_HOME}" "${XDG_CACHE_HOME}" "${XDG_STATE_HOME}"
 
 WORKDIR /workdir
 
