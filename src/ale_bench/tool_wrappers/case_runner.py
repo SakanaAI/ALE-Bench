@@ -547,6 +547,8 @@ def run_compile_container(
             code_language not in {CodeLanguage.PYTHON, CodeLanguage.PYPY, CodeLanguage.JULIA} and object_size == 0,
             # NOTE: We regard SyntaxError as a compilation error for Python/PyPy.
             code_language in {CodeLanguage.PYTHON, CodeLanguage.PYPY} and "SyntaxError" in stderr,
+            # NOTE: We regard ParseError as a compilation error for Julia.
+            code_language == CodeLanguage.JULIA and "ParseError" in stderr,
         ]
     ):
         return CaseResult(
@@ -911,7 +913,7 @@ def parse_profiles(
         # NOTE: For wrapper commands (e.g. `sh node.sh ...`), SIGKILL may surface as exit status 137.
         status_line, _, rest = profiles_content.partition("\n")
         status_code_str = status_line.rsplit(" ", 1)[-1].rstrip(".")
-        if status_code_str.isdigit() and int(status_code_str) == 137:
+        if status_code_str.isdigit() and int(status_code_str) == ale_bench.constants.ERROR_CODE_137:
             exited_with_status_137 = True
         profiles_content = rest
     # Parse the profiles content

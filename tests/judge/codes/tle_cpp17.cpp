@@ -1,4 +1,3 @@
-// https://atcoder.jp/contests/abc001/submissions/63920351
 #include <iostream>
 
 int main() {
