@@ -289,7 +289,7 @@ JUDGE_LANGUAGE_PROFILES: dict[str, dict[str, JudgeLanguageProfile]] = {
     },
     "202510": {
         "bash": JudgeLanguageProfile(
-            compile_command="bash -n Main.bash && touch ok",
+            compile_command="bash -n Main.bash && printf 'ok\\n' > ok",
             run_command="bash Main.bash",
             submission_file_path="Main.bash",
             object_file_path="ok",
@@ -314,7 +314,7 @@ JUDGE_LANGUAGE_PROFILES: dict[str, dict[str, JudgeLanguageProfile]] = {
             object_file_path="publish/Main",
         ),
         "fish": JudgeLanguageProfile(
-            compile_command="fish -n Main.fish && touch ok",
+            compile_command="fish -n Main.fish && printf 'ok\\n' > ok",
             run_command="fish Main.fish",
             submission_file_path="Main.fish",
             object_file_path="ok",
@@ -345,7 +345,7 @@ JUDGE_LANGUAGE_PROFILES: dict[str, dict[str, JudgeLanguageProfile]] = {
             object_file_path="main",
         ),
         "javascript": JudgeLanguageProfile(
-            compile_command="node --check Main.js && touch ok",
+            compile_command="node --check Main.js && printf 'ok\\n' > ok",
             run_command=f"sh node.sh {NODE_MEMORY_KIB} Main.js ONLINE_JUDGE ATCODER",
             submission_file_path="Main.js",
             object_file_path="ok",
@@ -355,7 +355,7 @@ JUDGE_LANGUAGE_PROFILES: dict[str, dict[str, JudgeLanguageProfile]] = {
                 "export PATH=$PATH:/opt/juliaup/bin; "
                 "export JULIA_DEPOT_PATH=/opt/julia; "
                 'julia -e \'Meta.parse("begin " * read("Main.jl",String) * " end")\' '
-                "&& touch ok && julia Main.jl ONLINE_JUDGE 2> /dev/null"
+                "&& printf 'ok\\n' > ok && julia Main.jl ONLINE_JUDGE 2> /dev/null"
             ),
             run_command="julia --threads=auto --startup-file=no --history-file=no Main.jl",
             submission_file_path="Main.jl",
@@ -379,7 +379,7 @@ JUDGE_LANGUAGE_PROFILES: dict[str, dict[str, JudgeLanguageProfile]] = {
             object_file_path="a.out",
         ),
         "perl": JudgeLanguageProfile(
-            compile_command="perl -c Main.pl && touch ok",
+            compile_command="perl -c Main.pl && printf 'ok\\n' > ok",
             run_command="perl Main.pl",
             submission_file_path="Main.pl",
             object_file_path="ok",

@@ -1,9 +1,10 @@
-chunks = []
-for i in range(70):
-    chunk = bytearray(16 * 1024 * 1024)
-    for j in range(0, len(chunk), 4096):
-        chunk[j] = (i + j) & 255
-    chunks.append(chunk)
+import numpy as np
 
-if len(chunks) != 70:
-    raise RuntimeError("allocation failed")
+
+def main() -> None:
+    arr = np.zeros((128, 1024, 1024), dtype=np.uint64)
+    arr += 3
+
+
+if __name__ == "__main__":
+    main()
