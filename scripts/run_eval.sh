@@ -130,16 +130,16 @@ fi
 
 cd "$project_dir"
 
-cmd=(
-    uv run -m ale_bench_eval --model_config_path "$config_path"
-    --n_repeated_sampling 15 --n_self_refine 16 --num_workers 10 --n_public_cases 50
-    --judge_version "$judge_version" --code_language "$code_language" --prompt_language "$prompt_language"
-    --max_parallel_problems 5 --problem_ids_type all --selection_method median
-)
-
 if [ -n "${root_path}" ]; then
     echo -e "Using root path: ${root_path}"
-    cmd+=(--root_path "$root_path")
+    uv run -m ale_bench_eval --model_config_path "$config_path" \
+        --n_repeated_sampling 15 --n_self_refine 16 --num_workers 10 --n_public_cases 50 \
+        --judge_version "$judge_version" --code_language "$code_language" --prompt_language "$prompt_language" \
+        --max_parallel_problems 5 --problem_ids_type all --selection_method median \
+        --root_path "$root_path"
+else
+    uv run -m ale_bench_eval --model_config_path "$config_path" \
+        --n_repeated_sampling 15 --n_self_refine 16 --num_workers 10 --n_public_cases 50 \
+        --judge_version "$judge_version" --code_language "$code_language" --prompt_language "$prompt_language" \
+        --max_parallel_problems 5 --problem_ids_type all --selection_method median
 fi
-
-"${cmd[@]}"
