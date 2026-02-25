@@ -2,7 +2,7 @@ import json
 import warnings
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
-from typing import Any, Literal
+from typing import Any, Literal, cast
 
 from fire import Fire
 from psutil import cpu_count
@@ -270,6 +270,13 @@ def main(
 ) -> None:
     """Main entry point for running LLM benchmarking evaluation."""
     start_time = get_now_utc()
+
+    # NOTE:
+    # python-fire may parse numeric-looking CLI args (e.g. 202510) as int.
+    # Normalize all enum-like CLI parameters to strings at the entry point.
+    code_language = cast("EvalCodeLanguage", str(code_language).strip())
+    judge_version = cast("EvalJudgeVersion", str(judge_version).strip())
+    prompt_language = cast('Literal["en", "ja"]', str(prompt_language).strip())
 
     physical_cores = cpu_count(logical=False)
     if physical_cores is None:
