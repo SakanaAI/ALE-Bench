@@ -8,6 +8,7 @@ from ale_bench.session import Session
 from ale_bench_eval.calc_cost import calc_cost
 from ale_bench_eval.data_types import EvaluationConfig
 from ale_bench_eval.evaluate import get_ce_code
+from ale_bench_eval.language_config import get_default_code_language
 from ale_bench_eval.logger import SaveInfo
 from ale_bench_eval.prompts.builder import (
     create_feedback_message,
@@ -61,7 +62,11 @@ def run_repeated_sampling(
                 timeout=TIMEOUT_SECONDS,
                 num_retries=MAX_RETRIES,
             )
-            code_language, code = get_code_from_response(response.output, config.prompt_args.code_language)
+            code_language, code = get_code_from_response(
+                response.output,
+                config.prompt_args.code_language,
+                config.prompt_args.judge_version,
+            )
         # NOTE: We don't expect MaxTokenError here for repeated sampling
         # NOTE: The model should be able to handle the prompt at this point
         except Exception:
@@ -77,13 +82,23 @@ def run_repeated_sampling(
                     is_code_empty = True
                     if code_language == "":
                         is_code_language_empty = True
-                        code_language = "cpp20"
+                        code_language = get_default_code_language(config.prompt_args.judge_version)
                     code = get_ce_code(code_language)
                 # Evaluate the code
                 if public_cases is not None:
-                    public_result = session.case_eval(public_cases, code, code_language, skip_local_visualization=True)
+                    public_result = session.case_eval(
+                        public_cases,
+                        code,
+                        code_language,
+                        judge_version=config.prompt_args.judge_version,
+                        skip_local_visualization=True,
+                    )
                 else:
-                    public_result = session.public_eval(code, code_language)
+                    public_result = session.public_eval(
+                        code,
+                        code_language,
+                        judge_version=config.prompt_args.judge_version,
+                    )
                 overall_absolute_score = (
                     public_result.overall_absolute_score
                     if public_result.overall_judge_result == JudgeResult.ACCEPTED
@@ -184,7 +199,11 @@ def run_self_refinement(
                 timeout=TIMEOUT_SECONDS,
                 num_retries=MAX_RETRIES,
             )
-            code_language, code = get_code_from_response(response.output, config.prompt_args.code_language)
+            code_language, code = get_code_from_response(
+                response.output,
+                config.prompt_args.code_language,
+                config.prompt_args.judge_version,
+            )
         except MaxTokenError as e:
             save_info.logger.info("Context length overflow for self-refine %s: %s", i, e)
             response = None
@@ -205,13 +224,23 @@ def run_self_refinement(
                     is_code_empty = True
                     if code_language == "":
                         is_code_language_empty = True
-                        code_language = "cpp20"
+                        code_language = get_default_code_language(config.prompt_args.judge_version)
                     code = get_ce_code(code_language)
                 # Evaluate the code
                 if public_cases is not None:
-                    public_result = session.case_eval(public_cases, code, code_language, skip_local_visualization=True)
+                    public_result = session.case_eval(
+                        public_cases,
+                        code,
+                        code_language,
+                        judge_version=config.prompt_args.judge_version,
+                        skip_local_visualization=True,
+                    )
                 else:
-                    public_result = session.public_eval(code, code_language)
+                    public_result = session.public_eval(
+                        code,
+                        code_language,
+                        judge_version=config.prompt_args.judge_version,
+                    )
                 overall_absolute_score = (
                     public_result.overall_absolute_score
                     if public_result.overall_judge_result == JudgeResult.ACCEPTED
