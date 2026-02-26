@@ -20,6 +20,7 @@ from pydantic_ai.models.openai import (
     OpenAIResponsesModelSettings,
 )
 from pydantic_ai.models.openrouter import OpenRouterModel, OpenRouterModelSettings
+from pydantic_ai.providers.openai import OpenAIProvider
 from pydantic_ai.run import AgentRunResult
 
 from ale_bench_eval.shared_async_loop import shared_async_loop
@@ -103,6 +104,16 @@ def build_agent_from_config(
     elif provider in OPENAI_COMPATIBLE_PROVIDERS:
         model = OpenAIChatModel(model_name=model_name, provider=provider)
         model_settings = OpenAIChatModelSettings(timeout=timeout, **settings)
+    elif provider == "vllm-chat":
+        base_url = model_config.get("base_url", None)
+        api_key = model_config.get("api_key", None)
+        model = OpenAIChatModel(model_name=model_name, provider=OpenAIProvider(base_url=base_url, api_key=api_key))
+        model_settings = OpenAIChatModelSettings(timeout=timeout, **settings)
+    elif provider == "vllm-responses":
+        base_url = model_config.get("base_url", None)
+        api_key = model_config.get("api_key", None)
+        model = OpenAIResponsesModel(model_name=model_name, provider=OpenAIProvider(base_url=base_url, api_key=api_key))
+        model_settings = OpenAIResponsesModelSettings(timeout=timeout, **settings)
     else:
         msg = f"Unsupported provider: {provider}"
         raise ValueError(msg)
