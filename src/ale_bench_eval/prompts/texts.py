@@ -203,8 +203,8 @@ CODE_LANGUAGE_LIBRARIES: dict[str, dict[str, str]] = {
 - Microsoft.ML.LightGbm = 4.0.2
 - ac-library-csharp = 3.9.2-atcoder1""",
         "fish": _NO_LIBRARY_DOC_MESSAGE,
-        "fortran": """ac-library-fortran =
-stdlib = v0.7.0""",
+        "fortran": """- ac-library-fortran =
+- stdlib = v0.7.0""",
         "go": """- ac-library-go =
 - gods =
 - golang_org_x_exp =
