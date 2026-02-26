@@ -105,13 +105,13 @@ def build_agent_from_config(
         model = OpenAIChatModel(model_name=model_name, provider=provider)
         model_settings = OpenAIChatModelSettings(timeout=timeout, **settings)
     elif provider == "vllm-chat":
-        base_url = model_config.get("base_url", None)
-        api_key = model_config.get("api_key", None)
+        base_url = model_config.get("base_url")
+        api_key = model_config.get("api_key")
         model = OpenAIChatModel(model_name=model_name, provider=OpenAIProvider(base_url=base_url, api_key=api_key))
         model_settings = OpenAIChatModelSettings(timeout=timeout, **settings)
     elif provider == "vllm-responses":
-        base_url = model_config.get("base_url", None)
-        api_key = model_config.get("api_key", None)
+        base_url = model_config.get("base_url")
+        api_key = model_config.get("api_key")
         model = OpenAIResponsesModel(model_name=model_name, provider=OpenAIProvider(base_url=base_url, api_key=api_key))
         model_settings = OpenAIResponsesModelSettings(timeout=timeout, **settings)
     else:
