@@ -201,6 +201,7 @@ FALLBACK_DICT = {
             base=Decimal(24) / Decimal(10), tiers=[Tier(start=256000, price=Decimal(72) / Decimal(10))]
         ),
     ),
+    "qwen3.5-flash": ModelPrice(input_mtok=Decimal(1) / Decimal(10), output_mtok=Decimal(4) / Decimal(10)),
 }
 
 
