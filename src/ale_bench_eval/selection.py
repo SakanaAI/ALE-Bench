@@ -3,16 +3,16 @@ from typing import Any, Literal, TypeGuard
 import numpy as np
 
 from ale_bench.data import ScoreType
+from ale_bench_eval.language_config import ALL_CODE_LANGUAGES_SET, StoredCodeLanguage
 
-CodeLanguage = Literal["any", "python", "cpp17", "cpp20", "cpp23", "rust", ""]
-VALID_CODE_LANGUAGES = {"any", "python", "cpp17", "cpp20", "cpp23", "rust", ""}
+VALID_CODE_LANGUAGES = {"", "any", *ALL_CODE_LANGUAGES_SET}
 
 
-def is_code_language(value: str) -> TypeGuard[CodeLanguage]:
+def is_code_language(value: str) -> TypeGuard[StoredCodeLanguage]:
     return value in VALID_CODE_LANGUAGES
 
 
-def get_solution_info(target_result: dict[str, Any]) -> tuple[CodeLanguage, str]:
+def get_solution_info(target_result: dict[str, Any]) -> tuple[StoredCodeLanguage, str]:
     raw_code_language = target_result.get("code_language")
     if not isinstance(raw_code_language, str):
         msg = f"Invalid code language type: {type(raw_code_language)}"
@@ -36,7 +36,7 @@ def select_solution_from_repeated_sampling(
     n_repeated_sampling: int,
     selection_method: Literal["best", "median"] = "median",
     score_type: ScoreType = ScoreType.MINIMIZE,
-) -> tuple[CodeLanguage, str, int]:
+) -> tuple[StoredCodeLanguage, str, int]:
     """Select a solution from repeated sampling results based on the specified method.
 
     Args:
@@ -100,7 +100,7 @@ def select_solution_from_self_refine(
     results_self_refine: dict[int, dict[str, Any]],
     score_type: ScoreType = ScoreType.MINIMIZE,
     n_max_refine: int | None = None,
-) -> tuple[CodeLanguage, str, int]:
+) -> tuple[StoredCodeLanguage, str, int]:
     """Select a solution from self-refine results based on the specified method.
     Chose the best solution based on the absolute score.
 

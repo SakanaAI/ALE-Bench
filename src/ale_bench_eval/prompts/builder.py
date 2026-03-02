@@ -8,15 +8,10 @@ from pydantic_ai import BinaryContent
 from ale_bench.data import Problem
 from ale_bench.result import CaseResult, JudgeResult, Result
 from ale_bench.utils import parse_statement
+from ale_bench_eval.language_config import EvalCodeLanguage, EvalJudgeVersion, get_any_languages
 from ale_bench_eval.prompts.texts import (
-    ANY_CODE_LANGUAGES,
     CODE_BLOCK_MATCH,
     CODE_BLOCK_STRING,
-    CODE_BLOCK_STRING_ANY,
-    CODE_LANGUAGE_LIBRARIES,
-    CODE_LANGUAGE_LIBRARIES_ANY,
-    CODE_LANGUAGE_STRING,
-    CODE_LANGUAGE_STRING_ANY,
     CONSIDERATION_PROMPT,
     FEEDBACK_PROMPT,
     IMPLEMENTATION_ANY_PROMPT,
@@ -27,11 +22,17 @@ from ale_bench_eval.prompts.texts import (
     REFINE_ANY_PROMPT,
     REFINE_SPECIFIC_PROMPT,
     SYSTEM_PROMPT,
+    get_code_block_string_any,
+    get_code_language_libraries,
+    get_code_language_libraries_any,
+    get_code_language_string,
+    get_code_language_string_any,
 )
 
 
 class PromptArgs(BaseModel):
-    code_language: Literal["any", "cpp17", "cpp20", "cpp23", "python", "rust"]
+    code_language: EvalCodeLanguage
+    judge_version: EvalJudgeVersion
     prompt_language: Literal["en", "ja"]
     use_image: bool
 
@@ -86,17 +87,17 @@ def create_initial_message(
     if args.code_language == "any":
         contents.append(
             IMPLEMENTATION_ANY_PROMPT[args.prompt_language].substitute(
-                language_strings=CODE_LANGUAGE_STRING_ANY,
-                code_blocks=CODE_BLOCK_STRING_ANY,
-                libraries=CODE_LANGUAGE_LIBRARIES_ANY,
+                language_strings=get_code_language_string_any(args.judge_version),
+                code_blocks=get_code_block_string_any(args.judge_version),
+                libraries=get_code_language_libraries_any(args.judge_version),
             )
         )
     else:
         contents.append(
             IMPLEMENTATION_SPECIFIC_PROMPT[args.prompt_language].substitute(
-                language=CODE_LANGUAGE_STRING[args.code_language],
+                language=get_code_language_string(args.code_language, args.judge_version),
                 code_block=CODE_BLOCK_STRING[args.code_language],
-                libraries=CODE_LANGUAGE_LIBRARIES[args.code_language],
+                libraries=get_code_language_libraries(args.code_language, args.judge_version),
             )
         )
     contents.append(
@@ -120,11 +121,11 @@ def create_initial_message(
 def no_code_block_message(args: PromptArgs) -> str:
     if args.code_language == "any":
         return NO_CODE_BLOCK_ANY_PROMPT[args.prompt_language].substitute(
-            language_strings=CODE_LANGUAGE_STRING_ANY,
-            code_blocks=CODE_BLOCK_STRING_ANY,
+            language_strings=get_code_language_string_any(args.judge_version),
+            code_blocks=get_code_block_string_any(args.judge_version),
         )
     return NO_CODE_BLOCK_SPECIFIC_PROMPT[args.prompt_language].substitute(
-        language=CODE_LANGUAGE_STRING[args.code_language],
+        language=get_code_language_string(args.code_language, args.judge_version),
         code_block=CODE_BLOCK_STRING[args.code_language],
     )
 
@@ -163,7 +164,7 @@ def create_feedback_message(args: PromptArgs, public_result: Result | None) -> l
         return [
             FEEDBACK_PROMPT[args.prompt_language].substitute(feedback=feedback)
             + REFINE_ANY_PROMPT[args.prompt_language].substitute(
-                code_blocks=CODE_BLOCK_STRING_ANY,
+                code_blocks=get_code_block_string_any(args.judge_version),
             )
         ]
     return [
@@ -174,15 +175,16 @@ def create_feedback_message(args: PromptArgs, public_result: Result | None) -> l
     ]
 
 
-def get_code_from_response(response: str, code_language: str) -> tuple[str, str]:
+def get_code_from_response(response: str, code_language: str, judge_version: str) -> tuple[str, str]:
     if code_language in CODE_BLOCK_MATCH:
         match = CODE_BLOCK_MATCH[code_language].findall(response)
         if len(match) > 0:
             return code_language, match[-1]  # Get the last code block
     elif code_language == "any":
-        for lang, pattern in CODE_BLOCK_MATCH.items():
-            if lang not in ANY_CODE_LANGUAGES:
-                continue  # Skip unsupported languages
+        for lang in get_any_languages(judge_version):
+            pattern = CODE_BLOCK_MATCH.get(lang)
+            if pattern is None:
+                continue
             match = pattern.findall(response)
             if len(match) > 0:
                 return lang, match[-1]  # Get the last code block

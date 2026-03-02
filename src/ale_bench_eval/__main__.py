@@ -2,7 +2,7 @@ import json
 import warnings
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
-from typing import Any, Literal
+from typing import Any, Literal, cast
 
 from fire import Fire
 from psutil import cpu_count
@@ -16,6 +16,7 @@ from ale_bench_eval.analyze_results import (
 )
 from ale_bench_eval.data_types import EvaluationConfig, Solution
 from ale_bench_eval.evaluate import run_private_evaluation
+from ale_bench_eval.language_config import EvalCodeLanguage, EvalJudgeVersion, validate_code_language_for_judge
 from ale_bench_eval.logger import SaveInfo, get_now_utc, get_now_utc_string
 from ale_bench_eval.prompts.builder import (
     PromptArgs,
@@ -257,7 +258,8 @@ def main(
     n_self_refine: int = 1,
     num_workers: int = 1,
     n_public_cases: int | None = None,
-    code_language: Literal["any", "cpp17", "cpp20", "cpp23", "python", "rust"] = "cpp20",
+    code_language: EvalCodeLanguage = "cpp20",
+    judge_version: EvalJudgeVersion = "202301",
     prompt_language: Literal["en", "ja"] = "en",
     max_parallel_problems: int = 1,
     problem_ids_type: Literal["all", "lite", "debug"] = "debug",
@@ -268,6 +270,13 @@ def main(
 ) -> None:
     """Main entry point for running LLM benchmarking evaluation."""
     start_time = get_now_utc()
+
+    # NOTE:
+    # python-fire may parse numeric-looking CLI args (e.g. 202510) as int.
+    # Normalize all enum-like CLI parameters to strings at the entry point.
+    code_language = cast("EvalCodeLanguage", str(code_language).strip())
+    judge_version = cast("EvalJudgeVersion", str(judge_version).strip())
+    prompt_language = cast('Literal["en", "ja"]', str(prompt_language).strip())
 
     physical_cores = cpu_count(logical=False)
     if physical_cores is None:
@@ -281,8 +290,11 @@ def main(
         )
         raise ValueError(msg)
 
+    validate_code_language_for_judge(code_language, judge_version)
+
     prompt_args = PromptArgs(
         code_language=code_language,
+        judge_version=judge_version,
         prompt_language=prompt_language,
         use_image=use_statement_image,
     )
@@ -322,6 +334,9 @@ def main(
         if existing_settings["code_language"] != code_language:
             msg = "Experiment settings already exist with different code_language"
             raise ValueError(msg)
+        if existing_settings.get("judge_version", "202301") != judge_version:
+            msg = "Experiment settings already exist with different judge_version"
+            raise ValueError(msg)
         if existing_settings["prompt_language"] != prompt_language:
             msg = "Experiment settings already exist with different prompt_language"
             raise ValueError(msg)
@@ -343,6 +358,7 @@ def main(
                 "num_workers": num_workers,
                 "n_public_cases": n_public_cases,
                 "code_language": code_language,
+                "judge_version": judge_version,
                 "prompt_language": prompt_language,
                 "max_parallel_problems": max_parallel_problems,
                 "problem_ids_type": problem_ids_type,
@@ -356,7 +372,10 @@ def main(
     lite_version = problem_ids_type != "all"
     problem_ids = ["ahc027", "ahc039"] if problem_ids_type == "debug" else list_problem_ids(lite_version=lite_version)
     print(f"\n🚀 Starting parallel evaluation of {len(problem_ids)} problems...")
-    print(f"📊 Model: {model_name}, Repeated Sampling: {n_repeated_sampling}, Self-Refine: {n_self_refine}")
+    print(
+        f"📊 Model: {model_name}, Repeated Sampling: {n_repeated_sampling}, Self-Refine: {n_self_refine}, "
+        f"Code Language: {code_language}, Judge Version: {judge_version}"
+    )
 
     if skip_llm_inference:
         print(f"🔍 Skipping LLM inference and loading results from {exp_root}")

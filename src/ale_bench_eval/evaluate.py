@@ -4,22 +4,37 @@ from typing import Any
 from ale_bench.result import ResourceUsage
 from ale_bench.session import Session
 from ale_bench_eval.data_types import EvaluationConfig, Solution
+from ale_bench_eval.language_config import get_default_code_language
 from ale_bench_eval.logger import SaveInfo
+
+CE_CODE_FILE_BY_LANGUAGE = {
+    "bash": "ce_bash.bash",
+    "cpp17": "ce_cpp17.cpp",
+    "cpp20": "ce_cpp20.cpp",
+    "cpp23": "ce_cpp23.cpp",
+    "csharp": "ce_csharp.cs",
+    "fish": "ce_fish.fish",
+    "fortran": "ce_fortran.f90",
+    "go": "ce_go.go",
+    "haskell": "ce_haskell.hs",
+    "javascript": "ce_javascript.js",
+    "julia": "ce_julia.jl",
+    "lean": "ce_lean.lean",
+    "ocaml": "ce_ocaml.ml",
+    "perl": "ce_perl.pl",
+    "pypy": "ce_pypy.py",
+    "python": "ce_python.py",
+    "rust": "ce_rust.rs",
+    "typescript": "ce_typescript.ts",
+}
+GENERIC_CE_CODE = "this code intentionally fails"
 
 
 def get_ce_code(code_language: str) -> str:
-    if code_language == "cpp17":
-        return files("ale_bench_eval.codes").joinpath("ce_cpp17.cpp").read_text()
-    if code_language == "cpp20":
-        return files("ale_bench_eval.codes").joinpath("ce_cpp20.cpp").read_text()
-    if code_language == "cpp23":
-        return files("ale_bench_eval.codes").joinpath("ce_cpp23.cpp").read_text()
-    if code_language == "rust":
-        return files("ale_bench_eval.codes").joinpath("ce_rust.rs").read_text()
-    if code_language == "python":
-        return files("ale_bench_eval.codes").joinpath("ce_python.py").read_text()
-    msg = f"Invalid code language: {code_language}"
-    raise ValueError(msg)
+    ce_filename = CE_CODE_FILE_BY_LANGUAGE.get(code_language)
+    if ce_filename is not None:
+        return files("ale_bench_eval.codes").joinpath(ce_filename).read_text()
+    return GENERIC_CE_CODE
 
 
 def run_private_evaluation(
@@ -91,10 +106,12 @@ def run_private_evaluation(
             solution_code = solution.code
             if solution_code.strip() == "":
                 if solution_code_language in {"any", ""}:
-                    solution_code_language = "cpp20"  # default to cpp20
+                    solution_code_language = get_default_code_language(config.prompt_args.judge_version)
                 solution_code = get_ce_code(solution_code_language)
             private_result, final_rank, final_performance = session.private_eval(
-                solution_code, code_language=solution_code_language
+                solution_code,
+                code_language=solution_code_language,
+                judge_version=config.prompt_args.judge_version,
             )
 
             if save_info is not None:

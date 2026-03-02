@@ -68,17 +68,44 @@ uv run -m ale_bench_eval --model_config_path llm_configs/gpt-5.json --num_worker
 bash scripts/run_eval.sh gpt-5
 
 # Or directly run using uv
-uv run -m ale_bench_eval --model_config_path llm_configs/gpt-5.json --n_repeated_sampling 15 --n_self_refine 16 --num_workers 10 --n_public_cases 50 --code_language cpp20 --prompt_language en --max_parallel_problems 5 --problem_ids_type all --selection_method median
+uv run -m ale_bench_eval --model_config_path llm_configs/gpt-5.json --n_repeated_sampling 15 --n_self_refine 16 --num_workers 10 --n_public_cases 50 --judge_version 202510 --code_language typescript --prompt_language en --max_parallel_problems 5 --problem_ids_type all --selection_method median
 ```
 
 ### Bash Script Arguments
 The provided script [`scripts/run_eval.sh`](../scripts/run_eval.sh) accepts the following arguments:
 ```bash
-bash scripts/run_eval.sh <config_name> [root_path]
+bash scripts/run_eval.sh [options] <config_name>
 ```
 
 - `<config_name>`: Name of the model configuration file (without `.json` extension) located in the `llm_configs/` directory (e.g., `gpt-5` for `llm_configs/gpt-5.json`)
-- `[root_path]`: (Optional) Root path to save results and resume from (if not provided, a new directory will be created in `results/`)
+- `options`: Can be placed before or after `<config_name>` (order-independent)
+
+Script options:
+
+| Option | Default | Description |
+|:------:|:-------:|:------------|
+| `--root_path`, `-r` | *(empty)* | Root path to save results and resume from. If not provided, a new directory is created in `results/` |
+| `--judge_version`, `-j` | `202301` | Judge toolchain version (`201907`, `202301`, `202510`) |
+| `--code_language`, `-c` | depends on judge version | Programming language for generation/evaluation |
+| `--prompt_language`, `-p` | `en` | Prompt language (`en` or `ja`) |
+| `--help`, `-h` | - | Show usage |
+
+Default `code_language` by `judge_version`:
+- `201907` -> `cpp17`
+- `202301` -> `cpp20`
+- `202510` -> `cpp23`
+
+Examples:
+```bash
+# default settings
+bash scripts/run_eval.sh gpt-5
+
+# options before config_name
+bash scripts/run_eval.sh -j 202510 -c typescript -p ja -r results/gpt5-ts-ja gpt-5
+
+# options after config_name
+bash scripts/run_eval.sh gpt-5 --judge_version 202510 --code_language rust --root_path results/gpt5-rust
+```
 
 ### Command Line Arguments
 
@@ -89,7 +116,8 @@ bash scripts/run_eval.sh <config_name> [root_path]
 | `n_self_refine` | int | 1 | Number of self-refinement iterations including repeated sampling process (`1` means no self-refinement) |
 | `num_workers` | int | 1 | Number of parallel case evaluation workers for each problem |
 | `n_public_cases` | int | `None` | Number of cases to use for public evaluation (`None` means using ALE-Bench default: 50 for `all`, 5 for `lite`) |
-| `code_language` | str | `cpp20` | Target programming language (`cpp17`, `cpp20`, `cpp23`, `python`, `rust`, `any`; `any` means LLM can select from `cpp20`, `python`, and `rust`) |
+| `judge_version` | str | `202301` | Judge toolchain version (`201907`, `202301`, `202510`) |
+| `code_language` | str | `cpp20` | Target programming language (`any`, `bash`, `cpp17`, `cpp20`, `cpp23`, `csharp`, `fish`, `fortran`, `go`, `haskell`, `javascript`, `julia`, `lean`, `ocaml`, `perl`, `pypy`, `python`, `rust`, `typescript`) |
 | `prompt_language` | str | `en` | Prompt language (`en` for English, `ja` for Japanese) |
 | `max_parallel_problems` | int | `1` | Maximum number of problems to evaluate in parallel |
 | `problem_ids_type` | str | `debug` | Problem ID set to evaluate (`debug`, `lite`, `all`) |
@@ -99,6 +127,14 @@ bash scripts/run_eval.sh <config_name> [root_path]
 | `skip_llm_inference` | bool | `False` | Skip LLM inference and only perform aggregation of existing results |
 
 > **Note**: Ensure that `num_workers` $\times$ `max_parallel_problems` does not exceed the number of physical CPU cores available on your machine to avoid resource contention and performance degradation.
+
+> **Note**: `code_language` must be supported by the selected `judge_version`.
+> If `code_language=any`, available languages are:
+> - `201907`: `cpp17`, `python`, `rust`
+> - `202301`: `cpp20`, `python`, `rust`
+> - `202510`: `bash`, `cpp23`, `csharp`, `fish`, `fortran`, `go`, `haskell`, `javascript`, `julia`, `lean`, `ocaml`, `perl`, `pypy`, `python`, `rust`, `typescript`
+
+> **Note**: Prompt language/toolchain/library descriptions in `src/ale_bench_eval/prompts/texts.py` are judge-version-aware (`201907`, `202301`, `202510`).
 
 ### Problem Selection
 
@@ -171,7 +207,7 @@ ALE-Bench/
 ├── results/                   # Output directory
 ├── scripts/run_eval.sh        # Evaluation runner script
 ├── src/ale_bench_eval/        # Core library
-│   ├── codes/                 # Fallback COMPILATION_ERROR codes for each language
+│   ├── codes/                 # Fallback COMPILATION_ERROR codes
 │   ├── prompts/               # Prompt management
 │   │   ├── builder.py         # Prompt construction logic
 │   │   └── texts.py           # Prompt templates
@@ -181,6 +217,7 @@ ALE-Bench/
 │   ├── calc_cost.py           # Cost estimation logic
 │   ├── data_types.py          # Pydantic models and type definitions
 │   ├── evaluate.py            # Private evaluation logic
+│   ├── language_config.py     # Judge/language compatibility and defaults
 │   ├── logger.py              # Enhanced logging with isolation
 │   ├── safe_ale_session.py    # Safe execution wrapper for ALE-Bench sessions
 │   ├── safe_generation.py     # Safe LLM generation using Pydantic AI
