@@ -109,6 +109,11 @@ FALLBACK_DICT = {
         cache_read_mtok=Decimal(5) / Decimal(100),
         output_mtok=Decimal(5) / Decimal(10),
     ),
+    "grok-4.20-beta": ModelPrice(
+        input_mtok=TieredPrices(base=Decimal(2), tiers=[Tier(start=200000, price=Decimal(4))]),
+        cache_read_mtok=Decimal(2) / Decimal(10),
+        output_mtok=TieredPrices(base=Decimal(6), tiers=[Tier(start=200000, price=Decimal(12))]),
+    ),
     "nova-premier-v1": ModelPrice(
         input_mtok=Decimal(25) / Decimal(10),
         cache_read_mtok=Decimal(625) / Decimal(1000),
@@ -135,6 +140,11 @@ FALLBACK_DICT = {
         input_mtok=Decimal(1),
         output_mtok=Decimal(32) / Decimal(10),
         cache_read_mtok=Decimal(2) / Decimal(10),
+    ),
+    "glm-5-turbo": ModelPrice(
+        input_mtok=Decimal(12) / Decimal(10),
+        output_mtok=Decimal(4),
+        cache_read_mtok=Decimal(24) / Decimal(100),
     ),
     "gpt-oss-120b": ModelPrice(input_mtok=Decimal(1) / Decimal(10), output_mtok=Decimal(5) / Decimal(10)),
     "gpt-oss-20b": ModelPrice(input_mtok=Decimal(5) / Decimal(100), output_mtok=Decimal(2) / Decimal(10)),
