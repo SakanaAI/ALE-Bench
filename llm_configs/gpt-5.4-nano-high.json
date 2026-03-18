@@ -1,0 +1,8 @@
+{
+    "model_name": "gpt-5.4-nano-2026-03-17",
+    "provider": "openai",
+    "settings": {
+        "openai_reasoning_effort": "high",
+        "openai_reasoning_summary": "detailed"
+    }
+}

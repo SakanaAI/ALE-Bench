@@ -5,6 +5,21 @@ from genai_prices.types import ModelPrice, Tier, TieredPrices
 from pydantic_ai.usage import RunUsage
 
 FALLBACK_DICT = {
+    "gpt-5.4-nano-2026-03-17": ModelPrice(
+        input_mtok=Decimal(2) / Decimal(10),
+        cache_read_mtok=Decimal(2) / Decimal(100),
+        output_mtok=Decimal(125) / Decimal(100),
+    ),
+    "gpt-5.4-mini-2026-03-17": ModelPrice(
+        input_mtok=Decimal(75) / Decimal(100),
+        cache_read_mtok=Decimal(75) / Decimal(1000),
+        output_mtok=Decimal(45) / Decimal(10),
+    ),
+    "gpt-5.4-2026-03-05": ModelPrice(
+        input_mtok=Decimal(25) / Decimal(10),
+        cache_read_mtok=Decimal(25) / Decimal(100),
+        output_mtok=Decimal(15),
+    ),
     "gpt-5.4-2026-03-05": ModelPrice(
         input_mtok=Decimal(25) / Decimal(10),
         cache_read_mtok=Decimal(25) / Decimal(100),
