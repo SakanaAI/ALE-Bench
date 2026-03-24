@@ -20,11 +20,6 @@ FALLBACK_DICT = {
         cache_read_mtok=Decimal(25) / Decimal(100),
         output_mtok=Decimal(15),
     ),
-    "gpt-5.4-2026-03-05": ModelPrice(
-        input_mtok=Decimal(25) / Decimal(10),
-        cache_read_mtok=Decimal(25) / Decimal(100),
-        output_mtok=Decimal(15),
-    ),
     "gpt-5.3-codex": ModelPrice(
         input_mtok=Decimal(175) / Decimal(100),
         cache_read_mtok=Decimal(175) / Decimal(1000),
