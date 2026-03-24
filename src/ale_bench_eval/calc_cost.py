@@ -5,6 +5,21 @@ from genai_prices.types import ModelPrice, Tier, TieredPrices
 from pydantic_ai.usage import RunUsage
 
 FALLBACK_DICT = {
+    "gpt-5.4-nano-2026-03-17": ModelPrice(
+        input_mtok=Decimal(2) / Decimal(10),
+        cache_read_mtok=Decimal(2) / Decimal(100),
+        output_mtok=Decimal(125) / Decimal(100),
+    ),
+    "gpt-5.4-mini-2026-03-17": ModelPrice(
+        input_mtok=Decimal(75) / Decimal(100),
+        cache_read_mtok=Decimal(75) / Decimal(1000),
+        output_mtok=Decimal(45) / Decimal(10),
+    ),
+    "gpt-5.4-2026-03-05": ModelPrice(
+        input_mtok=Decimal(25) / Decimal(10),
+        cache_read_mtok=Decimal(25) / Decimal(100),
+        output_mtok=Decimal(15),
+    ),
     "gpt-5.3-codex": ModelPrice(
         input_mtok=Decimal(175) / Decimal(100),
         cache_read_mtok=Decimal(175) / Decimal(1000),
@@ -37,6 +52,11 @@ FALLBACK_DICT = {
             base=Decimal(2) / Decimal(10), tiers=[Tier(start=200000, price=Decimal(4) / Decimal(10))]
         ),
         cache_write_mtok=Decimal(375) / Decimal(1000),
+    ),
+    "gemini-3.1-flash-lite-preview": ModelPrice(
+        input_mtok=Decimal(25) / Decimal(100),
+        cache_read_mtok=Decimal(25) / Decimal(1000),
+        output_mtok=Decimal(15) / Decimal(10),
     ),
     "claude-sonnet-4": ModelPrice(
         input_mtok=TieredPrices(base=Decimal(3), tiers=[Tier(start=200000, price=Decimal(6))]),
@@ -99,6 +119,11 @@ FALLBACK_DICT = {
         cache_read_mtok=Decimal(5) / Decimal(100),
         output_mtok=Decimal(5) / Decimal(10),
     ),
+    "grok-4.20-beta": ModelPrice(
+        input_mtok=TieredPrices(base=Decimal(2), tiers=[Tier(start=200000, price=Decimal(4))]),
+        cache_read_mtok=Decimal(2) / Decimal(10),
+        output_mtok=TieredPrices(base=Decimal(6), tiers=[Tier(start=200000, price=Decimal(12))]),
+    ),
     "nova-premier-v1": ModelPrice(
         input_mtok=Decimal(25) / Decimal(10),
         cache_read_mtok=Decimal(625) / Decimal(1000),
@@ -110,6 +135,20 @@ FALLBACK_DICT = {
     "deepseek-v3.2": ModelPrice(input_mtok=Decimal(27) / Decimal(100), output_mtok=Decimal(42) / Decimal(10)),
     "deepseek-r1-0528": ModelPrice(input_mtok=Decimal(79) / Decimal(100), output_mtok=Decimal(4)),
     "mimo-v2-flash:free": ModelPrice(input_mtok=Decimal(1) / Decimal(10), output_mtok=Decimal(3) / Decimal(10)),
+    "mimo-v2-pro": ModelPrice(
+        input_mtok=TieredPrices(
+            base=Decimal(1),
+            tiers=[Tier(start=256000, price=Decimal(2))],
+        ),
+        output_mtok=TieredPrices(
+            base=Decimal(3),
+            tiers=[Tier(start=256000, price=Decimal(6))],
+        ),
+        cache_read_mtok=TieredPrices(
+            base=Decimal(2) / Decimal(10),
+            tiers=[Tier(start=256000, price=Decimal(4) / Decimal(10))],
+        ),
+    ),
     "glm-4.5": ModelPrice(input_mtok=Decimal(59) / Decimal(100), output_mtok=Decimal(21) / Decimal(10)),
     "glm-4.6": ModelPrice(
         input_mtok=Decimal(6) / Decimal(10),
@@ -126,6 +165,11 @@ FALLBACK_DICT = {
         output_mtok=Decimal(32) / Decimal(10),
         cache_read_mtok=Decimal(2) / Decimal(10),
     ),
+    "glm-5-turbo": ModelPrice(
+        input_mtok=Decimal(12) / Decimal(10),
+        output_mtok=Decimal(4),
+        cache_read_mtok=Decimal(24) / Decimal(100),
+    ),
     "gpt-oss-120b": ModelPrice(input_mtok=Decimal(1) / Decimal(10), output_mtok=Decimal(5) / Decimal(10)),
     "gpt-oss-20b": ModelPrice(input_mtok=Decimal(5) / Decimal(100), output_mtok=Decimal(2) / Decimal(10)),
     "grok-code-fast-1": ModelPrice(input_mtok=Decimal(2) / Decimal(10), output_mtok=Decimal(15) / Decimal(10)),
@@ -133,6 +177,7 @@ FALLBACK_DICT = {
     "codestral-2508": ModelPrice(input_mtok=Decimal(3) / Decimal(10), output_mtok=Decimal(9) / Decimal(10)),
     "mistral-medium-3.1": ModelPrice(input_mtok=Decimal(4) / Decimal(10), output_mtok=Decimal(2)),
     "mistral-large-2512": ModelPrice(input_mtok=Decimal(5) / Decimal(10), output_mtok=Decimal(15) / Decimal(10)),
+    "mistral-small-2603": ModelPrice(input_mtok=Decimal(15) / Decimal(100), output_mtok=Decimal(6) / Decimal(10)),
     "kimi-k2": ModelPrice(
         input_mtok=Decimal(6) / Decimal(10),
         output_mtok=Decimal(25) / Decimal(10),
@@ -163,6 +208,11 @@ FALLBACK_DICT = {
         input_mtok=Decimal(3) / Decimal(10),
         output_mtok=Decimal(12) / Decimal(10),
         cache_read_mtok=Decimal(3) / Decimal(100),
+    ),
+    "minimax-m2.7": ModelPrice(
+        input_mtok=Decimal(3) / Decimal(10),
+        output_mtok=Decimal(12) / Decimal(10),
+        cache_read_mtok=Decimal(6) / Decimal(100),
     ),
     "qwen3-235b-a22b-thinking-2507": ModelPrice(
         input_mtok=Decimal(3) / Decimal(10), output_mtok=Decimal(29) / Decimal(10)

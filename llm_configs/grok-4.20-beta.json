@@ -1,0 +1,14 @@
+{
+    "model_name": "x-ai/grok-4.20-beta",
+    "provider": "openrouter",
+    "settings": {
+        "extra_body": {
+            "reasoning": {
+                "enabled": true
+            },
+            "usage": {
+                "include": true
+            }
+        }
+    }
+}

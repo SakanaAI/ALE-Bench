@@ -1,0 +1,9 @@
+{
+    "model_name": "gpt-5.4-2026-03-05",
+    "provider": "openai",
+    "settings": {
+        "temperature": 1.0,
+        "openai_reasoning_effort": "none",
+        "openai_reasoning_summary": "detailed"
+    }
+}
