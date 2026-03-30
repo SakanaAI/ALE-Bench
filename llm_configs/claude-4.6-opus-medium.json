@@ -1,5 +1,5 @@
 {
-    "model_name": "anthropic/claude-sonnet-4.6",
+    "model_name": "anthropic/claude-opus-4.6",
     "provider": "openrouter",
     "settings": {
         "temperature": 1.0,
@@ -8,7 +8,7 @@
             "provider": {
                 "allow_fallbacks": false,
                 "data_collection": "deny",
-                "order": ["anthropic"],
+                "order": ["anthropic", "google-vertex", "amazon-bedrock", "azure"],
                 "require_parameters": true
             },
             "reasoning": {
@@ -17,7 +17,7 @@
             "usage": {
                 "include": true
             },
-            "verbosity": "high"
+            "verbosity": "medium"
         }
     }
 }
