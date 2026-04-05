@@ -7,6 +7,6 @@
             "type": "adaptive",
             "display": "summarized"
         },
-        "anthropic_effort": "max"
+        "anthropic_effort": "medium"
     }
 }
