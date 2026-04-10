@@ -1,0 +1,23 @@
+{
+    "model_name": "google/gemma-4-26b-a4b-it",
+    "provider": "openrouter",
+    "settings": {
+        "temperature": 1.0,
+        "top_p": 0.95,
+        "extra_body": {
+            "top_k": 64,
+            "provider": {
+                "allow_fallbacks": false,
+                "data_collection": "deny",
+                "order": ["parasail/bf16"],
+                "require_parameters": true
+            },
+            "reasoning": {
+                "enabled": true
+            },
+            "usage": {
+                "include": true
+            }
+        }
+    }
+}
