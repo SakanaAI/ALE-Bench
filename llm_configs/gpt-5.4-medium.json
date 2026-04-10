@@ -1,0 +1,8 @@
+{
+    "model_name": "gpt-5.4-2026-03-05",
+    "provider": "openai",
+    "settings": {
+        "openai_reasoning_effort": "medium",
+        "openai_reasoning_summary": "detailed"
+    }
+}

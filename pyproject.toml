@@ -46,8 +46,8 @@ dependencies = [
 dev = [
     "pytest>=9.0.2",
     "pytest-mock>=3.15.1",
-    "ruff>=0.15.2",
-    "ty>=0.0.17",
+    "ruff>=0.15.9",
+    "ty>=0.0.28",
 ]
 
 [project.urls]
@@ -62,6 +62,9 @@ eval = [
     "psutil>=7.0.0",
     "pydantic-ai>=1.30.0",
 ]
+
+[tool.uv]
+exclude-newer = "1 week"
 
 [tool.uv-dynamic-versioning]
 fallback-version = "0.0.0"

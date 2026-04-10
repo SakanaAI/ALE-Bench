@@ -17,7 +17,7 @@ from ale_bench_eval.prompts.builder import (
 from ale_bench_eval.safe_generation import MaxTokenError, safe_generation
 from ale_bench_eval.selection import get_worst_score
 
-TIMEOUT_SECONDS = 1200
+TIMEOUT_SECONDS = 3600
 MAX_RETRIES = 30
 
 

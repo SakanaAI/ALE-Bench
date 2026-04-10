@@ -1,14 +1,14 @@
 {
-    "model_name": "anthropic/claude-opus-4.6",
+    "model_name": "qwen/qwen3.6-plus",
     "provider": "openrouter",
     "settings": {
         "temperature": 1.0,
-        "max_tokens": 128000,
+        "top_p": 0.95,
         "extra_body": {
             "provider": {
                 "allow_fallbacks": false,
                 "data_collection": "deny",
-                "order": ["anthropic"],
+                "order": ["alibaba"],
                 "require_parameters": true
             },
             "reasoning": {
@@ -16,8 +16,7 @@
             },
             "usage": {
                 "include": true
-            },
-            "verbosity": "max"
+            }
         }
     }
 }
