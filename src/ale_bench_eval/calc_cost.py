@@ -198,6 +198,11 @@ FALLBACK_DICT = {
         output_mtok=Decimal(3),
         cache_read_mtok=Decimal(1) / Decimal(10),
     ),
+    "mercury-2": ModelPrice(
+        input_mtok=Decimal(25) / Decimal(100),
+        cache_read_mtok=Decimal(25) / Decimal(1000),
+        output_mtok=Decimal(75) / Decimal(100),
+    ),
     "minimax-m2.1": ModelPrice(
         input_mtok=Decimal(3) / Decimal(10),
         output_mtok=Decimal(12) / Decimal(10),
