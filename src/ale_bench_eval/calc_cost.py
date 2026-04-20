@@ -214,6 +214,11 @@ FALLBACK_DICT = {
         output_mtok=Decimal(3),
         cache_read_mtok=Decimal(1) / Decimal(10),
     ),
+    "kimi-k2.6": ModelPrice(
+        input_mtok=Decimal(95) / Decimal(100),
+        output_mtok=Decimal(4),
+        cache_read_mtok=Decimal(16) / Decimal(100),
+    ),
     "mercury-2": ModelPrice(
         input_mtok=Decimal(25) / Decimal(100),
         cache_read_mtok=Decimal(25) / Decimal(1000),
