@@ -145,8 +145,46 @@ FALLBACK_DICT = {
     "deepseek-v3.1-terminus": ModelPrice(input_mtok=Decimal(27) / Decimal(100), output_mtok=Decimal(1)),
     "deepseek-v3.2": ModelPrice(input_mtok=Decimal(27) / Decimal(100), output_mtok=Decimal(42) / Decimal(10)),
     "deepseek-r1-0528": ModelPrice(input_mtok=Decimal(79) / Decimal(100), output_mtok=Decimal(4)),
+    "deepseek-v4-pro": ModelPrice(
+        input_mtok=Decimal(174) / Decimal(100),
+        output_mtok=Decimal(348) / Decimal(100),
+        cache_read_mtok=Decimal(145) / Decimal(1000),
+    ),
+    "deepseek-v4-flash": ModelPrice(
+        input_mtok=Decimal(14) / Decimal(100),
+        output_mtok=Decimal(28) / Decimal(100),
+        cache_read_mtok=Decimal(28) / Decimal(1000),
+    ),
     "mimo-v2-flash:free": ModelPrice(input_mtok=Decimal(1) / Decimal(10), output_mtok=Decimal(3) / Decimal(10)),
     "mimo-v2-pro": ModelPrice(
+        input_mtok=TieredPrices(
+            base=Decimal(1),
+            tiers=[Tier(start=256000, price=Decimal(2))],
+        ),
+        output_mtok=TieredPrices(
+            base=Decimal(3),
+            tiers=[Tier(start=256000, price=Decimal(6))],
+        ),
+        cache_read_mtok=TieredPrices(
+            base=Decimal(2) / Decimal(10),
+            tiers=[Tier(start=256000, price=Decimal(4) / Decimal(10))],
+        ),
+    ),
+    "mimo-v2.5": ModelPrice(
+        input_mtok=TieredPrices(
+            base=Decimal(4) / Decimal(10),
+            tiers=[Tier(start=256000, price=Decimal(8) / Decimal(10))],
+        ),
+        output_mtok=TieredPrices(
+            base=Decimal(2),
+            tiers=[Tier(start=256000, price=Decimal(4))],
+        ),
+        cache_read_mtok=TieredPrices(
+            base=Decimal(8) / Decimal(100),
+            tiers=[Tier(start=256000, price=Decimal(16) / Decimal(100))],
+        ),
+    ),
+    "mimo-v2.5-pro": ModelPrice(
         input_mtok=TieredPrices(
             base=Decimal(1),
             tiers=[Tier(start=256000, price=Decimal(2))],
