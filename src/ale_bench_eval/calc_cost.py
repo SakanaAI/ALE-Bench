@@ -332,6 +332,16 @@ FALLBACK_DICT = {
         input_mtok=TieredPrices(base=Decimal(5) / Decimal(10), tiers=[Tier(start=256000, price=Decimal(2))]),
         output_mtok=TieredPrices(base=Decimal(3), tiers=[Tier(start=256000, price=Decimal(6))]),
     ),
+    "qwen3.6-flash": ModelPrice(
+        input_mtok=TieredPrices(base=Decimal(25) / Decimal(100), tiers=[Tier(start=256000, price=Decimal(1))]),
+        output_mtok=TieredPrices(base=Decimal(15) / Decimal(10), tiers=[Tier(start=256000, price=Decimal(4))]),
+        cache_read_mtok=TieredPrices(
+            base=Decimal(3125) / Decimal(10000), tiers=[Tier(start=256000, price=Decimal(125) / Decimal(100))]
+        ),
+        cache_write_mtok=TieredPrices(
+            base=Decimal(25) / Decimal(1000), tiers=[Tier(start=256000, price=Decimal(1) / Decimal(10))]
+        ),
+    ),
     "Qwen3.6-35B-A3B": ModelPrice(input_mtok=Decimal(25) / Decimal(100), output_mtok=Decimal(2)),
 }
 
