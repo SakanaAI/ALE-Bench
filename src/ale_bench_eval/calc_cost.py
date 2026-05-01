@@ -140,6 +140,15 @@ FALLBACK_DICT = {
         cache_read_mtok=Decimal(2) / Decimal(10),
         output_mtok=TieredPrices(base=Decimal(6), tiers=[Tier(start=200000, price=Decimal(12))]),
     ),
+    "grok-4.3": ModelPrice(
+        input_mtok=TieredPrices(
+            base=Decimal(125) / Decimal(100), tiers=[Tier(start=200000, price=Decimal(25) / Decimal(10))]
+        ),
+        cache_read_mtok=TieredPrices(
+            base=Decimal(2) / Decimal(10), tiers=[Tier(start=200000, price=Decimal(4) / Decimal(10))]
+        ),
+        output_mtok=TieredPrices(base=Decimal(25) / Decimal(10), tiers=[Tier(start=200000, price=Decimal(5))]),
+    ),
     "nova-premier-v1": ModelPrice(
         input_mtok=Decimal(25) / Decimal(10),
         cache_read_mtok=Decimal(625) / Decimal(1000),
