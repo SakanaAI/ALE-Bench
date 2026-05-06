@@ -246,6 +246,7 @@ FALLBACK_DICT = {
     "mistral-medium-3.1": ModelPrice(input_mtok=Decimal(4) / Decimal(10), output_mtok=Decimal(2)),
     "mistral-large-2512": ModelPrice(input_mtok=Decimal(5) / Decimal(10), output_mtok=Decimal(15) / Decimal(10)),
     "mistral-small-2603": ModelPrice(input_mtok=Decimal(15) / Decimal(100), output_mtok=Decimal(6) / Decimal(10)),
+    "mistral-medium-3-5": ModelPrice(input_mtok=Decimal(15) / Decimal(10), output_mtok=Decimal(75) / Decimal(10)),
     "kimi-k2": ModelPrice(
         input_mtok=Decimal(6) / Decimal(10),
         output_mtok=Decimal(25) / Decimal(10),
