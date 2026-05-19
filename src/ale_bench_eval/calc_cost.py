@@ -45,6 +45,11 @@ FALLBACK_DICT = {
         cache_read_mtok=Decimal(125) / Decimal(1000),
         output_mtok=Decimal(10),
     ),
+    "gemini-3.5-flash": ModelPrice(
+        input_mtok=Decimal(15) / Decimal(10),
+        cache_read_mtok=Decimal(15) / Decimal(100),
+        output_mtok=Decimal(9),
+    ),
     "gemini-3-flash-preview": ModelPrice(
         input_mtok=Decimal(5) / Decimal(10),
         cache_read_mtok=Decimal(5) / Decimal(100),
