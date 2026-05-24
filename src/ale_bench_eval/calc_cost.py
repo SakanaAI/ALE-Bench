@@ -358,6 +358,12 @@ FALLBACK_DICT = {
         ),
     ),
     "Qwen3.6-35B-A3B": ModelPrice(input_mtok=Decimal(25) / Decimal(100), output_mtok=Decimal(2)),
+    "qwen3.7-max": ModelPrice(
+        input_mtok=Decimal(25) / Decimal(10),
+        output_mtok=Decimal(75) / Decimal(10),
+        cache_read_mtok=Decimal(25) / Decimal(100),
+        cache_write_mtok=Decimal(3125) / Decimal(1000),
+    ),
 }
 
 
