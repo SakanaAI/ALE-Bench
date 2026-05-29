@@ -1,0 +1,15 @@
+{
+    "model_name": "x-ai/grok-4.3",
+    "provider": "openrouter",
+    "settings": {
+        "temperature": 1.0,
+        "extra_body": {
+            "reasoning": {
+                "enabled": true
+            },
+            "usage": {
+                "include": true
+            }
+        }
+    }
+}

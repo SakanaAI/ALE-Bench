@@ -1,0 +1,8 @@
+{
+    "model_name": "gpt-5.5-2026-04-23",
+    "provider": "openai",
+    "settings": {
+        "openai_reasoning_effort": "xhigh",
+        "openai_reasoning_summary": "detailed"
+    }
+}

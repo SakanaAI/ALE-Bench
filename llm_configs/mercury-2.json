@@ -1,0 +1,22 @@
+{
+    "model_name": "inception/mercury-2",
+    "provider": "openrouter",
+    "settings": {
+        "temperature": 0.75,
+        "extra_body": {
+            "provider": {
+                "allow_fallbacks": false,
+                "data_collection": "deny",
+                "order": ["inception"],
+                "require_parameters": true
+            },
+            "reasoning": {
+                "enabled": true,
+                "effort": "high"
+            },
+            "usage": {
+                "include": true
+            }
+        }
+    }
+}

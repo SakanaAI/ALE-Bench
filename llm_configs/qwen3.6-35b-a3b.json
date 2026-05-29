@@ -1,0 +1,25 @@
+{
+    "model_name": "Qwen/Qwen3.6-35B-A3B",
+    "provider": "vllm-chat",
+    "base_url": "http://localhost:18000/v1",
+    "api_key": "ale-bench-eval",
+    "settings": {
+        "temperature": 0.6,
+        "top_p": 0.95,
+        "extra_body": {
+            "top_k": 20,
+            "min_p": 0.0,
+            "presence_penalty": 0.0,
+            "repetition_penalty": 1.0,
+            "chat_template_kwargs": {
+                "enable_thinking": true
+            },
+            "reasoning": {
+                "enabled": true
+            },
+            "usage": {
+                "include": true
+            }
+        }
+    }
+}
