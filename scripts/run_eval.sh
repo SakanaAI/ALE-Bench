@@ -8,6 +8,8 @@ usage() {
     echo "  --judge_version, -j <201907|202301|202510>"
     echo "  --code_language, -c <language>"
     echo "  --prompt_language, -p <en|ja>"
+    echo "  --max_concurrent_llm_calls <n|none>"
+    echo "  --max_repeated_sampling_workers <n|none>"
     echo "  --help, -h"
 }
 
@@ -26,6 +28,8 @@ root_path=""
 judge_version="202301"
 code_language=""
 prompt_language="en"
+max_concurrent_llm_calls=""
+max_repeated_sampling_workers=""
 
 while [ $# -gt 0 ]; do
     case "$1" in
@@ -47,6 +51,16 @@ while [ $# -gt 0 ]; do
         --prompt_language|-p)
             require_option_value "$1" "${2:-}"
             prompt_language=${2:-}
+            shift 2
+            ;;
+        --max_concurrent_llm_calls)
+            require_option_value "$1" "${2:-}"
+            max_concurrent_llm_calls=${2:-}
+            shift 2
+            ;;
+        --max_repeated_sampling_workers)
+            require_option_value "$1" "${2:-}"
+            max_repeated_sampling_workers=${2:-}
             shift 2
             ;;
         --help|-h)
@@ -117,6 +131,12 @@ esac
 echo -e "Using judge version: ${judge_version}"
 echo -e "Using code language: ${code_language}"
 echo -e "Using prompt language: ${prompt_language}"
+if [ -n "${max_concurrent_llm_calls}" ]; then
+    echo -e "Using max concurrent LLM calls: ${max_concurrent_llm_calls}"
+fi
+if [ -n "${max_repeated_sampling_workers}" ]; then
+    echo -e "Using max repeated sampling workers: ${max_repeated_sampling_workers}"
+fi
 
 dotenv_path=${project_dir}/.env
 if [ -f "${dotenv_path}" ]; then
@@ -130,16 +150,28 @@ fi
 
 cd "$project_dir"
 
+eval_args=(
+    --model_config_path "$config_path"
+    --n_repeated_sampling 15
+    --n_self_refine 16
+    --num_workers 10
+    --n_public_cases 50
+    --judge_version "$judge_version"
+    --code_language "$code_language"
+    --prompt_language "$prompt_language"
+    --max_parallel_problems 5
+    --problem_ids_type all
+    --selection_method median
+)
+if [ -n "${max_concurrent_llm_calls}" ]; then
+    eval_args+=(--max_concurrent_llm_calls "$max_concurrent_llm_calls")
+fi
+if [ -n "${max_repeated_sampling_workers}" ]; then
+    eval_args+=(--max_repeated_sampling_workers "$max_repeated_sampling_workers")
+fi
 if [ -n "${root_path}" ]; then
     echo -e "Using root path: ${root_path}"
-    uv run -m ale_bench_eval --model_config_path "$config_path" \
-        --n_repeated_sampling 15 --n_self_refine 16 --num_workers 10 --n_public_cases 50 \
-        --judge_version "$judge_version" --code_language "$code_language" --prompt_language "$prompt_language" \
-        --max_parallel_problems 5 --problem_ids_type all --selection_method median \
-        --root_path "$root_path"
-else
-    uv run -m ale_bench_eval --model_config_path "$config_path" \
-        --n_repeated_sampling 15 --n_self_refine 16 --num_workers 10 --n_public_cases 50 \
-        --judge_version "$judge_version" --code_language "$code_language" --prompt_language "$prompt_language" \
-        --max_parallel_problems 5 --problem_ids_type all --selection_method median
+    eval_args+=(--root_path "$root_path")
 fi
+
+uv run -m ale_bench_eval "${eval_args[@]}"

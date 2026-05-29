@@ -3,8 +3,10 @@ import dataclasses
 import datetime
 import json
 import logging
+import os
 from pathlib import Path
 from typing import Any, Final
+from uuid import uuid4
 
 from pydantic import BaseModel
 from pydantic_ai.run import AgentRunResult
@@ -92,6 +94,20 @@ class AgentRunResultWrapper(BaseModel):
     value: AgentRunResult
 
 
+def atomic_json_dump(path: Path, data: object, encoder_cls: type[json.JSONEncoder] | None = None) -> None:
+    """Atomically write JSON data to a file in the same directory."""
+    tmp_path = path.with_name(f".{path.name}.{uuid4().hex[:12]}.tmp")
+    try:
+        with tmp_path.open("w") as f:
+            json.dump(data, f, cls=encoder_cls)
+            f.flush()
+            os.fsync(f.fileno())
+        tmp_path.replace(path)
+    finally:
+        if tmp_path.exists():
+            tmp_path.unlink()
+
+
 class SaveInfo:
     def __init__(self, model_name: str, problem_id: str, root_path: Path | None = None) -> None:
         self.problem_id = problem_id
@@ -110,8 +126,11 @@ class SaveInfo:
 
     def save_conversations(self, filename: str, agent_run_result: AgentRunResult) -> None:
         """Save conversations to JSON file."""
-        with (self.conversations / filename).open("w") as f:
-            json.dump(dataclasses.asdict(agent_run_result), f, cls=CustomJSONEncoder)
+        atomic_json_dump(
+            self.conversations / filename,
+            dataclasses.asdict(agent_run_result),
+            encoder_cls=CustomJSONEncoder,
+        )
 
     def load_conversations(self, filename: str) -> AgentRunResult:
         """Load conversations from JSON file."""
@@ -121,8 +140,7 @@ class SaveInfo:
 
     def save_results(self, filename: str, results: dict[str, Any]) -> None:
         """Save results to JSON file."""
-        with (self.results / filename).open("w") as f:
-            json.dump(results, f)
+        atomic_json_dump(self.results / filename, results)
 
     def load_results(self, filename: str) -> dict[str, Any]:
         """Load results from JSON file."""
@@ -142,8 +160,7 @@ class SaveInfo:
                 case_results=results.case_results,
             )
         )
-        with (self.ale_bench_results / filename).open("w") as f:
-            json.dump(serialized_results.model_dump(), f)
+        atomic_json_dump(self.ale_bench_results / filename, serialized_results.model_dump())
 
     def load_ale_bench_results(self, filename: str) -> AleBenchResult:
         """Load results from JSON file."""

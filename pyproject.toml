@@ -44,10 +44,10 @@ dependencies = [
 
 [dependency-groups]
 dev = [
-    "pytest>=9.0.2",
+    "pytest>=9.0.3",
     "pytest-mock>=3.15.1",
-    "ruff>=0.15.9",
-    "ty>=0.0.28",
+    "ruff>=0.15.14",
+    "ty>=0.0.38",
 ]
 
 [project.urls]
@@ -56,11 +56,11 @@ Repository = "https://github.com/SakanaAI/ALE-Bench"
 [project.optional-dependencies]
 eval = [
     "fire>=0.7.0",
-    "genai-prices>=0.0.47",
+    "genai-prices>=0.0.61",
     "numpy>=2.0.2",
     "pandas>=2.3.3",
     "psutil>=7.0.0",
-    "pydantic-ai>=1.30.0",
+    "pydantic-ai>=1.100.0",
 ]
 
 [tool.uv]

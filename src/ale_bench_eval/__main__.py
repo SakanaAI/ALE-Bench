@@ -2,6 +2,7 @@ import json
 import warnings
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
+from threading import BoundedSemaphore
 from typing import Any, Literal, cast
 
 from fire import Fire
@@ -32,6 +33,24 @@ from ale_bench_eval.selection import (
 )
 
 
+def normalize_optional_positive_int(value: int | str | None, parameter_name: str) -> int | None:
+    if value is None:
+        return None
+    if isinstance(value, str):
+        normalized_value = value.strip()
+        if normalized_value.lower() in {"none", "null"}:
+            return None
+        try:
+            value = int(normalized_value)
+        except ValueError as e:
+            msg = f"{parameter_name} must be a positive integer or None"
+            raise ValueError(msg) from e
+    if value < 1:
+        msg = f"{parameter_name} must be at least 1"
+        raise ValueError(msg)
+    return value
+
+
 def power_of_two_indices(n: int) -> list[int]:
     """Generate a list of power of two indices up to n."""
     indices = [2**i for i in range(n.bit_length()) if 2**i <= n]
@@ -52,6 +71,8 @@ def evaluate_contest(
     n_public_cases: int | None = None,
     selection_method: Literal["best", "median"] = "median",
     root_path: Path | None = None,
+    llm_semaphore: BoundedSemaphore | None = None,
+    max_repeated_sampling_workers: int | None = None,
 ) -> None:
     """Main evaluation function orchestrating the entire benchmarking process."""
     start_time = get_now_utc()
@@ -87,6 +108,8 @@ def evaluate_contest(
         user_prompt=create_initial_message(prompt_args, session.problem),
         system_prompt=create_system_message(prompt_args),
         save_info=save_info,
+        llm_semaphore=llm_semaphore,
+        max_repeated_sampling_workers=max_repeated_sampling_workers,
     )
     expected_keys = set(range(n_repeated_sampling))
     actual_keys = {int(k) for k in results_repeated_sampling if int(k) in expected_keys}
@@ -131,6 +154,7 @@ def evaluate_contest(
         initial_public_result=initial_public_result,
         initial_result=results_repeated_sampling[selected_index_repeated_sampling],
         save_info=save_info,
+        llm_semaphore=llm_semaphore,
     )
 
     # Phase 4: Private evaluation
@@ -226,6 +250,8 @@ def _run_evaluation_task(
     n_public_cases: int | None,
     selection_method: Literal["best", "median"],
     root_path: Path,
+    llm_semaphore: BoundedSemaphore | None,
+    max_repeated_sampling_workers: int | None,
 ) -> tuple[str, bool, str]:
     """Wrapper function for parallel evaluation execution."""
     try:
@@ -242,6 +268,8 @@ def _run_evaluation_task(
             n_public_cases=n_public_cases,
             selection_method=selection_method,
             root_path=root_path,
+            llm_semaphore=llm_semaphore,
+            max_repeated_sampling_workers=max_repeated_sampling_workers,
         )
         print(f"✅ Completed: {model_name} on {problem_id}")
     except Exception as e:
@@ -262,6 +290,8 @@ def main(
     judge_version: EvalJudgeVersion = "202301",
     prompt_language: Literal["en", "ja"] = "en",
     max_parallel_problems: int = 1,
+    max_concurrent_llm_calls: int | str | None = None,
+    max_repeated_sampling_workers: int | str | None = None,
     problem_ids_type: Literal["all", "lite", "debug"] = "debug",
     selection_method: Literal["best", "median"] = "median",
     use_statement_image: bool = False,
@@ -277,6 +307,27 @@ def main(
     code_language = cast("EvalCodeLanguage", str(code_language).strip())
     judge_version = cast("EvalJudgeVersion", str(judge_version).strip())
     prompt_language = cast('Literal["en", "ja"]', str(prompt_language).strip())
+
+    if n_repeated_sampling < 1:
+        msg = "n_repeated_sampling must be at least 1"
+        raise ValueError(msg)
+    if max_parallel_problems < 1:
+        msg = "max_parallel_problems must be at least 1"
+        raise ValueError(msg)
+    max_concurrent_llm_calls = normalize_optional_positive_int(
+        max_concurrent_llm_calls,
+        "max_concurrent_llm_calls",
+    )
+    max_repeated_sampling_workers = normalize_optional_positive_int(
+        max_repeated_sampling_workers,
+        "max_repeated_sampling_workers",
+    )
+    if max_repeated_sampling_workers is None:
+        max_repeated_sampling_workers = n_repeated_sampling
+    else:
+        max_repeated_sampling_workers = min(max_repeated_sampling_workers, n_repeated_sampling)
+    if max_concurrent_llm_calls is None:
+        max_concurrent_llm_calls = max_parallel_problems * max_repeated_sampling_workers
 
     physical_cores = cpu_count(logical=False)
     if physical_cores is None:
@@ -328,6 +379,8 @@ def main(
             raise ValueError(msg)
         # NOTE: skip n_self_refine check to allow resuming with different n_self_refine
         # NOTE: skip num_workers check to allow resuming with different num_workers
+        # NOTE: skip max_concurrent_llm_calls check to allow resuming with different LLM concurrency
+        # NOTE: skip max_repeated_sampling_workers check to allow resuming with different repeated sampling concurrency
         if existing_settings["n_public_cases"] != n_public_cases:
             msg = "Experiment settings already exist with different n_public_cases"
             raise ValueError(msg)
@@ -361,6 +414,8 @@ def main(
                 "judge_version": judge_version,
                 "prompt_language": prompt_language,
                 "max_parallel_problems": max_parallel_problems,
+                "max_concurrent_llm_calls": max_concurrent_llm_calls,
+                "max_repeated_sampling_workers": max_repeated_sampling_workers,
                 "problem_ids_type": problem_ids_type,
                 "selection_method": selection_method,
             },
@@ -374,7 +429,9 @@ def main(
     print(f"\n🚀 Starting parallel evaluation of {len(problem_ids)} problems...")
     print(
         f"📊 Model: {model_name}, Repeated Sampling: {n_repeated_sampling}, Self-Refine: {n_self_refine}, "
-        f"Code Language: {code_language}, Judge Version: {judge_version}"
+        f"Code Language: {code_language}, Judge Version: {judge_version}, "
+        f"Max Concurrent LLM Calls: {max_concurrent_llm_calls}, "
+        f"Max Repeated Sampling Workers: {max_repeated_sampling_workers}"
     )
 
     if skip_llm_inference:
@@ -386,6 +443,7 @@ def main(
         with result_json_path.open() as f:
             results = json.load(f)
     else:
+        llm_semaphore = BoundedSemaphore(max_concurrent_llm_calls)
         # Evaluate on problems in parallel
         with ThreadPoolExecutor(max_workers=max_parallel_problems) as executor:
             future_to_problem = {
@@ -402,6 +460,8 @@ def main(
                     n_public_cases,
                     selection_method,
                     exp_root,
+                    llm_semaphore,
+                    max_repeated_sampling_workers,
                 ): problem_id
                 for problem_id in problem_ids
             }
@@ -409,6 +469,8 @@ def main(
             for future in as_completed(future_to_problem):
                 problem_id, success, message = future.result()
                 results[problem_id] = {"success": success, "message": message}
+                with (exp_root / "results.json").open("w") as f:
+                    json.dump(results, f)
 
         # Summary report
         successful = sum(1 for r in results.values() if r["success"])
