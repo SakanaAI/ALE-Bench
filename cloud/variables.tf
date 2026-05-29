@@ -1,47 +1,53 @@
 variable "region" {
-    description = "AWS region"
-    type        = string
-    default     = "us-east-1"
+  description = "AWS region"
+  type        = string
+  default     = "us-east-1"
 }
 
 variable "instance_type" {
-    description = "EC2 instance type"
-    type        = string
-    default     = "c6i.8xlarge"
+  description = "EC2 instance type"
+  type        = string
+  default     = "c6i.8xlarge"
 }
 
 variable "instance_count" {
-    description = "The number of instances to launch"
-    type        = number
-    default     = 1
+  description = "The number of instances to launch"
+  type        = number
+  default     = 1
 }
 
 variable "instance_volume_size" {
-    description = "Size of the root volume in GB"
-    type        = number
-    default     = 100
+  description = "Size of the root volume in GB"
+  type        = number
+  default     = 100
+}
+
+variable "name_prefix" {
+  description = "Optional prefix for AWS resource names, useful when deploying multiple stacks in one account"
+  type        = string
+  default     = ""
 }
 
 variable "aws_key_name" {
-    description = "Name of the AWS key pair"
-    type        = string
-    default     = "ale-bench"
+  description = "Name of the AWS key pair"
+  type        = string
+  default     = "ale-bench"
 }
 
 variable "ssh_public_key_path" {
-    description = "Path to the public key used for SSH access"
-    type        = string
-    default     = "~/.ssh/id_rsa.pub"
+  description = "Path to the public key used for SSH access"
+  type        = string
+  default     = "~/.ssh/id_rsa.pub"
 }
 
 variable "allowed_ssh_cidr" {
-    description = "CIDR block allowed for SSH access"
-    type        = string
-    default     = "0.0.0.0/0"
+  description = "CIDR block allowed for SSH access"
+  type        = string
+  default     = "0.0.0.0/0"
 }
 
 variable "setup_file_name" {
-    description = "Name of the setup file to be copied to the instance"
-    type        = string
-    default     = "setup.sh"
+  description = "Name of the setup file to be copied to the instance"
+  type        = string
+  default     = "setup.sh"
 }

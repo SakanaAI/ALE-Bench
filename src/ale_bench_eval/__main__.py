@@ -143,9 +143,11 @@ def evaluate_contest(
     initial_conversations = save_info.load_conversations(
         f"repeated_sampling_conversations_{selected_index_repeated_sampling}.json"
     )
-    initial_public_result = save_info.load_ale_bench_results(
-        f"repeated_sampling_results_{selected_index_repeated_sampling}.json"
-    )
+    initial_public_result = None
+    if selected_code_repeated_sampling.strip() != "":
+        initial_public_result = save_info.load_ale_bench_results(
+            f"repeated_sampling_results_{selected_index_repeated_sampling}.json"
+        )
     results_self_refine = run_self_refinement(
         config=config,
         model_config=model_config,

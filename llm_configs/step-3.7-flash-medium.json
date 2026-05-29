@@ -1,0 +1,21 @@
+{
+    "model_name": "stepfun/step-3.7-flash",
+    "provider": "openrouter",
+    "settings": {
+        "extra_body": {
+            "provider": {
+                "allow_fallbacks": false,
+                "data_collection": "deny",
+                "order": ["stepfun/fp8"],
+                "require_parameters": true
+            },
+            "reasoning": {
+                "effort": "medium",
+                "enabled": true
+            },
+            "usage": {
+                "include": true
+            }
+        }
+    }
+}

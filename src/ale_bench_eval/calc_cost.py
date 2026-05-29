@@ -370,6 +370,11 @@ FALLBACK_DICT = {
         cache_read_mtok=Decimal(25) / Decimal(100),
         cache_write_mtok=Decimal(3125) / Decimal(1000),
     ),
+    "step-3.7-flash": ModelPrice(
+        input_mtok=Decimal(2) / Decimal(10),
+        cache_read_mtok=Decimal(4) / Decimal(100),
+        output_mtok=Decimal(115) / Decimal(100),
+    ),
 }
 
 

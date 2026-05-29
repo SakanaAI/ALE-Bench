@@ -348,7 +348,7 @@ def run_self_refinement(
     model_config: dict[str, Any],
     session: Session,
     initial_message_history: list[ModelMessage],
-    initial_public_result: Result,
+    initial_public_result: Result | None,
     initial_result: dict[str, Any],
     save_info: SaveInfo,
     llm_semaphore: BoundedSemaphore | None = None,
@@ -376,7 +376,10 @@ def run_self_refinement(
         else:
             conversations_filename = f"self_refine_conversations_{max_result_index}.json"
             message_history = save_info.load_conversations(conversations_filename).all_messages()
-            public_result = save_info.load_ale_bench_results(f"self_refine_results_{max_result_index}.json")
+            if results_self_refine[max_result_index]["code"].strip() == "":
+                public_result = None
+            else:
+                public_result = save_info.load_ale_bench_results(f"self_refine_results_{max_result_index}.json")
         save_info.logger.info("Loaded %s results from %s", len(results_self_refine), results_filename)
     else:
         save_info.logger.info("No results found for %s, starting from scratch", results_filename)
@@ -430,7 +433,8 @@ def run_self_refinement(
         if response is not None:
             eval_code_language = code_language
             eval_code = code
-            if eval_code.strip() == "":
+            is_code_empty = eval_code.strip() == ""
+            if is_code_empty:
                 if eval_code_language == "":
                     eval_code_language = get_default_code_language(config.prompt_args.judge_version)
                 eval_code = get_ce_code(eval_code_language)
@@ -454,6 +458,8 @@ def run_self_refinement(
                 save_info.logger.info("Code evaluation failed for refinement %s after retries: %s", i, e)
                 msg = f"Judge/save failed during self-refinement {i}: {e}"
                 raise ValueError(msg) from e
+            if is_code_empty:
+                public_result = None
 
         usage = response.usage if response is not None else None
         result_entry = {

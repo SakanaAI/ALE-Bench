@@ -72,7 +72,7 @@ uv run -m ale_bench_eval --model_config_path llm_configs/gpt-5.json --n_repeated
 ```
 
 ### Bash Script Arguments
-The provided scripts [`scripts/run_eval.sh`](../scripts/run_eval.sh) and [`scripts/run_eval_sudo.sh`](../scripts/run_eval_sudo.sh) accept the following arguments:
+The provided script [`scripts/run_eval.sh`](../scripts/run_eval.sh) accepts the following arguments:
 ```bash
 bash scripts/run_eval.sh [options] <config_name>
 ```
