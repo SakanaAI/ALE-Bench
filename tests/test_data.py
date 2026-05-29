@@ -460,6 +460,15 @@ class TestRelativeResults:
         with context:
             assert relative_results.recalculate_relative_score(new_scores) == expected
 
+    def test_calculate_min_relative_score_zero_new_score(self) -> None:
+        relative_results = RelativeResults(
+            absolute_scores=[[10, 20, -1], [5, 5, 1]],
+            relative_score_type=RelativeScoreType.MIN,
+            relative_max_score=1000,
+        )
+        with pytest.raises(RuntimeError, match=r"If `relative_score_type` is `min`, absolute score should be greater"):
+            relative_results.recalculate_relative_score([10, 0])
+
 
 class TestStandings:
     @pytest.mark.parametrize(

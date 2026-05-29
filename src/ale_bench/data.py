@@ -7,7 +7,7 @@ import os
 import shutil
 import tempfile
 import zipfile
-from copy import deepcopy
+from collections import Counter
 from enum import Enum
 from pathlib import Path
 from typing import Final
@@ -207,47 +207,70 @@ class RelativeResults(BaseModel):
         new_overall_relative_scores_existing = [0 for _ in range(len(self.absolute_scores[0]))]
         for new_score, existing_scores in zip(new_scores, self.absolute_scores, strict=True):
             # Collect the new score and existing scores for the case
-            case_scores = deepcopy(existing_scores)
             if new_score < 0:  # NOTE: Rejected case
-                case_scores.append(-1)
+                case_scores = [*existing_scores, -1]
             elif new_score == 0:  # NOTE: Accepted case with score 0
                 if self.relative_score_type == RelativeScoreType.MIN:
                     msg = "If `relative_score_type` is `min`, absolute score should be greater than 0."
                     raise RuntimeError(msg)
-                case_scores.append(0)
+                case_scores = [*existing_scores, 0]
             else:
-                case_scores.append(new_score)
+                case_scores = [*existing_scores, new_score]
             # Calculate the new relative score
-            sorted_case_scores = sorted([case_score for case_score in case_scores if case_score >= 0])
-            for user_idx, user_score in enumerate(case_scores):
-                relative_score = 0
-                if self.relative_score_type == RelativeScoreType.MAX:
+            relative_scores = []
+            if self.relative_score_type == RelativeScoreType.MAX:
+                best_score = None
+                for case_score in case_scores:
+                    if case_score >= 0 and (best_score is None or case_score > best_score):
+                        best_score = case_score
+                for user_score in case_scores:
+                    relative_score = 0
                     if user_score >= 0:
-                        relative_score = self.relative_max_score * user_score // sorted_case_scores[-1]
-                        if self.relative_max_score * user_score % sorted_case_scores[-1] * 2 >= sorted_case_scores[-1]:
+                        if best_score is None:
+                            msg = "Something went wrong: `best_score` should not be None."
+                            raise RuntimeError(msg)
+                        relative_score = self.relative_max_score * user_score // best_score
+                        if self.relative_max_score * user_score % best_score * 2 >= best_score:
                             relative_score += 1  # Round up
-                elif self.relative_score_type == RelativeScoreType.MIN:
+                    relative_scores.append(relative_score)
+            elif self.relative_score_type == RelativeScoreType.MIN:
+                best_score = None
+                for case_score in case_scores:
+                    if case_score >= 0 and (best_score is None or case_score < best_score):
+                        best_score = case_score
+                for user_score in case_scores:
+                    relative_score = 0
                     if user_score == 0:
                         msg = f"Zero score is not allowed for `relative_score_type` {self.relative_score_type}."
                         raise ValueError(msg)
                     if user_score > 0:
-                        relative_score = self.relative_max_score * sorted_case_scores[0] // user_score
-                        if self.relative_max_score * sorted_case_scores[0] % user_score * 2 >= user_score:
+                        if best_score is None:
+                            msg = "Something went wrong: `best_score` should not be None."
+                            raise RuntimeError(msg)
+                        relative_score = self.relative_max_score * best_score // user_score
+                        if self.relative_max_score * best_score % user_score * 2 >= user_score:
                             relative_score += 1  # Round up
-                elif user_score >= 0:  # NOTE: RANK_MIN or RANK_MAX
-                    n_submit, n_lose, n_tie = (
-                        len(case_scores),
-                        0,
-                        -1,
-                    )  # NOTE: Exclude the user score itself from the tie count
-                    for abs_score in sorted_case_scores:
-                        if user_score == abs_score:
-                            n_tie += 1
-                        elif (user_score < abs_score and self.relative_score_type == RelativeScoreType.RANK_MAX) or (
-                            user_score > abs_score and self.relative_score_type == RelativeScoreType.RANK_MIN
-                        ):
-                            n_lose += 1
-                    relative_score = round(self.relative_max_score * (1.0 - (n_lose + n_tie / 2) / n_submit))
+                    relative_scores.append(relative_score)
+            elif self.relative_score_type in {RelativeScoreType.RANK_MAX, RelativeScoreType.RANK_MIN}:
+                score_counts = Counter(case_score for case_score in case_scores if case_score >= 0)
+                relative_scores_by_absolute_score: dict[int, int] = {}
+                n_submit = len(case_scores)
+                n_lose = 0
+                sorted_absolute_scores = sorted(
+                    score_counts.keys(),
+                    reverse=self.relative_score_type == RelativeScoreType.RANK_MAX,
+                )
+                for absolute_score in sorted_absolute_scores:
+                    n_tie = score_counts[absolute_score] - 1  # NOTE: Exclude the user score itself from the tie count
+                    relative_scores_by_absolute_score[absolute_score] = round(
+                        self.relative_max_score * (1.0 - (n_lose + n_tie / 2) / n_submit)
+                    )
+                    n_lose += score_counts[absolute_score]
+                relative_scores = [
+                    relative_scores_by_absolute_score[case_score] if case_score >= 0 else 0
+                    for case_score in case_scores
+                ]
+            for user_idx, relative_score in enumerate(relative_scores):
                 # Add the relative score to the new overall relative score
                 # NOTE: The additional user score is always the last one in the list
                 if user_idx == len(existing_scores):
