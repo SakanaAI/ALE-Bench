@@ -304,6 +304,11 @@ FALLBACK_DICT = {
         output_mtok=Decimal(12) / Decimal(10),
         cache_read_mtok=Decimal(6) / Decimal(100),
     ),
+    "minimax-m3": ModelPrice(
+        input_mtok=Decimal(6) / Decimal(10),
+        output_mtok=Decimal(24) / Decimal(10),
+        cache_read_mtok=Decimal(12) / Decimal(100),
+    ),
     "nemotron-3-super-120b-a12b:free": ModelPrice(
         input_mtok=Decimal(1) / Decimal(10),
         output_mtok=Decimal(5) / Decimal(10),
@@ -369,6 +374,11 @@ FALLBACK_DICT = {
         output_mtok=Decimal(75) / Decimal(10),
         cache_read_mtok=Decimal(25) / Decimal(100),
         cache_write_mtok=Decimal(3125) / Decimal(1000),
+    ),
+    "step-3.7-flash": ModelPrice(
+        input_mtok=Decimal(2) / Decimal(10),
+        cache_read_mtok=Decimal(4) / Decimal(100),
+        output_mtok=Decimal(115) / Decimal(100),
     ),
 }
 

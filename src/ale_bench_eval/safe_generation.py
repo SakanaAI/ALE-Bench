@@ -1,4 +1,6 @@
 from collections.abc import Sequence
+from contextlib import nullcontext
+from threading import BoundedSemaphore
 from typing import TYPE_CHECKING, Any
 
 from google.genai.errors import ClientError
@@ -145,6 +147,7 @@ def safe_generation(
     system_prompt: str | Sequence[str] = (),
     timeout: float = 60.0,
     num_retries: int = 3,
+    llm_semaphore: BoundedSemaphore | None = None,
 ) -> AgentRunResult[str]:
     agent = build_agent_from_config(
         model_config=model_config,
@@ -154,9 +157,10 @@ def safe_generation(
     )
 
     try:
-        result = shared_async_loop().run(
-            agent.run(user_prompt=user_prompt, message_history=message_history),
-        )
+        with llm_semaphore if llm_semaphore is not None else nullcontext():
+            result = shared_async_loop().run(
+                agent.run(user_prompt=user_prompt, message_history=message_history),
+            )
         model_response = result.all_messages()[-1]
         validate_model_response(model_response)
     except ClientError as e:

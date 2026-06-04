@@ -68,7 +68,7 @@ uv run -m ale_bench_eval --model_config_path llm_configs/gpt-5.json --num_worker
 bash scripts/run_eval.sh gpt-5
 
 # Or directly run using uv
-uv run -m ale_bench_eval --model_config_path llm_configs/gpt-5.json --n_repeated_sampling 15 --n_self_refine 16 --num_workers 10 --n_public_cases 50 --judge_version 202510 --code_language typescript --prompt_language en --max_parallel_problems 5 --problem_ids_type all --selection_method median
+uv run -m ale_bench_eval --model_config_path llm_configs/gpt-5.json --n_repeated_sampling 15 --n_self_refine 16 --num_workers 10 --n_public_cases 50 --judge_version 202510 --code_language typescript --prompt_language en --max_parallel_problems 5 --max_concurrent_llm_calls 20 --max_repeated_sampling_workers 100 --problem_ids_type all --selection_method median
 ```
 
 ### Bash Script Arguments
@@ -88,6 +88,8 @@ Script options:
 | `--judge_version`, `-j` | `202301` | Judge toolchain version (`201907`, `202301`, `202510`) |
 | `--code_language`, `-c` | depends on judge version | Programming language for generation/evaluation |
 | `--prompt_language`, `-p` | `en` | Prompt language (`en` or `ja`) |
+| `--max_concurrent_llm_calls` | Python CLI default | Maximum number of in-flight LLM calls across all problems (`none` uses the maximum possible repeated-sampling fan-out) |
+| `--max_repeated_sampling_workers` | Python CLI default | Maximum repeated-sampling LLM worker threads per problem (`none` means `n_repeated_sampling`) |
 | `--help`, `-h` | - | Show usage |
 
 Default `code_language` by `judge_version`:
@@ -105,6 +107,9 @@ bash scripts/run_eval.sh -j 202510 -c typescript -p ja -r results/gpt5-ts-ja gpt
 
 # options after config_name
 bash scripts/run_eval.sh gpt-5 --judge_version 202510 --code_language rust --root_path results/gpt5-rust
+
+# limit global LLM request concurrency while allowing repeated sampling to fan out per problem
+bash scripts/run_eval.sh gpt-5 --max_concurrent_llm_calls 20 --max_repeated_sampling_workers 100
 ```
 
 ### Command Line Arguments
@@ -120,6 +125,8 @@ bash scripts/run_eval.sh gpt-5 --judge_version 202510 --code_language rust --roo
 | `code_language` | str | `cpp20` | Target programming language (`any`, `bash`, `cpp17`, `cpp20`, `cpp23`, `csharp`, `fish`, `fortran`, `go`, `haskell`, `javascript`, `julia`, `lean`, `ocaml`, `perl`, `pypy`, `python`, `rust`, `typescript`) |
 | `prompt_language` | str | `en` | Prompt language (`en` for English, `ja` for Japanese) |
 | `max_parallel_problems` | int | `1` | Maximum number of problems to evaluate in parallel |
+| `max_concurrent_llm_calls` | int \| `None` | `None` | Maximum number of in-flight LLM calls across all problems (`None`/`none` resolves to `max_parallel_problems * effective_max_repeated_sampling_workers`) |
+| `max_repeated_sampling_workers` | int \| `None` | `None` | Maximum repeated-sampling LLM worker threads per problem (`None`/`none` resolves to `n_repeated_sampling`) |
 | `problem_ids_type` | str | `debug` | Problem ID set to evaluate (`debug`, `lite`, `all`) |
 | `selection_method` | str | `median` | Method to select solution from repeated sampling (`best`, `median`) |
 | `use_statement_image` | bool | `False` | Whether to use statement images in the evaluation process (requires a vision-capable model/provider) |
@@ -127,6 +134,8 @@ bash scripts/run_eval.sh gpt-5 --judge_version 202510 --code_language rust --roo
 | `skip_llm_inference` | bool | `False` | Skip LLM inference and only perform aggregation of existing results |
 
 > **Note**: Ensure that `num_workers` $\times$ `max_parallel_problems` does not exceed the number of physical CPU cores available on your machine to avoid resource contention and performance degradation.
+
+> **Note**: `max_parallel_problems` controls problem-level concurrency. `max_repeated_sampling_workers` controls only repeated-sampling LLM generation within each problem. If it is `None`, it is resolved to `n_repeated_sampling`; otherwise it is capped at `n_repeated_sampling`. `max_concurrent_llm_calls` is a global cap shared by repeated sampling and self-refinement LLM calls. If it is `None`, it is resolved to `max_parallel_problems * effective_max_repeated_sampling_workers`. Judge execution remains bounded by `num_workers` for each active problem.
 
 > **Note**: `code_language` must be supported by the selected `judge_version`.
 > If `code_language=any`, available languages are:
@@ -166,7 +175,7 @@ results/
         │   └── self_refine_results_<n>.json                # Self-refinement public result (n = number of iterations)
         ├── conversations/                                  # Conversations with LLM
         │   ├── repeated_sampling_conversations_<n>.json    # Repeated sampling conversations (n = number of iterations)
-        │   └── self_refine_conversations.json              # Self-refinement conversations
+        │   └── self_refine_conversations_<n>.json          # Self-refinement conversations (n = number of iterations)
         ├── results/
         │   ├── final_results.json                          # Private evaluation results
         │   ├── repeated_sampling_results.json              # Repeated sampling public evaluation results

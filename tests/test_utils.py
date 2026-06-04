@@ -1,6 +1,6 @@
 import os
 from pathlib import Path
-from typing import Literal, TypedDict
+from typing import Literal, TypedDict, cast
 
 import pytest
 from PIL import Image
@@ -503,9 +503,11 @@ def test_parse_statement(
             assert content == expected_content
         elif isinstance(expected_content, dict):
             assert isinstance(content, dict)
-            assert content.keys() == expected_content.keys()
-            for key in content:
-                assert content[key] == expected_content[key]
+            content_dict = cast("dict[str, str | dict[str, str]]", content)
+            expected_content_dict = cast("dict[str, str | dict[str, str]]", expected_content)
+            assert content_dict.keys() == expected_content_dict.keys()
+            for key in expected_content_dict:
+                assert content_dict[key] == expected_content_dict[key]
         elif isinstance(expected_content, Image.Image):
             assert isinstance(content, Image.Image)
             assert content.tobytes() == expected_content.tobytes()
