@@ -1,0 +1,21 @@
+{
+    "model_name": "inclusionai/ring-2.6-1t",
+    "provider": "openrouter",
+    "settings": {
+        "extra_body": {
+            "provider": {
+                "allow_fallbacks": false,
+                "data_collection": "deny",
+                "order": ["novita"],
+                "require_parameters": true
+            },
+            "reasoning": {
+                "effort": "high",
+                "enabled": true
+            },
+            "usage": {
+                "include": true
+            }
+        }
+    }
+}
