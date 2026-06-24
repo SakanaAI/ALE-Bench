@@ -193,6 +193,137 @@ class TestSession:
                 (utc_now - dummy_session.session_started_at).total_seconds()
             )
 
+    def test_case_eval_forwards_reuse_containers(
+        self,
+        dummy_session: Session,
+        mocker: MockerFixture,
+    ) -> None:
+        run_cases_mock = mocker.patch(
+            "ale_bench.session.run_cases",
+            return_value=[
+                CaseResult(
+                    judge_result=JudgeResult.ACCEPTED,
+                    message="",
+                    absolute_score=100,
+                    execution_time=1.0,
+                    memory_usage=1024,
+                )
+            ],
+        )
+
+        dummy_session.case_eval(
+            input_str="dummy input",
+            code="dummy code",
+            code_language="rust",
+            reuse_containers=True,
+        )
+
+        assert run_cases_mock.call_args.kwargs["reuse_containers"] is True
+
+    def test_case_gen_eval_forwards_reuse_containers(
+        self,
+        dummy_session: Session,
+        mocker: MockerFixture,
+    ) -> None:
+        case_eval_mock = mocker.patch.object(
+            dummy_session,
+            "case_eval",
+            return_value=Result(
+                allow_score_non_ac=True,
+                resource_usage=ResourceUsage(),
+                case_results=[
+                    CaseResult(
+                        judge_result=JudgeResult.ACCEPTED,
+                        message="",
+                        absolute_score=100,
+                        execution_time=1.0,
+                        memory_usage=1024,
+                    )
+                ],
+            ),
+        )
+
+        dummy_session.case_gen_eval(
+            code="dummy code",
+            code_language="rust",
+            seed=[0, 1, 2],
+            reuse_containers=True,
+        )
+
+        assert case_eval_mock.call_args.kwargs["reuse_containers"] is True
+
+    def test_public_eval_forwards_reuse_containers(
+        self,
+        dummy_session: Session,
+        mocker: MockerFixture,
+    ) -> None:
+        run_cases_mock = mocker.patch(
+            "ale_bench.session.run_cases",
+            return_value=[
+                CaseResult(
+                    judge_result=JudgeResult.ACCEPTED,
+                    message="",
+                    absolute_score=100,
+                    execution_time=1.0,
+                    memory_usage=1024,
+                ),
+                CaseResult(
+                    judge_result=JudgeResult.ACCEPTED,
+                    message="",
+                    absolute_score=100,
+                    execution_time=1.0,
+                    memory_usage=1024,
+                ),
+                CaseResult(
+                    judge_result=JudgeResult.ACCEPTED,
+                    message="",
+                    absolute_score=100,
+                    execution_time=1.0,
+                    memory_usage=1024,
+                ),
+            ],
+        )
+
+        dummy_session.public_eval(code="dummy code", code_language="rust", reuse_containers=True)
+
+        assert run_cases_mock.call_args.kwargs["reuse_containers"] is True
+
+    def test_private_eval_forwards_reuse_containers(
+        self,
+        dummy_session: Session,
+        mocker: MockerFixture,
+    ) -> None:
+        run_cases_mock = mocker.patch(
+            "ale_bench.session.run_cases",
+            return_value=[
+                CaseResult(
+                    judge_result=JudgeResult.ACCEPTED,
+                    message="",
+                    absolute_score=100,
+                    execution_time=1.0,
+                    memory_usage=1024,
+                ),
+                CaseResult(
+                    judge_result=JudgeResult.ACCEPTED,
+                    message="",
+                    absolute_score=100,
+                    execution_time=1.0,
+                    memory_usage=1024,
+                ),
+                CaseResult(
+                    judge_result=JudgeResult.ACCEPTED,
+                    message="",
+                    absolute_score=100,
+                    execution_time=1.0,
+                    memory_usage=1024,
+                ),
+            ],
+        )
+
+        dummy_session.private_eval(code="dummy code", code_language="rust", reuse_containers=True)
+
+        assert run_cases_mock.call_args.kwargs["reuse_containers"] is True
+
     @pytest.mark.parametrize(
         ("current_resource_usage", "utc_now", "context"),
         [

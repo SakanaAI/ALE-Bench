@@ -120,6 +120,7 @@ bash scripts/run_eval.sh gpt-5 --max_concurrent_llm_calls 20 --max_repeated_samp
 | `n_repeated_sampling` | int | 1 | Number of repeated sampling iterations |
 | `n_self_refine` | int | 1 | Number of self-refinement iterations including repeated sampling process (`1` means no self-refinement) |
 | `num_workers` | int | 1 | Number of parallel case evaluation workers for each problem |
+| `reuse_containers` | bool | `False` | Reuse long-lived execution and tool containers across cases instead of creating per-case containers |
 | `n_public_cases` | int | `None` | Number of cases to use for public evaluation (`None` means using ALE-Bench default: 50 for `all`, 5 for `lite`) |
 | `judge_version` | str | `202301` | Judge toolchain version (`201907`, `202301`, `202510`) |
 | `code_language` | str | `cpp20` | Target programming language (`any`, `bash`, `cpp17`, `cpp20`, `cpp23`, `csharp`, `fish`, `fortran`, `go`, `haskell`, `javascript`, `julia`, `lean`, `ocaml`, `perl`, `pypy`, `python`, `rust`, `typescript`) |
@@ -134,6 +135,10 @@ bash scripts/run_eval.sh gpt-5 --max_concurrent_llm_calls 20 --max_repeated_samp
 | `skip_llm_inference` | bool | `False` | Skip LLM inference and only perform aggregation of existing results |
 
 > **Note**: Ensure that `num_workers` $\times$ `max_parallel_problems` does not exceed the number of physical CPU cores available on your machine to avoid resource contention and performance degradation.
+
+> **Note**: Near time-limit boundaries, ALE-Bench results can be sensitive to measurement granularity and host load. Execution time is derived from GNU `/usr/bin/time`. Values around the limit, especially within about 0.01 seconds, may flip between AC and TLE. A run that exceeds the time limit by less than 0.01 seconds may still be reported as AC.
+
+> **Note**: `reuse_containers=True` reduces Docker create/remove overhead by keeping up to `num_workers` execution/tool containers alive and dispatching cases to whichever worker becomes free. It is opt-in because writable container-layer state such as files under `/tmp` can persist between cases assigned to the same worker.
 
 > **Note**: `max_parallel_problems` controls problem-level concurrency. `max_repeated_sampling_workers` controls only repeated-sampling LLM generation within each problem. If it is `None`, it is resolved to `n_repeated_sampling`; otherwise it is capped at `n_repeated_sampling`. `max_concurrent_llm_calls` is a global cap shared by repeated sampling and self-refinement LLM calls. If it is `None`, it is resolved to `max_parallel_problems * effective_max_repeated_sampling_workers`. Judge execution remains bounded by `num_workers` for each active problem.
 

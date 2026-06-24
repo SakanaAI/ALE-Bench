@@ -4,7 +4,9 @@ from pathlib import Path
 import pytest
 
 import ale_bench.constants
+import ale_bench.tool_wrappers.case_runner as case_runner_module
 from ale_bench.code_language import CodeLanguage, JudgeVersion, get_compile_command
+from ale_bench.data import ProblemType
 from ale_bench.result import CaseResult, JudgeResult
 from ale_bench.tool_wrappers.case_runner import (
     HostPathsBatchJudge,
@@ -23,12 +25,14 @@ from ale_bench.tool_wrappers.case_runner import (
     get_reactive_judge_volumes,
     get_vis_volumes,
     parse_profiles,
+    run_cases,
     setup_paths_batch_judge,
     setup_paths_batch_run,
     setup_paths_compile,
     setup_paths_reactive_judge,
     setup_paths_vis,
 )
+from ale_bench.tool_wrappers.reusable_container_pool import REUSABLE_TOOL_TMP_DIR
 
 TMP_TEST_DIR = f"{ale_bench.constants.TMP_DIR}/test"
 TMP_CACHE_DIR = f"{ale_bench.constants.TMP_DIR}/cache"
@@ -450,6 +454,23 @@ def test_build_batch_run_command(
     assert run_command == expected
 
 
+def test_build_batch_run_command_custom_paths() -> None:
+    run_command = build_batch_run_command(
+        CodeLanguage.CPP20,
+        JudgeVersion.V202301,
+        1.0,
+        input_file="/reuse/input.txt",
+        output_file="/reuse/output.txt",
+        profiles_file="/reuse/profiles.json",
+    )
+    assert run_command == (
+        "timeout 2.2 prlimit --cpu=2.1 "
+        f'/usr/bin/time -f "{ale_bench.constants.TIME_OUTPUT_FORMAT}" '
+        "-o /reuse/profiles.json "
+        "./a.out < /reuse/input.txt > /reuse/output.txt; sync"
+    )
+
+
 def test_setup_paths_batch_judge() -> None:
     host_paths_run = HostPathsBatchRun(
         code_file=Path(f"{TMP_TEST_DIR}/code.cpp"),
@@ -489,6 +510,14 @@ def test_build_batch_judge_command() -> None:
     assert judge_command == (
         f"{ale_bench.constants.TESTER_BIN} {ale_bench.constants.INPUT_FILE} {ale_bench.constants.OUTPUT_FILE}"
     )
+
+
+def test_build_batch_judge_command_custom_paths() -> None:
+    judge_command = build_batch_judge_command(
+        input_file="/reuse/input.txt",
+        output_file="/reuse/output.txt",
+    )
+    assert judge_command == f"{ale_bench.constants.TESTER_BIN} /reuse/input.txt /reuse/output.txt"
 
 
 @pytest.mark.parametrize(
@@ -808,6 +837,24 @@ def test_build_reactive_judge_command(
     assert run_command == expected
 
 
+def test_build_reactive_judge_command_custom_paths() -> None:
+    run_command = build_reactive_judge_command(
+        CodeLanguage.CPP20,
+        JudgeVersion.V202301,
+        1.0,
+        input_file="/reuse/input.txt",
+        output_file="/reuse/output.txt",
+        profiles_file="/reuse/profiles.json",
+    )
+    assert run_command == (
+        "timeout 2.2 prlimit --cpu=2.1 "
+        f"{ale_bench.constants.TESTER_BIN} "
+        f'/usr/bin/time -f "{ale_bench.constants.TIME_OUTPUT_FORMAT}" '
+        "-o /reuse/profiles.json "
+        "./a.out < /reuse/input.txt > /reuse/output.txt; sync"
+    )
+
+
 @pytest.mark.parametrize(
     ("problem_id", "case_idx", "local_visualization_file_name"),
     [
@@ -971,6 +1018,152 @@ def test_build_vis_command() -> None:
         vis_command
         == f"{ale_bench.constants.VIS_BIN} {ale_bench.constants.INPUT_FILE} {ale_bench.constants.OUTPUT_FILE}"
     )
+
+
+def test_build_vis_command_custom_paths() -> None:
+    vis_command = build_vis_command(input_file="/reuse/input.txt", output_file="/reuse/output.txt")
+    assert vis_command == f"{ale_bench.constants.VIS_BIN} /reuse/input.txt /reuse/output.txt"
+
+
+def test_run_batch_judge_reusable_container() -> None:
+    class DummyReusableToolContainerPool(case_runner_module.ReusableToolContainerPool):
+        def __init__(self) -> None:
+            self.commands: list[str] = []
+
+        def run(self, command: str, *, workdir: str = ale_bench.constants.WORK_DIR) -> tuple[float, int, str]:
+            assert workdir == ale_bench.constants.WORK_DIR
+            self.commands.append(command)
+            return 0.01, 0, "Score = 123"
+
+    pool = DummyReusableToolContainerPool()
+    result = case_runner_module.run_batch_judge_reusable_container(
+        pool,
+        "tester input output",
+        execution_time_host=0.02,
+        input_str="input",
+        output_str="output",
+        error_str="",
+    )
+
+    assert result == 123
+    assert pool.commands == ["tester input output"]
+
+
+def test_run_vis_reusable_container() -> None:
+    class DummyReusableToolContainerPool(case_runner_module.ReusableToolContainerPool):
+        def __init__(self) -> None:
+            self.calls: list[tuple[str, str]] = []
+
+        def run(self, command: str, *, workdir: str = ale_bench.constants.WORK_DIR) -> tuple[float, int, str]:
+            self.calls.append((command, workdir))
+            return 0.01, 0, ""
+
+    pool = DummyReusableToolContainerPool()
+    reusable_input_file = f"{REUSABLE_TOOL_TMP_DIR}/input.txt"
+    reusable_output_file = f"{REUSABLE_TOOL_TMP_DIR}/output.txt"
+    reusable_local_visualization_file = f"{REUSABLE_TOOL_TMP_DIR}/ahc001_000000_local_visualization.html"
+    case_runner_module.run_vis_reusable_container(
+        pool,
+        f"vis {reusable_input_file} {reusable_output_file}",
+        reusable_local_visualization_file,
+        ale_bench.constants.LOCAL_VIS_HTML,
+    )
+
+    assert pool.calls == [
+        (
+            "timeout 10 bash -c 'rm -f /workdir/vis.html; "
+            f"vis {reusable_input_file} {reusable_output_file}; "
+            f"cp /workdir/vis.html {reusable_local_visualization_file}'",
+            ale_bench.constants.WORK_DIR,
+        )
+    ]
+
+
+def test_run_cases_uses_reusable_container_pools(monkeypatch: pytest.MonkeyPatch) -> None:
+    created_submission_pools = []
+    created_tool_pools = []
+
+    class DummyReusableSubmissionContainerPool:
+        def __init__(self, **kwargs: object) -> None:
+            self.kwargs = kwargs
+            self.scratch_dir = kwargs["scratch_dir"]
+            created_submission_pools.append(self)
+
+        def __enter__(self) -> "DummyReusableSubmissionContainerPool":  # noqa: PYI034
+            return self
+
+        def __exit__(self, exc_type: object, exc_value: object, traceback: object) -> None:
+            return None
+
+    class DummyReusableToolContainerPool:
+        def __init__(self, **kwargs: object) -> None:
+            self.kwargs = kwargs
+            self.scratch_dir = kwargs["scratch_dir"]
+            created_tool_pools.append(self)
+
+        def __enter__(self) -> "DummyReusableToolContainerPool":  # noqa: PYI034
+            return self
+
+        def __exit__(self, exc_type: object, exc_value: object, traceback: object) -> None:
+            return None
+
+    def fake_case_iter_func(*args: object) -> CaseResult:
+        assert args[-2] is created_submission_pools[0]
+        assert args[-1] is created_tool_pools[0]
+        case_idx = args[4]
+        input_str = args[5]
+        assert isinstance(case_idx, int)
+        assert isinstance(input_str, str)
+        return CaseResult(
+            input_str=input_str,
+            output_str="",
+            error_str="",
+            judge_result=JudgeResult.ACCEPTED,
+            message="",
+            absolute_score=case_idx,
+            execution_time=0.0,
+            memory_usage=0,
+        )
+
+    def fake_run_compile_container(*args: object, **kwargs: object) -> None:
+        return None
+
+    monkeypatch.setattr(case_runner_module, "run_compile_container", fake_run_compile_container)
+    monkeypatch.setattr(
+        case_runner_module,
+        "ReusableSubmissionContainerPool",
+        DummyReusableSubmissionContainerPool,
+    )
+    monkeypatch.setattr(
+        case_runner_module,
+        "ReusableToolContainerPool",
+        DummyReusableToolContainerPool,
+    )
+    monkeypatch.setattr(case_runner_module, "case_iter_func", fake_case_iter_func)
+
+    case_results = run_cases(
+        inputs=["input 0", "input 1", "input 2"],
+        code="print(0)",
+        code_language=CodeLanguage.PYTHON,
+        judge_version=JudgeVersion.V202301,
+        time_limit=1.0,
+        memory_limit=1024 * 1024 * 1024,
+        problem_id="ahc001",
+        problem_type=ProblemType.BATCH,
+        tool_dir=Path(f"{TMP_CACHE_DIR}"),
+        return_details=True,
+        skip_local_visualization=True,
+        num_workers=5,
+        reuse_containers=True,
+    )
+
+    assert len(created_submission_pools) == 1
+    assert len(created_tool_pools) == 1
+    assert created_submission_pools[0].kwargs["num_workers"] == 3
+    assert created_submission_pools[0].kwargs["problem_type"] == ProblemType.BATCH
+    assert created_tool_pools[0].kwargs["num_workers"] == 3
+    assert created_tool_pools[0].kwargs["scratch_dir"] == created_submission_pools[0].kwargs["scratch_dir"]
+    assert [case_result.absolute_score for case_result in case_results] == [0, 1, 2]
 
 
 sample_profiles_content = """{{

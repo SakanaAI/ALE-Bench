@@ -68,6 +68,7 @@ def evaluate_contest(
     problem_id: str,
     lite_version: bool,
     num_workers: int,
+    reuse_containers: bool,
     n_public_cases: int | None = None,
     selection_method: Literal["best", "median"] = "median",
     root_path: Path | None = None,
@@ -83,6 +84,7 @@ def evaluate_contest(
         n_repeated_sampling=n_repeated_sampling,
         n_self_refine=n_self_refine,
         num_workers=num_workers,
+        reuse_containers=reuse_containers,
         n_public_cases=n_public_cases,
         prompt_args=prompt_args,
         problem_id=problem_id,
@@ -249,6 +251,7 @@ def _run_evaluation_task(
     problem_id: str,
     lite_version: bool,
     num_workers: int,
+    reuse_containers: bool,
     n_public_cases: int | None,
     selection_method: Literal["best", "median"],
     root_path: Path,
@@ -267,6 +270,7 @@ def _run_evaluation_task(
             problem_id=problem_id,
             lite_version=lite_version,
             num_workers=num_workers,
+            reuse_containers=reuse_containers,
             n_public_cases=n_public_cases,
             selection_method=selection_method,
             root_path=root_path,
@@ -287,6 +291,7 @@ def main(
     n_repeated_sampling: int = 1,
     n_self_refine: int = 1,
     num_workers: int = 1,
+    reuse_containers: bool = False,
     n_public_cases: int | None = None,
     code_language: EvalCodeLanguage = "cpp20",
     judge_version: EvalJudgeVersion = "202301",
@@ -383,6 +388,9 @@ def main(
         # NOTE: skip num_workers check to allow resuming with different num_workers
         # NOTE: skip max_concurrent_llm_calls check to allow resuming with different LLM concurrency
         # NOTE: skip max_repeated_sampling_workers check to allow resuming with different repeated sampling concurrency
+        if existing_settings.get("reuse_containers", False) != reuse_containers:
+            msg = "Experiment settings already exist with different reuse_containers"
+            raise ValueError(msg)
         if existing_settings["n_public_cases"] != n_public_cases:
             msg = "Experiment settings already exist with different n_public_cases"
             raise ValueError(msg)
@@ -411,6 +419,7 @@ def main(
                 "n_repeated_sampling": n_repeated_sampling,
                 "n_self_refine": n_self_refine,
                 "num_workers": num_workers,
+                "reuse_containers": reuse_containers,
                 "n_public_cases": n_public_cases,
                 "code_language": code_language,
                 "judge_version": judge_version,
@@ -432,6 +441,7 @@ def main(
     print(
         f"📊 Model: {model_name}, Repeated Sampling: {n_repeated_sampling}, Self-Refine: {n_self_refine}, "
         f"Code Language: {code_language}, Judge Version: {judge_version}, "
+        f"Reuse Containers: {reuse_containers}, "
         f"Max Concurrent LLM Calls: {max_concurrent_llm_calls}, "
         f"Max Repeated Sampling Workers: {max_repeated_sampling_workers}"
     )
@@ -459,6 +469,7 @@ def main(
                     problem_id,
                     lite_version,
                     num_workers,
+                    reuse_containers,
                     n_public_cases,
                     selection_method,
                     exp_root,

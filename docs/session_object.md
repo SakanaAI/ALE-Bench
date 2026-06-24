@@ -86,9 +86,12 @@ Evaluates the provided code against the given input string(s). This method is in
 - `time_limit (float, optional)`: Custom time limit for execution in seconds. Defaults to `None` (uses problem-specific default).
 - `memory_limit (int | str, optional)`: Custom memory limit for execution (e.g., `256_000_000` for 256MB, or "256m"). Defaults to `None` (uses problem-specific default).
 - `skip_local_visualization (bool, optional)`: If `True`, skips generating local visualizations even if available. Defaults to `False`.
+- `reuse_containers (bool, optional)`: If `True`, reuses long-lived execution and tool containers for this call. Defaults to `False`.
 
 **Returns:**
 - `Result`: A `Result` object containing the evaluation details, including scores, execution time, and memory usage for each case.
+
+`reuse_containers=True` is also available on `case_gen_eval()`, `public_eval()`, and `private_eval()`. It avoids per-case execution/tool container create/remove overhead, but writable container-layer state such as files under `/tmp` may persist between cases assigned to the same worker.
 
 ---
 ### `case_gen_eval`
@@ -103,6 +106,7 @@ A convenience method that first generates test case(s) using specified seeds and
 - `memory_limit (int | str, optional)`: Custom memory limit. Defaults to `None`.
 - `gen_kwargs (dict, optional)`: Arguments for the case generator. Defaults to an empty dictionary.
 - `skip_local_visualization (bool, optional)`: If `True`, skips local visualizations. Defaults to `False`.
+- `reuse_containers (bool, optional)`: If `True`, reuses long-lived execution and tool containers for this call. Defaults to `False`.
 
 **Returns:**
 - `Result`: A `Result` object with the evaluation outcome.
@@ -127,6 +131,7 @@ Evaluates the provided code against the predefined set of public test cases for 
 - `code_language (CodeLanguage | str)`: The programming language of the code.
 - `judge_version (JudgeVersion | str, optional)`: The judge version. Defaults to `None` (`202301`).
 - `skip_local_visualization (bool, optional)`: If `True`, skips local visualizations. Defaults to `True` for public evaluations.
+- `reuse_containers (bool, optional)`: If `True`, reuses long-lived execution and tool containers for this call. Defaults to `False`.
 
 **Returns:**
 - `Result`: A `Result` object detailing the performance on public test cases.
@@ -139,6 +144,7 @@ Evaluates the provided code against the predefined set of private test cases. Th
 - `code (str)`: The source code to evaluate.
 - `code_language (CodeLanguage | str)`: The programming language of the code.
 - `judge_version (JudgeVersion | str, optional)`: The judge version. Defaults to `None` (`202301`).
+- `reuse_containers (bool, optional)`: If `True`, reuses long-lived execution and tool containers for this call. Defaults to `False`.
 
 **Returns:**
 - `Result`: A `Result` object detailing the performance on private test cases.
