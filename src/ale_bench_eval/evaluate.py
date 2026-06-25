@@ -112,6 +112,7 @@ def run_private_evaluation(
                 solution_code,
                 code_language=solution_code_language,
                 judge_version=config.prompt_args.judge_version,
+                reuse_containers=config.reuse_containers,
             )
 
             if save_info is not None:

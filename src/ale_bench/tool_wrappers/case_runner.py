@@ -4,9 +4,11 @@ import json
 import math
 import os
 import re
+import shlex
 import tempfile
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from contextlib import nullcontext
 from pathlib import Path
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -24,7 +26,13 @@ from ale_bench.code_language import (
 )
 from ale_bench.data import ProblemType
 from ale_bench.result import CaseResult, JudgeResult, Profiles
+from ale_bench.tool_wrappers.reusable_container_pool import (
+    ReusableSubmissionContainerPool,
+    ReusableToolContainerPool,
+)
 from ale_bench.utils import docker_client, read_svg
+
+TIMEOUT_EXIT_CODE = 124
 
 
 class HostPathsCompile(BaseModel):
@@ -189,24 +197,34 @@ def get_batch_run_volumes(host_paths: HostPathsBatchRun, temp_dir: Path) -> dict
     }
 
 
-def build_batch_run_command(code_language: CodeLanguage, judge_version: JudgeVersion, time_limit: float) -> str:
+def build_batch_run_command(
+    code_language: CodeLanguage,
+    judge_version: JudgeVersion,
+    time_limit: float,
+    input_file: str = ale_bench.constants.INPUT_FILE,
+    output_file: str = ale_bench.constants.OUTPUT_FILE,
+    profiles_file: str = ale_bench.constants.PROFILES_FILE,
+) -> str:
     """Build the run command for the given code language and judge version.
 
     Args:
         code_language (CodeLanguage): The code language.
         judge_version (JudgeVersion): The judge version.
         time_limit (float): The time limit in seconds.
+        input_file (str): The input file path in the container.
+        output_file (str): The output file path in the container.
+        profiles_file (str): The profiles file path in the container.
 
     Returns:
         str: The run command.
 
     """
     run_command = get_run_command(code_language, judge_version)
-    run_command += f" < {ale_bench.constants.INPUT_FILE} > {ale_bench.constants.OUTPUT_FILE}"
+    run_command += f" < {input_file} > {output_file}"
     run_command = (
         "/usr/bin/time "
         f'-f "{ale_bench.constants.TIME_OUTPUT_FORMAT}" '
-        f"-o {ale_bench.constants.PROFILES_FILE} {run_command}"
+        f"-o {profiles_file} {run_command}"
     )  # NOTE: We use the GNU Time to measure the resource usage
     # NOTE: the profiles by GNU Time update every 1 sec (from observations while debugging)
     time_limit_ceil = math.ceil(time_limit + 0.1)
@@ -266,14 +284,17 @@ def get_batch_judge_volumes(host_paths: HostPathsBatchJudge, tool_dir: Path) -> 
     }
 
 
-def build_batch_judge_command() -> str:
+def build_batch_judge_command(
+    input_file: str = ale_bench.constants.INPUT_FILE,
+    output_file: str = ale_bench.constants.OUTPUT_FILE,
+) -> str:
     """Build the judging command.
 
     Returns:
         str: The judging command.
 
     """
-    return f"{ale_bench.constants.TESTER_BIN} {ale_bench.constants.INPUT_FILE} {ale_bench.constants.OUTPUT_FILE}"
+    return f"{ale_bench.constants.TESTER_BIN} {input_file} {output_file}"
 
 
 class HostPathsReactiveJudge(BaseModel):
@@ -358,24 +379,34 @@ def get_reactive_judge_volumes(
     }
 
 
-def build_reactive_judge_command(code_language: CodeLanguage, judge_version: JudgeVersion, time_limit: float) -> str:
+def build_reactive_judge_command(
+    code_language: CodeLanguage,
+    judge_version: JudgeVersion,
+    time_limit: float,
+    input_file: str = ale_bench.constants.INPUT_FILE,
+    output_file: str = ale_bench.constants.OUTPUT_FILE,
+    profiles_file: str = ale_bench.constants.PROFILES_FILE,
+) -> str:
     """Build the run command for the given code language and judge version.
 
     Args:
         code_language (CodeLanguage): The code language.
         judge_version (JudgeVersion): The judge version.
         time_limit (float): The time limit in seconds.
+        input_file (str): The input file path in the container.
+        output_file (str): The output file path in the container.
+        profiles_file (str): The profiles file path in the container.
 
     Returns:
         str: The run command.
 
     """
     run_command = get_run_command(code_language, judge_version)
-    run_command += f" < {ale_bench.constants.INPUT_FILE} > {ale_bench.constants.OUTPUT_FILE}"
+    run_command += f" < {input_file} > {output_file}"
     run_command = (
         f"{ale_bench.constants.TESTER_BIN} /usr/bin/time "
         f'-f "{ale_bench.constants.TIME_OUTPUT_FORMAT}" '
-        f"-o {ale_bench.constants.PROFILES_FILE} {run_command}"
+        f"-o {profiles_file} {run_command}"
     )  # NOTE: We use the GNU Time to measure the resource usage
     # NOTE: the profiles by GNU Time update every 1 sec (from observations while debugging)
     time_limit_ceil = math.ceil(time_limit + 0.1)
@@ -459,14 +490,17 @@ def get_vis_volumes(host_paths: HostPathsVis, tool_dir: Path) -> dict[str, dict[
     }
 
 
-def build_vis_command() -> str:
+def build_vis_command(
+    input_file: str = ale_bench.constants.INPUT_FILE,
+    output_file: str = ale_bench.constants.OUTPUT_FILE,
+) -> str:
     """Build the visualization command.
 
     Returns:
         str: The visualization command.
 
     """
-    return f"{ale_bench.constants.VIS_BIN} {ale_bench.constants.INPUT_FILE} {ale_bench.constants.OUTPUT_FILE}"
+    return f"{ale_bench.constants.VIS_BIN} {input_file} {output_file}"
 
 
 def run_compile_container(
@@ -636,6 +670,39 @@ def run_batch_run_container(
     return execution_time_host, stderr  # Run succeeded, return the execution time and stderr
 
 
+def run_batch_run_reusable_container(
+    reusable_submission_container_pool: ReusableSubmissionContainerPool,
+    time_limit: float,
+    run_command: str,
+    input_str: str | None,
+) -> CaseResult | tuple[float, str]:
+    """Run the batch submission command in a reusable Docker container."""
+    execution_time_host, exit_code, stderr = reusable_submission_container_pool.run(run_command)
+    if exit_code != 0:
+        if execution_time_host > time_limit:  # Killed by `timeout` command
+            return CaseResult(
+                input_str=input_str,
+                output_str=None,
+                error_str=stderr if input_str is not None else None,
+                judge_result=JudgeResult.TIME_LIMIT_EXCEEDED,
+                message="Time limit exceeded.",
+                absolute_score=ale_bench.constants.REJECTED_ABSOLUTE_SCORE,
+                execution_time=min(execution_time_host, time_limit + 0.1),  # NOTE: slight longer than time limit
+                memory_usage=0,
+            )
+        return CaseResult(
+            input_str=input_str,
+            output_str=None,
+            error_str=stderr if input_str is not None else None,
+            judge_result=JudgeResult.RUNTIME_ERROR,
+            message="Runtime error.",
+            absolute_score=ale_bench.constants.REJECTED_ABSOLUTE_SCORE,
+            execution_time=execution_time_host,
+            memory_usage=0,
+        )
+    return execution_time_host, stderr
+
+
 def run_batch_judge_container(
     judge_volumes: dict[str, dict[str, str]],
     judge_command: str,
@@ -681,6 +748,55 @@ def run_batch_judge_container(
             exit_code = container.attrs["State"]["ExitCode"]
         finally:
             container.remove(force=True)
+    if exit_code != 0:
+        return CaseResult(
+            input_str=input_str,
+            output_str=output_str,
+            error_str=error_str,
+            judge_result=JudgeResult.WRONG_ANSWER,
+            message=f"Wrong answer.\nStandard error:\n{stderr}",
+            absolute_score=ale_bench.constants.REJECTED_ABSOLUTE_SCORE,
+            execution_time=execution_time_host,
+            memory_usage=0,
+        )
+    if "wrong answer: " in stderr:
+        error_message = stderr.split("wrong answer: ")[1]
+        return CaseResult(
+            input_str=input_str,
+            output_str=output_str,
+            error_str=error_str,
+            judge_result=JudgeResult.WRONG_ANSWER,
+            message=f"Wrong answer.\n{error_message}",
+            absolute_score=ale_bench.constants.REJECTED_ABSOLUTE_SCORE,
+            execution_time=execution_time_host,
+            memory_usage=0,
+        )
+    stderr_last_line = stderr.splitlines()[-1]
+    score_match = re.match(r"Score = (\d+)", stderr_last_line)
+    if score_match is None:
+        return CaseResult(
+            input_str=input_str,
+            output_str=output_str,
+            error_str=error_str,
+            judge_result=JudgeResult.WRONG_ANSWER,
+            message=f"Wrong answer.\nStandard error:\n{stderr}",
+            absolute_score=ale_bench.constants.REJECTED_ABSOLUTE_SCORE,
+            execution_time=execution_time_host,
+            memory_usage=0,
+        )
+    return int(score_match.group(1))
+
+
+def run_batch_judge_reusable_container(
+    reusable_tool_container_pool: ReusableToolContainerPool,
+    judge_command: str,
+    execution_time_host: float,
+    input_str: str | None,
+    output_str: str | None,
+    error_str: str | None,
+) -> CaseResult | int:
+    """Run the batch judge command in a reusable Docker tool container."""
+    _execution_time_host_judge, exit_code, stderr = reusable_tool_container_pool.run(judge_command)
     if exit_code != 0:
         return CaseResult(
             input_str=input_str,
@@ -810,6 +926,54 @@ def run_reactive_judge_container(
     return (execution_time_host, score, stderr)  # Run succeeded, return the execution time
 
 
+def run_reactive_judge_reusable_container(
+    reusable_submission_container_pool: ReusableSubmissionContainerPool,
+    time_limit: float,
+    judge_command: str,
+    input_str: str | None,
+    output_file_path: Path | None,
+) -> CaseResult | tuple[float, int, str]:
+    """Run the reactive judge command in a reusable Docker container."""
+    execution_time_host, exit_code, stderr = reusable_submission_container_pool.run(judge_command)
+    if exit_code != 0 or stderr == "":
+        if execution_time_host > time_limit:  # Killed by `timeout` command
+            return CaseResult(
+                input_str=input_str,
+                output_str=None,
+                error_str=stderr if input_str is not None else None,
+                judge_result=JudgeResult.TIME_LIMIT_EXCEEDED,
+                message="Time limit exceeded.",
+                absolute_score=ale_bench.constants.REJECTED_ABSOLUTE_SCORE,
+                execution_time=min(execution_time_host, time_limit + 0.1),  # NOTE: slight longer than time limit
+                memory_usage=0,
+            )
+        return CaseResult(
+            input_str=input_str,
+            output_str=None,
+            error_str=stderr if input_str is not None else None,
+            judge_result=JudgeResult.RUNTIME_ERROR,
+            message="Runtime error.",
+            absolute_score=ale_bench.constants.REJECTED_ABSOLUTE_SCORE,
+            execution_time=execution_time_host,
+            memory_usage=0,
+        )
+    stderr_last_line = stderr.splitlines()[-1]
+    score_match = re.match(r"Score = (\d+)", stderr_last_line)
+    if score_match is None:
+        return CaseResult(
+            input_str=input_str,
+            output_str=output_file_path.read_text() if output_file_path else None,
+            error_str=stderr if input_str is not None else None,
+            judge_result=JudgeResult.WRONG_ANSWER,
+            message="Wrong answer.",  # NOTE: exclude stderr because we don't want to be exploited by the user
+            absolute_score=ale_bench.constants.REJECTED_ABSOLUTE_SCORE,
+            execution_time=execution_time_host,
+            memory_usage=0,
+        )
+    score = int(score_match.group(1))
+    return (execution_time_host, score, stderr)
+
+
 def run_vis_container(vis_command: str, vis_volumes: dict[str, dict[str, str]]) -> None:
     """Run the visualization command in a Docker container.
 
@@ -843,6 +1007,28 @@ def run_vis_container(vis_command: str, vis_volumes: dict[str, dict[str, str]]) 
             exit_code = container.attrs["State"]["ExitCode"]
         finally:
             container.remove(force=True)
+    if exit_code != 0:
+        msg = "Failed to run the visualization command. Something went wrong."
+        raise RuntimeError(msg)
+
+
+def run_vis_reusable_container(
+    reusable_tool_container_pool: ReusableToolContainerPool,
+    vis_command: str,
+    local_visualization_file: str,
+    generated_file_path: str,
+) -> None:
+    """Run the visualization command in a reusable Docker tool container."""
+    inner_command = (
+        f"rm -f {shlex.quote(generated_file_path)}; "
+        f"{vis_command}; "
+        f"cp {shlex.quote(generated_file_path)} {shlex.quote(local_visualization_file)}"
+    )
+    timed_command = f"timeout {ale_bench.constants.VISUALIZE_TIMEOUT} bash -c {shlex.quote(inner_command)}"
+    _execution_time_host, exit_code, _stderr = reusable_tool_container_pool.run(timed_command)
+    if exit_code == TIMEOUT_EXIT_CODE:
+        msg = "Timeout while running the visualization command. Something went wrong."
+        raise RuntimeError(msg)
     if exit_code != 0:
         msg = "Failed to run the visualization command. Something went wrong."
         raise RuntimeError(msg)
@@ -1003,19 +1189,42 @@ def case_iter_func(
     batch_judge_command: str,
     reactive_judge_command: str,
     vis_command: str,
+    reusable_submission_container_pool: ReusableSubmissionContainerPool | None = None,
+    reusable_tool_container_pool: ReusableToolContainerPool | None = None,
 ) -> CaseResult:
     """Run a single case end-to-end and return its judge result."""
     result_input_str = input_str if return_details else None
     host_paths_judge: HostPathsBatchJudge | HostPathsReactiveJudge
     execution_time_host = -1.0
+    case_temp_dir = (
+        reusable_submission_container_pool.scratch_dir if reusable_submission_container_pool is not None else temp_dir
+    )
 
     if problem_type == ProblemType.BATCH:
         # Run the submission code and generate the output file
-        host_paths_run = setup_paths_batch_run(host_paths_compile, temp_dir, input_str, f"{problem_id}_{case_idx:06d}_")
-        run_volumes = get_batch_run_volumes(host_paths_run, temp_dir)
-        run_result = run_batch_run_container(
-            code_language, judge_version, time_limit, run_volumes, batch_run_command, result_input_str
+        host_paths_run = setup_paths_batch_run(
+            host_paths_compile, case_temp_dir, input_str, f"{problem_id}_{case_idx:06d}_"
         )
+        if reusable_submission_container_pool is None:
+            run_volumes = get_batch_run_volumes(host_paths_run, temp_dir)
+            run_result = run_batch_run_container(
+                code_language, judge_version, time_limit, run_volumes, batch_run_command, result_input_str
+            )
+        else:
+            reusable_batch_run_command = build_batch_run_command(
+                code_language,
+                judge_version,
+                time_limit,
+                input_file=reusable_submission_container_pool.container_path(host_paths_run.input_file),
+                output_file=reusable_submission_container_pool.container_path(host_paths_run.output_file),
+                profiles_file=reusable_submission_container_pool.container_path(host_paths_run.profiles_file),
+            )
+            run_result = run_batch_run_reusable_container(
+                reusable_submission_container_pool,
+                time_limit,
+                reusable_batch_run_command,
+                result_input_str,
+            )
         if isinstance(run_result, CaseResult):
             return run_result
         if not isinstance(run_result, tuple):
@@ -1043,15 +1252,29 @@ def case_iter_func(
         execution_time, memory_usage = profiles_result
         # Calculate score by the input and output files
         host_paths_judge = setup_paths_batch_judge(host_paths_run)
-        judge_volumes = get_batch_judge_volumes(host_paths_judge, tool_dir)
-        batch_judge_result = run_batch_judge_container(
-            judge_volumes,
-            batch_judge_command,
-            execution_time_host,
-            result_input_str,
-            result_output_str,
-            result_error_str,
-        )
+        if reusable_tool_container_pool is None:
+            judge_volumes = get_batch_judge_volumes(host_paths_judge, tool_dir)
+            batch_judge_result = run_batch_judge_container(
+                judge_volumes,
+                batch_judge_command,
+                execution_time_host,
+                result_input_str,
+                result_output_str,
+                result_error_str,
+            )
+        else:
+            reusable_batch_judge_command = build_batch_judge_command(
+                input_file=reusable_tool_container_pool.container_path(host_paths_judge.input_file),
+                output_file=reusable_tool_container_pool.container_path(host_paths_judge.output_file),
+            )
+            batch_judge_result = run_batch_judge_reusable_container(
+                reusable_tool_container_pool,
+                reusable_batch_judge_command,
+                execution_time_host,
+                result_input_str,
+                result_output_str,
+                result_error_str,
+            )
         if isinstance(batch_judge_result, CaseResult):
             return batch_judge_result
         if not isinstance(batch_judge_result, int):
@@ -1061,20 +1284,37 @@ def case_iter_func(
     elif problem_type == ProblemType.REACTIVE:
         host_paths_judge = setup_paths_reactive_judge(
             host_paths_compile,
-            temp_dir,
+            case_temp_dir,
             input_str,
             f"{problem_id}_{case_idx:06d}_",
         )
-        judge_volumes = get_reactive_judge_volumes(host_paths_judge, temp_dir, tool_dir)
-        reactive_judge_result = run_reactive_judge_container(
-            code_language,
-            judge_version,
-            time_limit,
-            judge_volumes,
-            reactive_judge_command,
-            result_input_str,
-            host_paths_judge.output_file if return_details else None,
-        )
+        if reusable_submission_container_pool is None:
+            judge_volumes = get_reactive_judge_volumes(host_paths_judge, temp_dir, tool_dir)
+            reactive_judge_result = run_reactive_judge_container(
+                code_language,
+                judge_version,
+                time_limit,
+                judge_volumes,
+                reactive_judge_command,
+                result_input_str,
+                host_paths_judge.output_file if return_details else None,
+            )
+        else:
+            reusable_reactive_judge_command = build_reactive_judge_command(
+                code_language,
+                judge_version,
+                time_limit,
+                input_file=reusable_submission_container_pool.container_path(host_paths_judge.input_file),
+                output_file=reusable_submission_container_pool.container_path(host_paths_judge.output_file),
+                profiles_file=reusable_submission_container_pool.container_path(host_paths_judge.profiles_file),
+            )
+            reactive_judge_result = run_reactive_judge_reusable_container(
+                reusable_submission_container_pool,
+                time_limit,
+                reusable_reactive_judge_command,
+                result_input_str,
+                host_paths_judge.output_file if return_details else None,
+            )
         wo_profile_result = None
         if isinstance(reactive_judge_result, CaseResult):
             wo_profile_result = reactive_judge_result
@@ -1124,9 +1364,27 @@ def case_iter_func(
     local_visualization = None
     if not skip_local_visualization and problem_id not in ale_bench.constants.NO_LOCAL_VIS:
         # Run the local visualization command in the Docker container
-        host_paths_vis = setup_paths_vis(host_paths_judge, temp_dir, problem_id, f"{problem_id}_{case_idx:06d}_")
-        vis_volumes = get_vis_volumes(host_paths_vis, tool_dir)
-        run_vis_container(vis_command, vis_volumes)
+        vis_temp_dir = case_temp_dir if reusable_tool_container_pool is not None else temp_dir
+        host_paths_vis = setup_paths_vis(host_paths_judge, vis_temp_dir, problem_id, f"{problem_id}_{case_idx:06d}_")
+        if reusable_tool_container_pool is None:
+            vis_volumes = get_vis_volumes(host_paths_vis, tool_dir)
+            run_vis_container(vis_command, vis_volumes)
+        else:
+            generated_file_path = (
+                ale_bench.constants.LOCAL_VIS_SVG
+                if host_paths_vis.local_visualization_file.suffix == ".svg"
+                else ale_bench.constants.LOCAL_VIS_HTML
+            )
+            reusable_vis_command = build_vis_command(
+                input_file=reusable_tool_container_pool.container_path(host_paths_vis.input_file),
+                output_file=reusable_tool_container_pool.container_path(host_paths_vis.output_file),
+            )
+            run_vis_reusable_container(
+                reusable_tool_container_pool,
+                reusable_vis_command,
+                reusable_tool_container_pool.container_path(host_paths_vis.local_visualization_file),
+                generated_file_path,
+            )
         # Read the local visualization SVG or HTML
         svg_text = host_paths_vis.local_visualization_file.read_text()
         svg_text = svg_text.replace("\n", "").removeprefix("<html><body>").removesuffix("</body></html>")
@@ -1161,6 +1419,7 @@ def run_cases(
     return_details: bool,
     skip_local_visualization: bool,
     num_workers: int,
+    reuse_containers: bool = False,
 ) -> list[CaseResult]:
     """Run the cases for the given inputs and code.
 
@@ -1177,6 +1436,7 @@ def run_cases(
         return_details (bool): Whether to return detailed results (input_str, output_str, error_str).
         skip_local_visualization (bool): Whether to skip local visualization.
         num_workers (int): The number of workers for running cases.
+        reuse_containers (bool): Whether to reuse long-lived execution containers.
 
     Returns:
         list[CaseResult]: The list of case results.
@@ -1210,49 +1470,41 @@ def run_cases(
 
         # Run the code and calculate the score in the Docker container
         case_results: list[CaseResult] = []
-        if len(inputs) == 1 or num_workers == 1:
-            for case_idx, input_str in enumerate(inputs):
-                case_result = case_iter_func(
-                    problem_id,
-                    time_limit,
-                    memory_limit,
-                    problem_type,
-                    case_idx,
-                    input_str,
-                    code_language,
-                    judge_version,
-                    temp_dir,
-                    tool_dir,
-                    return_details,
-                    skip_local_visualization,
-                    host_paths_compile,
-                    batch_run_command,
-                    batch_judge_command,
-                    reactive_judge_command,
-                    vis_command,
+        reusable_scratch_dir = temp_dir / "reusable_case_files"
+        use_reusable_containers = reuse_containers and bool(inputs)
+        if use_reusable_containers:
+            reusable_scratch_dir.mkdir()
+            reusable_submission_pool_context = ReusableSubmissionContainerPool(
+                code_language=code_language,
+                judge_version=judge_version,
+                temp_dir=temp_dir,
+                scratch_dir=reusable_scratch_dir,
+                tool_dir=tool_dir,
+                problem_type=problem_type,
+                num_workers=max(1, min(num_workers, len(inputs))),
+            )
+            use_reusable_tool_pool = problem_type == ProblemType.BATCH or (
+                not skip_local_visualization and problem_id not in ale_bench.constants.NO_LOCAL_VIS
+            )
+            if use_reusable_tool_pool:
+                reusable_tool_pool_context = ReusableToolContainerPool(
+                    scratch_dir=reusable_scratch_dir,
+                    tool_dir=tool_dir,
+                    num_workers=max(1, min(num_workers, len(inputs))),
                 )
-                # Add the result
-                case_results.append(case_result)
+            else:
+                reusable_tool_pool_context = nullcontext(None)
         else:
-            case_results = [
-                CaseResult(
-                    input_str=input_str if return_details else None,
-                    output_str=None,
-                    error_str=None,
-                    judge_result=JudgeResult.INTERNAL_ERROR,
-                    message="Internal Error: Unexpected error occurred.",
-                    absolute_score=ale_bench.constants.REJECTED_ABSOLUTE_SCORE,
-                    execution_time=0.0,
-                    memory_usage=0,
-                )
-                for input_str in inputs
-            ]
-            # Use ThreadPoolExecutor to run the cases in parallel
-            with ThreadPoolExecutor(max_workers=num_workers) as executor:
-                future_to_case_idx = {}
+            reusable_submission_pool_context = nullcontext(None)
+            reusable_tool_pool_context = nullcontext(None)
+
+        with (
+            reusable_submission_pool_context as reusable_submission_container_pool,
+            reusable_tool_pool_context as reusable_tool_container_pool,
+        ):
+            if len(inputs) == 1 or num_workers == 1:
                 for case_idx, input_str in enumerate(inputs):
-                    future = executor.submit(
-                        case_iter_func,
+                    case_result = case_iter_func(
                         problem_id,
                         time_limit,
                         memory_limit,
@@ -1270,23 +1522,67 @@ def run_cases(
                         batch_judge_command,
                         reactive_judge_command,
                         vis_command,
+                        reusable_submission_container_pool,
+                        reusable_tool_container_pool,
                     )
-                    future_to_case_idx[future] = case_idx
-                for future in as_completed(future_to_case_idx):
-                    case_idx = future_to_case_idx[future]
-                    try:
-                        case_result = future.result()
-                    except Exception as e:
-                        case_result = CaseResult(
-                            input_str=inputs[case_idx] if return_details else None,
-                            output_str=None,
-                            error_str=None,
-                            judge_result=JudgeResult.INTERNAL_ERROR,
-                            message=f"Internal Error: {e}",
-                            absolute_score=ale_bench.constants.REJECTED_ABSOLUTE_SCORE,
-                            execution_time=0.0,
-                            memory_usage=0,
+                    # Add the result
+                    case_results.append(case_result)
+            else:
+                case_results = [
+                    CaseResult(
+                        input_str=input_str if return_details else None,
+                        output_str=None,
+                        error_str=None,
+                        judge_result=JudgeResult.INTERNAL_ERROR,
+                        message="Internal Error: Unexpected error occurred.",
+                        absolute_score=ale_bench.constants.REJECTED_ABSOLUTE_SCORE,
+                        execution_time=0.0,
+                        memory_usage=0,
+                    )
+                    for input_str in inputs
+                ]
+                # Use ThreadPoolExecutor to run the cases in parallel
+                with ThreadPoolExecutor(max_workers=num_workers) as executor:
+                    future_to_case_idx = {}
+                    for case_idx, input_str in enumerate(inputs):
+                        future = executor.submit(
+                            case_iter_func,
+                            problem_id,
+                            time_limit,
+                            memory_limit,
+                            problem_type,
+                            case_idx,
+                            input_str,
+                            code_language,
+                            judge_version,
+                            temp_dir,
+                            tool_dir,
+                            return_details,
+                            skip_local_visualization,
+                            host_paths_compile,
+                            batch_run_command,
+                            batch_judge_command,
+                            reactive_judge_command,
+                            vis_command,
+                            reusable_submission_container_pool,
+                            reusable_tool_container_pool,
                         )
-                    case_results[case_idx] = case_result
+                        future_to_case_idx[future] = case_idx
+                    for future in as_completed(future_to_case_idx):
+                        case_idx = future_to_case_idx[future]
+                        try:
+                            case_result = future.result()
+                        except Exception as e:
+                            case_result = CaseResult(
+                                input_str=inputs[case_idx] if return_details else None,
+                                output_str=None,
+                                error_str=None,
+                                judge_result=JudgeResult.INTERNAL_ERROR,
+                                message=f"Internal Error: {e}",
+                                absolute_score=ale_bench.constants.REJECTED_ABSOLUTE_SCORE,
+                                execution_time=0.0,
+                                memory_usage=0,
+                            )
+                        case_results[case_idx] = case_result
 
     return case_results

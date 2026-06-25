@@ -72,12 +72,14 @@ def _evaluate_public_result_once(
             code_language,
             judge_version=config.prompt_args.judge_version,
             skip_local_visualization=True,
+            reuse_containers=config.reuse_containers,
         )
     else:
         public_result = session.public_eval(
             code,
             code_language,
             judge_version=config.prompt_args.judge_version,
+            reuse_containers=config.reuse_containers,
         )
     if public_result.overall_judge_result == JudgeResult.INTERNAL_ERROR:
         msg = "Judge returned INTERNAL_ERROR."

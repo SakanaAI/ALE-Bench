@@ -141,6 +141,12 @@ FALLBACK_DICT = {
         cache_read_mtok=Decimal(5) / Decimal(10),
         output_mtok=Decimal(25),
     ),
+    "claude-fable-5": ModelPrice(
+        input_mtok=Decimal(10),
+        cache_write_mtok=Decimal(125) / Decimal(10),
+        cache_read_mtok=Decimal(1),
+        output_mtok=Decimal(50),
+    ),
     "grok-4.1-fast": ModelPrice(
         input_mtok=Decimal(2) / Decimal(10),
         cache_read_mtok=Decimal(5) / Decimal(100),
@@ -244,6 +250,11 @@ FALLBACK_DICT = {
         output_mtok=Decimal(44) / Decimal(10),
         cache_read_mtok=Decimal(26) / Decimal(100),
     ),
+    "glm-5.2": ModelPrice(
+        input_mtok=Decimal(14) / Decimal(10),
+        output_mtok=Decimal(44) / Decimal(10),
+        cache_read_mtok=Decimal(26) / Decimal(100),
+    ),
     "glm-5-turbo": ModelPrice(
         input_mtok=Decimal(12) / Decimal(10),
         output_mtok=Decimal(4),
@@ -283,6 +294,11 @@ FALLBACK_DICT = {
         output_mtok=Decimal(4),
         cache_read_mtok=Decimal(16) / Decimal(100),
     ),
+    "kimi-k2.7-code": ModelPrice(
+        input_mtok=Decimal(95) / Decimal(100),
+        output_mtok=Decimal(4),
+        cache_read_mtok=Decimal(19) / Decimal(100),
+    ),
     "mercury-2": ModelPrice(
         input_mtok=Decimal(25) / Decimal(100),
         cache_read_mtok=Decimal(25) / Decimal(1000),
@@ -313,6 +329,16 @@ FALLBACK_DICT = {
         input_mtok=Decimal(1) / Decimal(10),
         output_mtok=Decimal(5) / Decimal(10),
         cache_read_mtok=Decimal(1) / Decimal(10),
+    ),
+    "ling-2.6-1t": ModelPrice(
+        input_mtok=Decimal(3) / Decimal(10),
+        cache_read_mtok=Decimal(6) / Decimal(100),
+        output_mtok=Decimal(25) / Decimal(10),
+    ),
+    "ring-2.6-1t": ModelPrice(
+        input_mtok=Decimal(3) / Decimal(10),
+        cache_read_mtok=Decimal(6) / Decimal(100),
+        output_mtok=Decimal(25) / Decimal(10),
     ),
     "qwen3-235b-a22b-thinking-2507": ModelPrice(
         input_mtok=Decimal(3) / Decimal(10), output_mtok=Decimal(29) / Decimal(10)

@@ -21,6 +21,7 @@ class EvaluationConfig:
     n_repeated_sampling: int
     n_self_refine: int
     num_workers: int
+    reuse_containers: bool
     n_public_cases: int | None
     prompt_args: PromptArgs
     problem_id: str

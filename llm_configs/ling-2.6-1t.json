@@ -1,0 +1,17 @@
+{
+    "model_name": "inclusionai/ling-2.6-1t",
+    "provider": "openrouter",
+    "settings": {
+        "extra_body": {
+            "provider": {
+                "allow_fallbacks": false,
+                "data_collection": "deny",
+                "order": ["novita"],
+                "require_parameters": true
+            },
+            "usage": {
+                "include": true
+            }
+        }
+    }
+}

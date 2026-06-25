@@ -285,6 +285,7 @@ class Session:
         time_limit: float | None = None,
         memory_limit: int | str | None = None,
         skip_local_visualization: bool = False,
+        reuse_containers: bool = False,
     ) -> Result:
         """Evaluate the code with the given input.
 
@@ -298,6 +299,8 @@ class Session:
             time_limit (float, optional): The time limit in seconds. Defaults to None.
             memory_limit (int | str, optional): The memory limit in bytes. Defaults to None.
             skip_local_visualization (bool, optional): Whether to skip local visualization. Defaults to False.
+            reuse_containers (bool, optional): Whether to reuse execution and tool containers across cases.
+                Defaults to False.
 
         Returns:
             Result: The result of the evaluation.
@@ -336,6 +339,7 @@ class Session:
             return_details=True,
             skip_local_visualization=skip_local_visualization,
             num_workers=self.num_workers,
+            reuse_containers=reuse_containers,
         )
 
         # Postprocessing
@@ -384,6 +388,7 @@ class Session:
         memory_limit: int | str | None = None,
         gen_kwargs: dict[str, Any] | None = None,
         skip_local_visualization: bool = False,
+        reuse_containers: bool = False,
     ) -> Result:
         """Generate a case and evaluate the code with the given input.
 
@@ -396,6 +401,8 @@ class Session:
             memory_limit (int | str, optional): The memory limit in bytes. Defaults to None.
             gen_kwargs (dict[str, Any]): The generation arguments. Defaults to an empty dictionary.
             skip_local_visualization (bool, optional): Whether to skip local visualization. Defaults to False.
+            reuse_containers (bool, optional): Whether to reuse execution and tool containers across cases.
+                Defaults to False.
 
         Returns:
             Result: The result of the evaluation.
@@ -421,7 +428,14 @@ class Session:
         # Generation and evaluation (postprocessing is done in each function)
         input_str = self.case_gen(seed, gen_kwargs=gen_kwargs)
         result = self.case_eval(
-            input_str, code, code_language, judge_version, time_limit, memory_limit, skip_local_visualization
+            input_str=input_str,
+            code=code,
+            code_language=code_language,
+            judge_version=judge_version,
+            time_limit=time_limit,
+            memory_limit=memory_limit,
+            skip_local_visualization=skip_local_visualization,
+            reuse_containers=reuse_containers,
         )
         if not self._check_within_resource_usage_after(AleBenchFunction.CASE_GEN_EVAL):
             # NOTE: maybe this block is not reached because we check the resource usage in each function
@@ -485,6 +499,7 @@ class Session:
         code_language: CodeLanguage | str,
         judge_version: JudgeVersion | str | None = None,
         skip_local_visualization: bool = True,
+        reuse_containers: bool = False,
     ) -> Result:
         """Evaluate the public score of the submission.
 
@@ -493,6 +508,8 @@ class Session:
             code_language (CodeLanguage | str): The code language.
             judge_version (JudgeVersion | str, optional): The judge version. Defaults to None (202301).
             skip_local_visualization (bool, optional): Whether to skip local visualization. Defaults to True.
+            reuse_containers (bool, optional): Whether to reuse execution and tool containers across cases.
+                Defaults to False.
 
         Returns:
             Result: The result of the evaluation.
@@ -527,6 +544,7 @@ class Session:
             return_details=True,
             skip_local_visualization=skip_local_visualization,
             num_workers=self.num_workers,
+            reuse_containers=reuse_containers,
         )
 
         # Postprocessing
@@ -564,6 +582,7 @@ class Session:
         code: str,
         code_language: CodeLanguage | str,
         judge_version: JudgeVersion | str | None = None,
+        reuse_containers: bool = False,
     ) -> tuple[Result, int, int]:
         """Evaluate the private score of the submission.
 
@@ -571,6 +590,8 @@ class Session:
             code (str): The code to evaluate.
             code_language (CodeLanguage | str): The code language.
             judge_version (JudgeVersion | str, optional): The judge version. Defaults to None (202301).
+            reuse_containers (bool, optional): Whether to reuse execution and tool containers across cases.
+                Defaults to False.
 
         Returns:
             Result: The result of the evaluation.
@@ -607,6 +628,7 @@ class Session:
             return_details=False,
             skip_local_visualization=True,
             num_workers=self.num_workers,
+            reuse_containers=reuse_containers,
         )
 
         # Postprocessing

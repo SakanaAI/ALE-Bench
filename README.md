@@ -25,6 +25,7 @@ https://github.com/user-attachments/assets/50a8de5a-b519-4aef-8e54-c60ac9dcbb90
 - [Evaluation](#evaluation)
 - [Documentation](#documentation)
 - [Development and Contributing](#development-and-contributing)
+- [License](#license)
 - [Citation](#citation)
 
 ## Setup
@@ -223,6 +224,13 @@ For more details about ALE-Bench, please refer to the [docs/](./docs/) directory
 
 ## Development and Contributing
 Please see the [CONTRIBUTING.md](./CONTRIBUTING.md) file.
+
+## License
+
+The code in this GitHub repository is licensed under the Apache License 2.0.
+See the [LICENSE](./LICENSE) file for details.
+
+The ALE-Bench dataset hosted on [Hugging Face](https://huggingface.co/datasets/SakanaAI/ALE-Bench) is licensed under the [Creative Commons Attribution-NoDerivatives 4.0 International License (CC BY-ND 4.0)](https://creativecommons.org/licenses/by-nd/4.0/).
 
 ## Citation
 
