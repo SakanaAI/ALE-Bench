@@ -147,6 +147,12 @@ FALLBACK_DICT = {
         cache_read_mtok=Decimal(1),
         output_mtok=Decimal(50),
     ),
+    "claude-sonnet-5": ModelPrice(
+        input_mtok=Decimal(3),
+        cache_write_mtok=Decimal(375) / Decimal(100),
+        cache_read_mtok=Decimal(3) / Decimal(10),
+        output_mtok=Decimal(15),
+    ),
     "grok-4.1-fast": ModelPrice(
         input_mtok=Decimal(2) / Decimal(10),
         cache_read_mtok=Decimal(5) / Decimal(100),
@@ -405,6 +411,12 @@ FALLBACK_DICT = {
         input_mtok=Decimal(2) / Decimal(10),
         cache_read_mtok=Decimal(4) / Decimal(100),
         output_mtok=Decimal(115) / Decimal(100),
+    ),
+    # Calculated with 1 RMB = 0.15 USD
+    "hy3": ModelPrice(
+        input_mtok=Decimal(15) / Decimal(100),
+        cache_read_mtok=Decimal(375) / Decimal(10000),
+        output_mtok=Decimal(6) / Decimal(10),
     ),
 }
 

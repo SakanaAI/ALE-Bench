@@ -1,0 +1,12 @@
+{
+    "model_name": "claude-sonnet-5",
+    "provider": "anthropic",
+    "settings": {
+        "max_tokens": 128000,
+        "anthropic_thinking": {
+            "type": "adaptive",
+            "display": "summarized"
+        },
+        "anthropic_effort": "high"
+    }
+}
