@@ -5,6 +5,34 @@ from genai_prices.types import ModelPrice, Tier, TieredPrices
 from pydantic_ai.usage import RunUsage
 
 FALLBACK_DICT = {
+    "gpt-5.6-sol": ModelPrice(
+        input_mtok=TieredPrices(base=Decimal(5), tiers=[Tier(start=272000, price=Decimal(10))]),
+        cache_read_mtok=TieredPrices(base=Decimal(5) / Decimal(10), tiers=[Tier(start=272000, price=Decimal(1))]),
+        cache_write_mtok=TieredPrices(
+            base=Decimal(625) / Decimal(100), tiers=[Tier(start=272000, price=Decimal(125) / Decimal(10))]
+        ),
+        output_mtok=TieredPrices(base=Decimal(30), tiers=[Tier(start=272000, price=Decimal(45))]),
+    ),
+    "gpt-5.6-terra": ModelPrice(
+        input_mtok=TieredPrices(base=Decimal(25) / Decimal(10), tiers=[Tier(start=272000, price=Decimal(5))]),
+        cache_read_mtok=TieredPrices(
+            base=Decimal(25) / Decimal(100), tiers=[Tier(start=272000, price=Decimal(5) / Decimal(10))]
+        ),
+        cache_write_mtok=TieredPrices(
+            base=Decimal(3125) / Decimal(1000), tiers=[Tier(start=272000, price=Decimal(625) / Decimal(100))]
+        ),
+        output_mtok=TieredPrices(base=Decimal(15), tiers=[Tier(start=272000, price=Decimal(225) / Decimal(10))]),
+    ),
+    "gpt-5.6-luna": ModelPrice(
+        input_mtok=TieredPrices(base=Decimal(1), tiers=[Tier(start=272000, price=Decimal(2))]),
+        cache_read_mtok=TieredPrices(
+            base=Decimal(1) / Decimal(10), tiers=[Tier(start=272000, price=Decimal(2) / Decimal(10))]
+        ),
+        cache_write_mtok=TieredPrices(
+            base=Decimal(125) / Decimal(100), tiers=[Tier(start=272000, price=Decimal(25) / Decimal(10))]
+        ),
+        output_mtok=TieredPrices(base=Decimal(6), tiers=[Tier(start=272000, price=Decimal(9))]),
+    ),
     "gpt-5.5-2026-04-23": ModelPrice(
         input_mtok=Decimal(5),
         cache_read_mtok=Decimal(5) / Decimal(10),
@@ -171,6 +199,11 @@ FALLBACK_DICT = {
             base=Decimal(2) / Decimal(10), tiers=[Tier(start=200000, price=Decimal(4) / Decimal(10))]
         ),
         output_mtok=TieredPrices(base=Decimal(25) / Decimal(10), tiers=[Tier(start=200000, price=Decimal(5))]),
+    ),
+    "grok-4.5": ModelPrice(
+        input_mtok=TieredPrices(base=Decimal(2), tiers=[Tier(start=200000, price=Decimal(4))]),
+        cache_read_mtok=TieredPrices(base=Decimal(5) / Decimal(10), tiers=[Tier(start=200000, price=Decimal(1))]),
+        output_mtok=TieredPrices(base=Decimal(6), tiers=[Tier(start=200000, price=Decimal(12))]),
     ),
     "nova-premier-v1": ModelPrice(
         input_mtok=Decimal(25) / Decimal(10),
