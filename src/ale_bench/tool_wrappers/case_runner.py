@@ -220,11 +220,11 @@ def build_batch_run_command(
 
     """
     run_command = get_run_command(code_language, judge_version)
-    run_command += f" < {input_file} > {output_file}"
+    run_command += f" < {shlex.quote(input_file)} > {shlex.quote(output_file)}"
     run_command = (
         "/usr/bin/time "
         f'-f "{ale_bench.constants.TIME_OUTPUT_FORMAT}" '
-        f"-o {profiles_file} {run_command}"
+        f"-o {shlex.quote(profiles_file)} {run_command}"
     )  # NOTE: We use the GNU Time to measure the resource usage
     # NOTE: the profiles by GNU Time update every 1 sec (from observations while debugging)
     time_limit_ceil = math.ceil(time_limit + 0.1)
@@ -294,7 +294,7 @@ def build_batch_judge_command(
         str: The judging command.
 
     """
-    return f"{ale_bench.constants.TESTER_BIN} {input_file} {output_file}"
+    return f"{ale_bench.constants.TESTER_BIN} {shlex.quote(input_file)} {shlex.quote(output_file)}"
 
 
 class HostPathsReactiveJudge(BaseModel):
@@ -402,11 +402,11 @@ def build_reactive_judge_command(
 
     """
     run_command = get_run_command(code_language, judge_version)
-    run_command += f" < {input_file} > {output_file}"
+    run_command += f" < {shlex.quote(input_file)} > {shlex.quote(output_file)}"
     run_command = (
         f"{ale_bench.constants.TESTER_BIN} /usr/bin/time "
         f'-f "{ale_bench.constants.TIME_OUTPUT_FORMAT}" '
-        f"-o {profiles_file} {run_command}"
+        f"-o {shlex.quote(profiles_file)} {run_command}"
     )  # NOTE: We use the GNU Time to measure the resource usage
     # NOTE: the profiles by GNU Time update every 1 sec (from observations while debugging)
     time_limit_ceil = math.ceil(time_limit + 0.1)
@@ -500,7 +500,7 @@ def build_vis_command(
         str: The visualization command.
 
     """
-    return f"{ale_bench.constants.VIS_BIN} {input_file} {output_file}"
+    return f"{ale_bench.constants.VIS_BIN} {shlex.quote(input_file)} {shlex.quote(output_file)}"
 
 
 def run_compile_container(
@@ -1025,7 +1025,9 @@ def run_vis_reusable_container(
         f"cp {shlex.quote(generated_file_path)} {shlex.quote(local_visualization_file)}"
     )
     timed_command = f"timeout {ale_bench.constants.VISUALIZE_TIMEOUT} bash -c {shlex.quote(inner_command)}"
-    _execution_time_host, exit_code, _stderr = reusable_tool_container_pool.run(timed_command)
+    _execution_time_host, exit_code, _stderr = reusable_tool_container_pool.run(
+        timed_command, workdir=ale_bench.constants.TMP_DIR
+    )
     if exit_code == TIMEOUT_EXIT_CODE:
         msg = "Timeout while running the visualization command. Something went wrong."
         raise RuntimeError(msg)
@@ -1171,6 +1173,12 @@ def parse_profiles(
     return execution_time, memory_usage  # Return the execution time and memory usage if all checks pass
 
 
+def build_case_file_prefix(problem_id: str, case_idx: int) -> str:
+    """Build a filesystem-safe prefix for per-case scratch files."""
+    safe_problem_id = re.sub(r"[^A-Za-z0-9._-]+", "_", problem_id)
+    return f"{safe_problem_id}_{case_idx:06d}_"
+
+
 def case_iter_func(
     problem_id: str,
     time_limit: float,
@@ -1196,15 +1204,14 @@ def case_iter_func(
     result_input_str = input_str if return_details else None
     host_paths_judge: HostPathsBatchJudge | HostPathsReactiveJudge
     execution_time_host = -1.0
+    case_file_prefix = build_case_file_prefix(problem_id, case_idx)
     case_temp_dir = (
         reusable_submission_container_pool.scratch_dir if reusable_submission_container_pool is not None else temp_dir
     )
 
     if problem_type == ProblemType.BATCH:
         # Run the submission code and generate the output file
-        host_paths_run = setup_paths_batch_run(
-            host_paths_compile, case_temp_dir, input_str, f"{problem_id}_{case_idx:06d}_"
-        )
+        host_paths_run = setup_paths_batch_run(host_paths_compile, case_temp_dir, input_str, case_file_prefix)
         if reusable_submission_container_pool is None:
             run_volumes = get_batch_run_volumes(host_paths_run, temp_dir)
             run_result = run_batch_run_container(
@@ -1286,7 +1293,7 @@ def case_iter_func(
             host_paths_compile,
             case_temp_dir,
             input_str,
-            f"{problem_id}_{case_idx:06d}_",
+            case_file_prefix,
         )
         if reusable_submission_container_pool is None:
             judge_volumes = get_reactive_judge_volumes(host_paths_judge, temp_dir, tool_dir)
@@ -1365,16 +1372,17 @@ def case_iter_func(
     if not skip_local_visualization and problem_id not in ale_bench.constants.NO_LOCAL_VIS:
         # Run the local visualization command in the Docker container
         vis_temp_dir = case_temp_dir if reusable_tool_container_pool is not None else temp_dir
-        host_paths_vis = setup_paths_vis(host_paths_judge, vis_temp_dir, problem_id, f"{problem_id}_{case_idx:06d}_")
+        host_paths_vis = setup_paths_vis(host_paths_judge, vis_temp_dir, problem_id, case_file_prefix)
         if reusable_tool_container_pool is None:
             vis_volumes = get_vis_volumes(host_paths_vis, tool_dir)
             run_vis_container(vis_command, vis_volumes)
         else:
-            generated_file_path = (
+            generated_file_name = Path(
                 ale_bench.constants.LOCAL_VIS_SVG
                 if host_paths_vis.local_visualization_file.suffix == ".svg"
                 else ale_bench.constants.LOCAL_VIS_HTML
-            )
+            ).name
+            generated_file_path = f"{ale_bench.constants.TMP_DIR}/{generated_file_name}"
             reusable_vis_command = build_vis_command(
                 input_file=reusable_tool_container_pool.container_path(host_paths_vis.input_file),
                 output_file=reusable_tool_container_pool.container_path(host_paths_vis.output_file),
