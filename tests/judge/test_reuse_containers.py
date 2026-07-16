@@ -90,6 +90,30 @@ class TestReuseContainers:
         assert all(result.local_visualization is not None for result in default_results)
         assert all(result.local_visualization is not None for result in reused_results)
 
+    def test_reuse_containers_handles_unsafe_problem_id_characters(
+        self,
+        inputs: dict[str, str],
+        ac_codes: dict[str, str],
+        ahc001_session: Session,
+    ) -> None:
+        results = run_cases(
+            inputs=[inputs["ahc001"]],
+            code=ac_codes["ahc001"],
+            code_language=self.CODE_LANGUAGE,
+            judge_version=self.JUDGE_VERSION,
+            time_limit=5.0,
+            memory_limit=256 * 1024 * 1024,
+            problem_id=r"problem/name (variant); $(command)&",
+            problem_type=ProblemType.BATCH,
+            tool_dir=ahc001_session.tool_dir,
+            return_details=True,
+            skip_local_visualization=True,
+            num_workers=1,
+            reuse_containers=True,
+        )
+
+        assert [result.judge_result for result in results] == [JudgeResult.ACCEPTED]
+
     def test_reuse_containers_matches_default_reactive(
         self,
         inputs: dict[str, str],

@@ -16,6 +16,7 @@ from ale_bench.tool_wrappers.case_runner import (
     HostPathsVis,
     build_batch_judge_command,
     build_batch_run_command,
+    build_case_file_prefix,
     build_compile_command,
     build_reactive_judge_command,
     build_vis_command,
@@ -454,21 +455,50 @@ def test_build_batch_run_command(
     assert run_command == expected
 
 
-def test_build_batch_run_command_custom_paths() -> None:
+@pytest.mark.parametrize(
+    ("input_file", "output_file", "profiles_file", "expected"),
+    [
+        pytest.param(
+            "/reuse/input.txt",
+            "/reuse/output.txt",
+            "/reuse/profiles.json",
+            (
+                "timeout 2.2 prlimit --cpu=2.1 "
+                f'/usr/bin/time -f "{ale_bench.constants.TIME_OUTPUT_FORMAT}" '
+                "-o /reuse/profiles.json "
+                "./a.out < /reuse/input.txt > /reuse/output.txt; sync"
+            ),
+            id="standard",
+        ),
+        pytest.param(
+            "/reuse/problem files (input).txt",
+            "/reuse/problem files (output).txt",
+            "/reuse/problem files (profiles).json",
+            (
+                "timeout 2.2 prlimit --cpu=2.1 "
+                f'/usr/bin/time -f "{ale_bench.constants.TIME_OUTPUT_FORMAT}" '
+                "-o '/reuse/problem files (profiles).json' "
+                "./a.out < '/reuse/problem files (input).txt' > '/reuse/problem files (output).txt'; sync"
+            ),
+            id="unsafe",
+        ),
+    ],
+)
+def test_build_batch_run_command_custom_paths(
+    input_file: str,
+    output_file: str,
+    profiles_file: str,
+    expected: str,
+) -> None:
     run_command = build_batch_run_command(
         CodeLanguage.CPP20,
         JudgeVersion.V202301,
         1.0,
-        input_file="/reuse/input.txt",
-        output_file="/reuse/output.txt",
-        profiles_file="/reuse/profiles.json",
+        input_file=input_file,
+        output_file=output_file,
+        profiles_file=profiles_file,
     )
-    assert run_command == (
-        "timeout 2.2 prlimit --cpu=2.1 "
-        f'/usr/bin/time -f "{ale_bench.constants.TIME_OUTPUT_FORMAT}" '
-        "-o /reuse/profiles.json "
-        "./a.out < /reuse/input.txt > /reuse/output.txt; sync"
-    )
+    assert run_command == expected
 
 
 def test_setup_paths_batch_judge() -> None:
@@ -512,12 +542,29 @@ def test_build_batch_judge_command() -> None:
     )
 
 
-def test_build_batch_judge_command_custom_paths() -> None:
+@pytest.mark.parametrize(
+    ("input_file", "output_file", "expected"),
+    [
+        pytest.param(
+            "/reuse/input.txt",
+            "/reuse/output.txt",
+            f"{ale_bench.constants.TESTER_BIN} /reuse/input.txt /reuse/output.txt",
+            id="standard",
+        ),
+        pytest.param(
+            "/reuse/problem files (input).txt",
+            "/reuse/problem files (output).txt",
+            f"{ale_bench.constants.TESTER_BIN} '/reuse/problem files (input).txt' '/reuse/problem files (output).txt'",
+            id="unsafe",
+        ),
+    ],
+)
+def test_build_batch_judge_command_custom_paths(input_file: str, output_file: str, expected: str) -> None:
     judge_command = build_batch_judge_command(
-        input_file="/reuse/input.txt",
-        output_file="/reuse/output.txt",
+        input_file=input_file,
+        output_file=output_file,
     )
-    assert judge_command == f"{ale_bench.constants.TESTER_BIN} /reuse/input.txt /reuse/output.txt"
+    assert judge_command == expected
 
 
 @pytest.mark.parametrize(
@@ -837,22 +884,52 @@ def test_build_reactive_judge_command(
     assert run_command == expected
 
 
-def test_build_reactive_judge_command_custom_paths() -> None:
+@pytest.mark.parametrize(
+    ("input_file", "output_file", "profiles_file", "expected"),
+    [
+        pytest.param(
+            "/reuse/input.txt",
+            "/reuse/output.txt",
+            "/reuse/profiles.json",
+            (
+                "timeout 2.2 prlimit --cpu=2.1 "
+                f"{ale_bench.constants.TESTER_BIN} "
+                f'/usr/bin/time -f "{ale_bench.constants.TIME_OUTPUT_FORMAT}" '
+                "-o /reuse/profiles.json "
+                "./a.out < /reuse/input.txt > /reuse/output.txt; sync"
+            ),
+            id="standard",
+        ),
+        pytest.param(
+            "/reuse/problem files (input).txt",
+            "/reuse/problem files (output).txt",
+            "/reuse/problem files (profiles).json",
+            (
+                "timeout 2.2 prlimit --cpu=2.1 "
+                f"{ale_bench.constants.TESTER_BIN} "
+                f'/usr/bin/time -f "{ale_bench.constants.TIME_OUTPUT_FORMAT}" '
+                "-o '/reuse/problem files (profiles).json' "
+                "./a.out < '/reuse/problem files (input).txt' > '/reuse/problem files (output).txt'; sync"
+            ),
+            id="unsafe",
+        ),
+    ],
+)
+def test_build_reactive_judge_command_custom_paths(
+    input_file: str,
+    output_file: str,
+    profiles_file: str,
+    expected: str,
+) -> None:
     run_command = build_reactive_judge_command(
         CodeLanguage.CPP20,
         JudgeVersion.V202301,
         1.0,
-        input_file="/reuse/input.txt",
-        output_file="/reuse/output.txt",
-        profiles_file="/reuse/profiles.json",
+        input_file=input_file,
+        output_file=output_file,
+        profiles_file=profiles_file,
     )
-    assert run_command == (
-        "timeout 2.2 prlimit --cpu=2.1 "
-        f"{ale_bench.constants.TESTER_BIN} "
-        f'/usr/bin/time -f "{ale_bench.constants.TIME_OUTPUT_FORMAT}" '
-        "-o /reuse/profiles.json "
-        "./a.out < /reuse/input.txt > /reuse/output.txt; sync"
-    )
+    assert run_command == expected
 
 
 @pytest.mark.parametrize(
@@ -1020,9 +1097,29 @@ def test_build_vis_command() -> None:
     )
 
 
-def test_build_vis_command_custom_paths() -> None:
-    vis_command = build_vis_command(input_file="/reuse/input.txt", output_file="/reuse/output.txt")
-    assert vis_command == f"{ale_bench.constants.VIS_BIN} /reuse/input.txt /reuse/output.txt"
+@pytest.mark.parametrize(
+    ("input_file", "output_file", "expected"),
+    [
+        pytest.param(
+            "/reuse/input.txt",
+            "/reuse/output.txt",
+            f"{ale_bench.constants.VIS_BIN} /reuse/input.txt /reuse/output.txt",
+            id="standard",
+        ),
+        pytest.param(
+            "/reuse/problem files (input).txt",
+            "/reuse/problem files (output).txt",
+            f"{ale_bench.constants.VIS_BIN} '/reuse/problem files (input).txt' '/reuse/problem files (output).txt'",
+            id="unsafe",
+        ),
+    ],
+)
+def test_build_vis_command_custom_paths(input_file: str, output_file: str, expected: str) -> None:
+    vis_command = build_vis_command(
+        input_file=input_file,
+        output_file=output_file,
+    )
+    assert vis_command == expected
 
 
 def test_run_batch_judge_reusable_container() -> None:
@@ -1531,3 +1628,17 @@ def test_parse_profiles(
     expected: CaseResult | tuple[float, int],
 ) -> None:
     assert parse_profiles(time_limit, memory_limit, profiles_content, execution_time_host, None, None, None) == expected
+
+
+@pytest.mark.parametrize(
+    ("problem_id", "expected_safe_problem_id"),
+    [
+        pytest.param("problem.alpha-1_beta", "problem.alpha-1_beta", id="safe-ascii"),
+        pytest.param("problem name (variant)", "problem_name_variant_", id="whitespace-and-parentheses"),
+        pytest.param(r"problem/path\segment", "problem_path_segment", id="path-separators"),
+        pytest.param("problem;$()|&<>`'\"*?name", "problem_name", id="shell-metacharacters"),
+        pytest.param("problem-問題", "problem-_", id="non-ascii"),
+    ],
+)
+def test_build_case_file_prefix(problem_id: str, expected_safe_problem_id: str) -> None:
+    assert build_case_file_prefix(problem_id, 12) == f"{expected_safe_problem_id}_000012_"
