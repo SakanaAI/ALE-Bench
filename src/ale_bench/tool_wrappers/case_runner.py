@@ -1025,7 +1025,9 @@ def run_vis_reusable_container(
         f"cp {shlex.quote(generated_file_path)} {shlex.quote(local_visualization_file)}"
     )
     timed_command = f"timeout {ale_bench.constants.VISUALIZE_TIMEOUT} bash -c {shlex.quote(inner_command)}"
-    _execution_time_host, exit_code, _stderr = reusable_tool_container_pool.run(timed_command)
+    _execution_time_host, exit_code, _stderr = reusable_tool_container_pool.run(
+        timed_command, workdir=ale_bench.constants.TMP_DIR
+    )
     if exit_code == TIMEOUT_EXIT_CODE:
         msg = "Timeout while running the visualization command. Something went wrong."
         raise RuntimeError(msg)
@@ -1375,11 +1377,12 @@ def case_iter_func(
             vis_volumes = get_vis_volumes(host_paths_vis, tool_dir)
             run_vis_container(vis_command, vis_volumes)
         else:
-            generated_file_path = (
+            generated_file_name = Path(
                 ale_bench.constants.LOCAL_VIS_SVG
                 if host_paths_vis.local_visualization_file.suffix == ".svg"
                 else ale_bench.constants.LOCAL_VIS_HTML
-            )
+            ).name
+            generated_file_path = f"{ale_bench.constants.TMP_DIR}/{generated_file_name}"
             reusable_vis_command = build_vis_command(
                 input_file=reusable_tool_container_pool.container_path(host_paths_vis.input_file),
                 output_file=reusable_tool_container_pool.container_path(host_paths_vis.output_file),

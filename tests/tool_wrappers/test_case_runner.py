@@ -1163,15 +1163,15 @@ def test_run_vis_reusable_container() -> None:
         pool,
         f"vis {reusable_input_file} {reusable_output_file}",
         reusable_local_visualization_file,
-        ale_bench.constants.LOCAL_VIS_HTML,
+        f"{ale_bench.constants.TMP_DIR}/vis.html",
     )
 
     assert pool.calls == [
         (
-            "timeout 10 bash -c 'rm -f /workdir/vis.html; "
+            "timeout 10 bash -c 'rm -f /tmp/vis.html; "
             f"vis {reusable_input_file} {reusable_output_file}; "
-            f"cp /workdir/vis.html {reusable_local_visualization_file}'",
-            ale_bench.constants.WORK_DIR,
+            f"cp /tmp/vis.html {reusable_local_visualization_file}'",
+            ale_bench.constants.TMP_DIR,
         )
     ]
 
