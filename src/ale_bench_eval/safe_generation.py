@@ -1,5 +1,6 @@
 from collections.abc import Sequence
 from contextlib import nullcontext
+from functools import wraps
 from threading import BoundedSemaphore
 from typing import TYPE_CHECKING, Any
 
@@ -12,6 +13,7 @@ from pydantic_ai import (
     UsageLimitExceeded,
 )
 from pydantic_ai.messages import ModelMessage, ModelResponse, UserContent
+from pydantic_ai.models import openai as pydantic_openai
 from pydantic_ai.models.anthropic import AnthropicModel, AnthropicModelSettings
 from pydantic_ai.models.bedrock import BedrockConverseModel, BedrockModelSettings
 from pydantic_ai.models.google import GoogleModel, GoogleModelSettings
@@ -24,6 +26,7 @@ from pydantic_ai.models.openai import (
 from pydantic_ai.models.openrouter import OpenRouterModel, OpenRouterModelSettings
 from pydantic_ai.providers.openai import OpenAIProvider
 from pydantic_ai.run import AgentRunResult
+from pydantic_ai.usage import RequestUsage
 
 from ale_bench_eval.shared_async_loop import shared_async_loop
 
@@ -50,6 +53,43 @@ OPENAI_COMPATIBLE_PROVIDERS = {
     "ovhcloud",
     "gateway",
 }
+
+_CACHE_WRITE_PATCH_MARKER = "_ale_bench_cache_write_patch"
+
+
+def patch_openai_cache_write_tokens() -> None:
+    """Preserve GPT-5.6 cache-write usage until genai-prices handles the new field."""
+    original_map_usage = pydantic_openai._map_usage  # noqa: SLF001
+    if getattr(original_map_usage, _CACHE_WRITE_PATCH_MARKER, False):
+        return
+
+    @wraps(original_map_usage)
+    def patched_map_usage(
+        response: Any,  # noqa: ANN401
+        provider: str,
+        provider_url: str,
+        model: str,
+    ) -> RequestUsage:
+        mapped_usage = original_map_usage(response, provider, provider_url, model)
+        if mapped_usage.cache_write_tokens:
+            return mapped_usage
+
+        response_usage = getattr(response, "usage", None)
+        if response_usage is None:
+            return mapped_usage
+
+        usage_data = response_usage.model_dump(exclude_none=True)
+        token_details = usage_data.get("input_tokens_details") or usage_data.get("prompt_tokens_details") or {}
+        cache_write_tokens = token_details.get("cache_write_tokens", 0)
+        if isinstance(cache_write_tokens, int) and not isinstance(cache_write_tokens, bool) and cache_write_tokens >= 0:
+            mapped_usage.cache_write_tokens = cache_write_tokens
+        return mapped_usage
+
+    setattr(patched_map_usage, _CACHE_WRITE_PATCH_MARKER, True)
+    setattr(pydantic_openai, "_map_usage", patched_map_usage)  # noqa: B010
+
+
+patch_openai_cache_write_tokens()
 
 
 class MaxTokenError(RuntimeError):

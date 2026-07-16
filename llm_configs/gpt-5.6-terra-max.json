@@ -1,0 +1,13 @@
+{
+    "model_name": "gpt-5.6-terra",
+    "provider": "openai",
+    "settings": {
+        "extra_body": {
+            "reasoning": {
+                "effort": "max",
+                "context": "all_turns",
+                "summary": "detailed"
+            }
+        }
+    }
+}
