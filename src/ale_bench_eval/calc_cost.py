@@ -73,6 +73,16 @@ FALLBACK_DICT = {
         cache_read_mtok=Decimal(125) / Decimal(1000),
         output_mtok=Decimal(10),
     ),
+    "gemini-3.6-flash": ModelPrice(
+        input_mtok=Decimal(15) / Decimal(10),
+        cache_read_mtok=Decimal(15) / Decimal(100),
+        output_mtok=Decimal(75) / Decimal(10),
+    ),
+    "gemini-3.5-flash-lite": ModelPrice(
+        input_mtok=Decimal(3) / Decimal(10),
+        cache_read_mtok=Decimal(3) / Decimal(100),
+        output_mtok=Decimal(25) / Decimal(10),
+    ),
     "gemini-3.5-flash": ModelPrice(
         input_mtok=Decimal(15) / Decimal(10),
         cache_read_mtok=Decimal(15) / Decimal(100),
@@ -175,6 +185,12 @@ FALLBACK_DICT = {
         cache_read_mtok=Decimal(1),
         output_mtok=Decimal(50),
     ),
+    "claude-opus-5": ModelPrice(
+        input_mtok=Decimal(5),
+        cache_write_mtok=Decimal(625) / Decimal(100),
+        cache_read_mtok=Decimal(5) / Decimal(10),
+        output_mtok=Decimal(25),
+    ),
     "claude-sonnet-5": ModelPrice(
         input_mtok=Decimal(3),
         cache_write_mtok=Decimal(375) / Decimal(100),
@@ -205,6 +221,11 @@ FALLBACK_DICT = {
         cache_read_mtok=TieredPrices(base=Decimal(5) / Decimal(10), tiers=[Tier(start=200000, price=Decimal(1))]),
         output_mtok=TieredPrices(base=Decimal(6), tiers=[Tier(start=200000, price=Decimal(12))]),
     ),
+    "grok-4.6": ModelPrice(
+        input_mtok=TieredPrices(base=Decimal(2), tiers=[Tier(start=200000, price=Decimal(4))]),
+        cache_read_mtok=TieredPrices(base=Decimal(5) / Decimal(10), tiers=[Tier(start=200000, price=Decimal(1))]),
+        output_mtok=TieredPrices(base=Decimal(6), tiers=[Tier(start=200000, price=Decimal(12))]),
+    ),
     "nova-premier-v1": ModelPrice(
         input_mtok=Decimal(25) / Decimal(10),
         cache_read_mtok=Decimal(625) / Decimal(1000),
@@ -224,6 +245,16 @@ FALLBACK_DICT = {
         input_mtok=Decimal(14) / Decimal(100),
         output_mtok=Decimal(28) / Decimal(100),
         cache_read_mtok=Decimal(28) / Decimal(1000),
+    ),
+    "deepseek-v4-flash-0731": ModelPrice(
+        input_mtok=Decimal(14) / Decimal(100),
+        output_mtok=Decimal(28) / Decimal(100),
+        cache_read_mtok=Decimal(28) / Decimal(10000),
+    ),
+    "deepseek-v4-pro-0813": ModelPrice(
+        input_mtok=Decimal(435) / Decimal(1000),
+        output_mtok=Decimal(87) / Decimal(100),
+        cache_read_mtok=Decimal(3625) / Decimal(1000000),
     ),
     "mimo-v2-flash:free": ModelPrice(input_mtok=Decimal(1) / Decimal(10), output_mtok=Decimal(3) / Decimal(10)),
     "mimo-v2-pro": ModelPrice(
@@ -302,12 +333,37 @@ FALLBACK_DICT = {
     "gpt-oss-120b": ModelPrice(input_mtok=Decimal(1) / Decimal(10), output_mtok=Decimal(5) / Decimal(10)),
     "gpt-oss-20b": ModelPrice(input_mtok=Decimal(5) / Decimal(100), output_mtok=Decimal(2) / Decimal(10)),
     "grok-code-fast-1": ModelPrice(input_mtok=Decimal(2) / Decimal(10), output_mtok=Decimal(15) / Decimal(10)),
+    "muse-spark-1.1": ModelPrice(
+        input_mtok=Decimal(125) / Decimal(100),
+        output_mtok=Decimal(425) / Decimal(100),
+        cache_read_mtok=Decimal(15) / Decimal(100)
+    ),
+    "muse-spark-1.2": ModelPrice(
+        input_mtok=Decimal(125) / Decimal(100),
+        output_mtok=Decimal(425) / Decimal(100),
+        cache_read_mtok=Decimal(15) / Decimal(100)
+    ),
+    "muse-glimmer-30b": ModelPrice(
+        input_mtok=Decimal(35) / Decimal(100),
+        output_mtok=Decimal(15) / Decimal(10),
+        cache_read_mtok=Decimal(4) / Decimal(100)
+    ),
     "llama-4-maverick": ModelPrice(input_mtok=Decimal(18) / Decimal(100), output_mtok=Decimal(6) / Decimal(10)),
     "codestral-2508": ModelPrice(input_mtok=Decimal(3) / Decimal(10), output_mtok=Decimal(9) / Decimal(10)),
     "mistral-medium-3.1": ModelPrice(input_mtok=Decimal(4) / Decimal(10), output_mtok=Decimal(2)),
     "mistral-large-2512": ModelPrice(input_mtok=Decimal(5) / Decimal(10), output_mtok=Decimal(15) / Decimal(10)),
     "mistral-small-2603": ModelPrice(input_mtok=Decimal(15) / Decimal(100), output_mtok=Decimal(6) / Decimal(10)),
     "mistral-medium-3-5": ModelPrice(input_mtok=Decimal(15) / Decimal(10), output_mtok=Decimal(75) / Decimal(10)),
+    "inkling": ModelPrice(
+        input_mtok=Decimal(1),
+        cache_read_mtok=Decimal(17) / Decimal(100),
+        output_mtok=Decimal(405) / Decimal(100),
+    ),
+    "inkling-small": ModelPrice(
+        input_mtok=Decimal(5) / Decimal(10),
+        cache_read_mtok=Decimal(1) / Decimal(10),
+        output_mtok=Decimal(12) / Decimal(10),
+    ),
     "kimi-k2": ModelPrice(
         input_mtok=Decimal(6) / Decimal(10),
         output_mtok=Decimal(25) / Decimal(10),
@@ -337,6 +393,21 @@ FALLBACK_DICT = {
         input_mtok=Decimal(95) / Decimal(100),
         output_mtok=Decimal(4),
         cache_read_mtok=Decimal(19) / Decimal(100),
+    ),
+    "kimi-k3": ModelPrice(
+        input_mtok=Decimal(3),
+        output_mtok=Decimal(15),
+        cache_read_mtok=Decimal(3) / Decimal(10),
+    ),
+    "laguna-s-2.1": ModelPrice(
+        input_mtok=Decimal(1) / Decimal(10),
+        cache_read_mtok=Decimal(1) / Decimal(100),
+        output_mtok=Decimal(2) / Decimal(10),
+    ),
+    "longcat-2.0": ModelPrice(
+        input_mtok=Decimal(3) / Decimal(10),
+        cache_read_mtok=Decimal(6) / Decimal(1000),
+        output_mtok=Decimal(12) / Decimal(10),
     ),
     "mercury-2": ModelPrice(
         input_mtok=Decimal(25) / Decimal(100),
@@ -368,6 +439,11 @@ FALLBACK_DICT = {
         input_mtok=Decimal(1) / Decimal(10),
         output_mtok=Decimal(5) / Decimal(10),
         cache_read_mtok=Decimal(1) / Decimal(10),
+    ),
+    "nemotron-3.5-lightning:free": ModelPrice(
+        input_mtok=Decimal(1) / Decimal(10),
+        output_mtok=Decimal(25) / Decimal(100),
+        cache_read_mtok=Decimal(5) / Decimal(100),
     ),
     "ling-2.6-1t": ModelPrice(
         input_mtok=Decimal(3) / Decimal(10),
@@ -439,6 +515,42 @@ FALLBACK_DICT = {
         output_mtok=Decimal(75) / Decimal(10),
         cache_read_mtok=Decimal(25) / Decimal(100),
         cache_write_mtok=Decimal(3125) / Decimal(1000),
+    ),
+    "qwen3.7-flash": ModelPrice(
+        input_mtok=TieredPrices(
+            base=Decimal(3) / Decimal(100),
+            tiers=[
+                Tier(start=32000, price=Decimal(1) / Decimal(10)),
+                Tier(start=256000, price=Decimal(2) / Decimal(10)),
+            ],
+        ),
+        output_mtok=TieredPrices(
+            base=Decimal(13) / Decimal(100),
+            tiers=[
+                Tier(start=32000, price=Decimal(4) / Decimal(10)),
+                Tier(start=256000, price=Decimal(8) / Decimal(10)),
+            ],
+        ),
+        cache_read_mtok=TieredPrices(
+            base=Decimal(6) / Decimal(1000),
+            tiers=[
+                Tier(start=32000, price=Decimal(2) / Decimal(100)),
+                Tier(start=256000, price=Decimal(4) / Decimal(100)),
+            ],
+        ),
+        cache_write_mtok=TieredPrices(
+            base=Decimal(38) / Decimal(1000),
+            tiers=[
+                Tier(start=32000, price=Decimal(125) / Decimal(1000)),
+                Tier(start=256000, price=Decimal(25) / Decimal(100)),
+            ],
+        ),
+    ),
+    "qwen3.8-max": ModelPrice(
+        input_mtok=Decimal(2),
+        output_mtok=Decimal(6),
+        cache_read_mtok=Decimal(25) / Decimal(100),
+        cache_write_mtok=Decimal(25) / Decimal(10),
     ),
     "step-3.7-flash": ModelPrice(
         input_mtok=Decimal(2) / Decimal(10),

@@ -1,0 +1,22 @@
+{
+    "model_name": "moonshotai/kimi-k3",
+    "provider": "openrouter",
+    "settings": {
+        "max_tokens": 262144,
+        "extra_body": {
+            "provider": {
+                "allow_fallbacks": false,
+                "data_collection": "deny",
+                "order": ["moonshotai/int4"],
+                "require_parameters": false
+            },
+            "reasoning": {
+                "effort": "max",
+                "enabled": true
+            },
+            "usage": {
+                "include": true
+            }
+        }
+    }
+}
