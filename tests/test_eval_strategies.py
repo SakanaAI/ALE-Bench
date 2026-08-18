@@ -8,8 +8,14 @@ from pydantic_ai import BinaryContent
 from ale_bench.data import ScoreType
 from ale_bench.result import CaseResult, JudgeResult, ResourceUsage, Result
 from ale_bench_eval.data_types import EvaluationConfig
-from ale_bench_eval.prompts.builder import PromptArgs, create_feedback_message, diagnostic_feedback
-from ale_bench_eval.scaffolds import _build_refinement_user_prompt
+from ale_bench_eval.prompts.builder import (
+    PromptArgs,
+    create_budget_action_message,
+    create_feedback_message,
+    diagnostic_feedback,
+    parse_budget_action,
+)
+from ale_bench_eval.scaffolds import _build_refinement_user_prompt, _pick_crossover_parents, _truncate_population
 from ale_bench_eval.selection import select_worst_case_indices
 
 
@@ -184,3 +190,73 @@ def test_build_refinement_user_prompt_visualization_failure_degrades() -> None:
     result = make_result([make_case_result(100)])
     message = _build_refinement_user_prompt(config, session, result, MagicMock())
     assert all(not isinstance(content, BinaryContent) for content in message)
+
+
+def make_population_entry(score: int, code: str = "int main() {}") -> dict[str, int | str]:
+    return {"code": code, "overall_absolute_score": score}
+
+
+def test_truncate_population_orders_best_first_and_drops_empty_code() -> None:
+    entries = [
+        (("repeated_sampling", 0), make_population_entry(10)),
+        (("repeated_sampling", 1), make_population_entry(30)),
+        (("evolution", 1), make_population_entry(999, code="  ")),
+        (("evolution", 2), make_population_entry(20)),
+    ]
+    population = _truncate_population(entries, 2, ScoreType.MAXIMIZE)
+    assert [key for key, _ in population] == [("repeated_sampling", 1), ("evolution", 2)]
+    population = _truncate_population(entries, 2, ScoreType.MINIMIZE)
+    assert [key for key, _ in population] == [("repeated_sampling", 0), ("evolution", 2)]
+
+
+def test_truncate_population_is_deterministic_on_ties() -> None:
+    entries = [
+        (("repeated_sampling", 1), make_population_entry(10)),
+        (("evolution", 1), make_population_entry(10)),
+        (("repeated_sampling", 0), make_population_entry(10)),
+    ]
+    population = _truncate_population(entries, 3, ScoreType.MAXIMIZE)
+    assert [key for key, _ in population] == [
+        ("evolution", 1),
+        ("repeated_sampling", 0),
+        ("repeated_sampling", 1),
+    ]
+
+
+def test_pick_crossover_parents_is_score_diverse() -> None:
+    population = [
+        (("repeated_sampling", 0), make_population_entry(100)),
+        (("evolution", 1), make_population_entry(90)),
+        (("evolution", 2), make_population_entry(10)),
+    ]
+    best, partner = _pick_crossover_parents(population)
+    assert best[0] == ("repeated_sampling", 0)
+    assert partner[0] == ("evolution", 2)
+
+
+@pytest.mark.parametrize(
+    ("response", "expected"),
+    [
+        pytest.param("ACTION: SAMPLE\nTrying a new idea.", "sample", id="sample"),
+        pytest.param("ACTION: REFINE\nKeep improving.", "refine", id="refine"),
+        pytest.param("action: sample", "sample", id="case_insensitive"),
+        pytest.param("I considered ACTION: SAMPLE but decided on\nACTION: REFINE", "refine", id="last_match_wins"),
+        pytest.param("Let me think about it...", "refine", id="unparseable_defaults_to_refine"),
+        pytest.param("", "refine", id="empty_defaults_to_refine"),
+    ],
+)
+def test_parse_budget_action(response: str, expected: str) -> None:
+    assert parse_budget_action(response) == expected
+
+
+def test_create_budget_action_message_contents() -> None:
+    message = create_budget_action_message(
+        make_prompt_args(),
+        remaining_budget=7,
+        history_rows=[(0, "initial", 100), (1, "sample", 120), (2, "refine", 130)],
+    )
+    assert "7 calls left" in message
+    assert "- Attempt 0 (initial): score=100" in message
+    assert "- Attempt 2 (refine): score=130" in message
+    assert "ACTION: SAMPLE" in message
+    assert "ACTION: REFINE" in message
