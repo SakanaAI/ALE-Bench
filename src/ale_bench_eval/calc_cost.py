@@ -73,6 +73,11 @@ FALLBACK_DICT = {
         cache_read_mtok=Decimal(125) / Decimal(1000),
         output_mtok=Decimal(10),
     ),
+    "gemini-3.7-flash": ModelPrice(
+        input_mtok=Decimal(15) / Decimal(10),
+        cache_read_mtok=Decimal(15) / Decimal(100),
+        output_mtok=Decimal(75) / Decimal(10),
+    ),
     "gemini-3.6-flash": ModelPrice(
         input_mtok=Decimal(15) / Decimal(10),
         cache_read_mtok=Decimal(15) / Decimal(100),
@@ -325,6 +330,11 @@ FALLBACK_DICT = {
         output_mtok=Decimal(44) / Decimal(10),
         cache_read_mtok=Decimal(26) / Decimal(100),
     ),
+    "glm-5.3": ModelPrice(
+        input_mtok=Decimal(14) / Decimal(10),
+        output_mtok=Decimal(44) / Decimal(10),
+        cache_read_mtok=Decimal(26) / Decimal(100),
+    ),
     "glm-5-turbo": ModelPrice(
         input_mtok=Decimal(12) / Decimal(10),
         output_mtok=Decimal(4),
@@ -551,6 +561,11 @@ FALLBACK_DICT = {
         output_mtok=Decimal(6),
         cache_read_mtok=Decimal(25) / Decimal(100),
         cache_write_mtok=Decimal(25) / Decimal(10),
+    ),
+    "solar-pro4": ModelPrice(
+        input_mtok=Decimal(3) / Decimal(10),
+        cache_read_mtok=Decimal(6) / Decimal(100),
+        output_mtok=Decimal(12) / Decimal(10),
     ),
     "step-3.7-flash": ModelPrice(
         input_mtok=Decimal(2) / Decimal(10),

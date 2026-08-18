@@ -1,0 +1,22 @@
+{
+    "model_name": "upstage/solar-pro4",
+    "provider": "openrouter",
+    "settings": {
+        "extra_body": {
+            "max_tokens": 128000,
+            "provider": {
+                "allow_fallbacks": false,
+                "data_collection": "deny",
+                "order": ["upstage"],
+                "require_parameters": true
+            },
+            "reasoning": {
+                "effort": "max",
+                "enabled": true
+            },
+            "usage": {
+                "include": true
+            }
+        }
+    }
+}
