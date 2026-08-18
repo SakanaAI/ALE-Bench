@@ -725,6 +725,58 @@ REFINE_SPECIFIC_PROMPT = {
     ),
     "ja": Template("解法コードは、${code_block}コードブロックに記述してください。"),
 }
+EVOLUTION_MUTATION_PROMPT = {
+    "en": Template(
+        "\n\nBelow is one of your candidate solutions for this problem and its public test feedback.\n"
+        "[Candidate solution]\n```\n${parent_code}\n```\n\n"
+        "[Feedback]\n${parent_feedback}\n\n"
+        "Analyze the weaknesses of this candidate and produce an improved solution. "
+        "It can be a simple bug fix, the introduction of a new algorithm, or any degree of change from minor to major. "
+    ),
+    "ja": Template(
+        "\n\nこの問題に対するあなたの候補解のひとつと、そのパブリックテストのフィードバックを以下に示します。\n"
+        "[候補解]\n```\n${parent_code}\n```\n\n"
+        "[フィードバック]\n${parent_feedback}\n\n"
+        "この候補解の弱点を分析し、改良した解法を作成してください。"
+        "単純なバグ修正、新しいアルゴリズムの導入、または小さな変更から大きな変更まで、どの程度の変更でも構いません。"
+    ),
+}
+EVOLUTION_CROSSOVER_PROMPT = {
+    "en": Template(
+        "\n\nBelow are two of your candidate solutions for this problem with different scores.\n"
+        "[Candidate solution A] (score: ${score_a})\n```\n${code_a}\n```\n\n"
+        "[Candidate solution B] (score: ${score_b})\n```\n${code_b}\n```\n\n"
+        "Identify the distinct strengths of each candidate and combine them into a single better solution. "
+    ),
+    "ja": Template(
+        "\n\nこの問題に対する、スコアの異なるあなたの2つの候補解を以下に示します。\n"
+        "[候補解A] (スコア: ${score_a})\n```\n${code_a}\n```\n\n"
+        "[候補解B] (スコア: ${score_b})\n```\n${code_b}\n```\n\n"
+        "それぞれの候補解の異なる強みを特定し、それらを組み合わせてより良いひとつの解法を作成してください。"
+    ),
+}
+BUDGET_ACTION_PROMPT = {
+    "en": Template(
+        "You are managing a limited budget of solution-generation calls for a heuristic programming contest.\n"
+        "You have ${remaining_budget} calls left.\n\n"
+        "[Attempt history]\n${history_table}\n\n"
+        "Choose the next action:\n"
+        "- SAMPLE: write a fresh solution from scratch with a new idea, discarding the current line of work.\n"
+        "- REFINE: continue improving your current best solution.\n"
+        "Reply with exactly one line `ACTION: SAMPLE` or `ACTION: REFINE`, followed by a one-sentence rationale."
+    ),
+    "ja": Template(
+        "あなたはヒューリスティックプログラミングコンテストにおいて、限られた解生成回数の予算を管理しています。\n"
+        "残りの生成回数は ${remaining_budget} 回です。\n\n"
+        "[試行履歴]\n${history_table}\n\n"
+        "次の行動を選択してください:\n"
+        "- SAMPLE: 現在の方針を捨て、新しいアイデアでゼロから解法を書く。\n"
+        "- REFINE: 現在のベスト解の改良を続ける。\n"
+        "`ACTION: SAMPLE` または `ACTION: REFINE` のいずれかを1行で答え、続けて理由を1文で述べてください。"
+    ),
+}
+BUDGET_ACTION_MATCH = re.compile(r"ACTION:\s*(SAMPLE|REFINE)", re.IGNORECASE)
+
 NO_SUMMARY_PROMPT = {
     "en": "Your summary was not found. The summary must be written in the Markdown format in the ```md ``` code block.",
     "ja": "あなたの要約は見つかりませんでした。要約は必ずMarkdown形式で```md ```コードブロックに記述してください。",

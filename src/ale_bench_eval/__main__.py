@@ -26,7 +26,12 @@ from ale_bench_eval.prompts.builder import (
 )
 from ale_bench_eval.safe_ale_session import start_ale_bench_session
 from ale_bench_eval.safe_generation import parse_model_config
-from ale_bench_eval.scaffolds import run_repeated_sampling, run_self_refinement
+from ale_bench_eval.scaffolds import (
+    run_budget_aware,
+    run_evolutionary_search,
+    run_repeated_sampling,
+    run_self_refinement,
+)
 from ale_bench_eval.selection import (
     select_solution_from_repeated_sampling,
     select_solution_from_self_refine,
@@ -77,6 +82,10 @@ def evaluate_contest(
     feedback_diagnostic: bool = False,
     feedback_visualization: bool = False,
     n_feedback_worst_cases: int = 3,
+    strategy: Literal["self_refine", "evolution", "budget"] = "self_refine",
+    evolution_population_size: int = 4,
+    evolution_crossover_prob: float = 0.3,
+    evolution_seed: int = 0,
 ) -> None:
     """Main evaluation function orchestrating the entire benchmarking process."""
     start_time = get_now_utc()
@@ -96,6 +105,10 @@ def evaluate_contest(
         feedback_diagnostic=feedback_diagnostic,
         feedback_visualization=feedback_visualization,
         n_feedback_worst_cases=n_feedback_worst_cases,
+        strategy=strategy,
+        evolution_population_size=evolution_population_size,
+        evolution_crossover_prob=evolution_crossover_prob,
+        evolution_seed=evolution_seed,
     )
 
     # Initialize session and logging
@@ -144,7 +157,7 @@ def evaluate_contest(
         selection_method,
     )
 
-    # Phase 3: Self-refinement
+    # Phase 3: Iterative improvement (self-refinement, evolutionary search, or budget-aware)
     if results_repeated_sampling[selected_index_repeated_sampling]["is_context_length_overflow"]:
         msg = "Context length overflow occurred in the selected repeated sampling result."
         raise ValueError(msg)
@@ -156,16 +169,39 @@ def evaluate_contest(
         initial_public_result = save_info.load_ale_bench_results(
             f"repeated_sampling_results_{selected_index_repeated_sampling}.json"
         )
-    results_self_refine = run_self_refinement(
-        config=config,
-        model_config=model_config,
-        session=session,
-        initial_message_history=initial_conversations.all_messages(),
-        initial_public_result=initial_public_result,
-        initial_result=results_repeated_sampling[selected_index_repeated_sampling],
-        save_info=save_info,
-        llm_semaphore=llm_semaphore,
-    )
+    if strategy == "evolution":
+        results_phase3 = run_evolutionary_search(
+            config=config,
+            model_config=model_config,
+            session=session,
+            results_repeated_sampling=results_repeated_sampling,
+            initial_result=results_repeated_sampling[selected_index_repeated_sampling],
+            save_info=save_info,
+            llm_semaphore=llm_semaphore,
+        )
+    elif strategy == "budget":
+        results_phase3 = run_budget_aware(
+            config=config,
+            model_config=model_config,
+            session=session,
+            initial_message_history=initial_conversations.all_messages(),
+            initial_public_result=initial_public_result,
+            initial_result=results_repeated_sampling[selected_index_repeated_sampling],
+            save_info=save_info,
+            llm_semaphore=llm_semaphore,
+        )
+    else:
+        results_phase3 = run_self_refinement(
+            config=config,
+            model_config=model_config,
+            session=session,
+            initial_message_history=initial_conversations.all_messages(),
+            initial_public_result=initial_public_result,
+            initial_result=results_repeated_sampling[selected_index_repeated_sampling],
+            save_info=save_info,
+            llm_semaphore=llm_semaphore,
+        )
+    phase3_name = strategy
 
     # Phase 4: Private evaluation
     solutions_to_evaluate = [
@@ -175,23 +211,23 @@ def evaluate_contest(
             code_language=selected_code_language_repeated_sampling,
         ),
     ]
-    self_refine_target_indices = power_of_two_indices(n_self_refine)
-    for i in self_refine_target_indices:
+    phase3_target_indices = power_of_two_indices(n_self_refine)
+    for i in phase3_target_indices:
         (
-            selected_code_language_self_refine_at_i,
-            selected_code_self_refine_at_i,
-            selected_index_self_refine_at_i,
+            selected_code_language_phase3_at_i,
+            selected_code_phase3_at_i,
+            selected_index_phase3_at_i,
         ) = select_solution_from_self_refine(
-            results_self_refine=results_self_refine,
+            results_self_refine=results_phase3,
             score_type=score_type,
             n_max_refine=i,
         )
-        save_info.logger.info("Selected solution index: %s for self-refine at %s", selected_index_self_refine_at_i, i)
+        save_info.logger.info("Selected solution index: %s for %s at %s", selected_index_phase3_at_i, phase3_name, i)
         solutions_to_evaluate.append(
             Solution(
-                name=f"self_refine_{i}",
-                code=selected_code_self_refine_at_i,
-                code_language=selected_code_language_self_refine_at_i,
+                name=f"{phase3_name}_{i}",
+                code=selected_code_phase3_at_i,
+                code_language=selected_code_language_phase3_at_i,
             ),
         )
     private_result = run_private_evaluation(config, session, solutions_to_evaluate, save_info)
@@ -219,17 +255,17 @@ def evaluate_contest(
             "total_cost": repeated_sampling_total_cost,
         },
     }
-    for i in self_refine_target_indices:
-        self_refine_total_tokens, self_refine_total_cost = estimate_total_cost(
-            save_info.results / "self_refine_results.json",
+    for i in phase3_target_indices:
+        phase3_total_tokens, phase3_total_cost = estimate_total_cost(
+            save_info.results / f"{phase3_name}_results.json",
             n_max_refine=i,
         )
         save_info.logger.info(
-            "Self-refine %s total cost: %s, total tokens: %s", i, self_refine_total_cost, self_refine_total_tokens
+            "%s %s total cost: %s, total tokens: %s", phase3_name, i, phase3_total_cost, phase3_total_tokens
         )
-        total_cost[f"self_refine_{i}"] = {
-            "total_tokens": self_refine_total_tokens,
-            "total_cost": self_refine_total_cost,
+        total_cost[f"{phase3_name}_{i}"] = {
+            "total_tokens": phase3_total_tokens,
+            "total_cost": phase3_total_cost,
         }
     save_info.save_results("total_cost.json", total_cost)
     save_info.logger.info("Total cost saved.")
@@ -266,6 +302,10 @@ def _run_evaluation_task(
     feedback_diagnostic: bool,
     feedback_visualization: bool,
     n_feedback_worst_cases: int,
+    strategy: Literal["self_refine", "evolution", "budget"],
+    evolution_population_size: int,
+    evolution_crossover_prob: float,
+    evolution_seed: int,
 ) -> tuple[str, bool, str]:
     """Wrapper function for parallel evaluation execution."""
     try:
@@ -288,6 +328,10 @@ def _run_evaluation_task(
             feedback_diagnostic=feedback_diagnostic,
             feedback_visualization=feedback_visualization,
             n_feedback_worst_cases=n_feedback_worst_cases,
+            strategy=strategy,
+            evolution_population_size=evolution_population_size,
+            evolution_crossover_prob=evolution_crossover_prob,
+            evolution_seed=evolution_seed,
         )
         print(f"✅ Completed: {model_name} on {problem_id}")
     except Exception as e:
@@ -319,6 +363,10 @@ def main(
     feedback_diagnostic: bool = False,
     feedback_visualization: bool = False,
     n_feedback_worst_cases: int = 3,
+    strategy: Literal["self_refine", "evolution", "budget"] = "self_refine",
+    evolution_population_size: int = 4,
+    evolution_crossover_prob: float = 0.3,
+    evolution_seed: int = 0,
 ) -> None:
     """Main entry point for running LLM benchmarking evaluation."""
     start_time = get_now_utc()
@@ -329,6 +377,10 @@ def main(
     code_language = cast("EvalCodeLanguage", str(code_language).strip())
     judge_version = cast("EvalJudgeVersion", str(judge_version).strip())
     prompt_language = cast('Literal["en", "ja"]', str(prompt_language).strip())
+    strategy = cast('Literal["self_refine", "evolution", "budget"]', str(strategy).strip())
+    if strategy not in {"self_refine", "evolution", "budget"}:
+        msg = f"Unknown strategy: {strategy}"
+        raise ValueError(msg)
 
     if n_repeated_sampling < 1:
         msg = "n_repeated_sampling must be at least 1"
@@ -434,6 +486,18 @@ def main(
         if existing_settings.get("n_feedback_worst_cases", 3) != n_feedback_worst_cases:
             msg = "Experiment settings already exist with different n_feedback_worst_cases"
             raise ValueError(msg)
+        if existing_settings.get("strategy", "self_refine") != strategy:
+            msg = "Experiment settings already exist with different strategy"
+            raise ValueError(msg)
+        if existing_settings.get("evolution_population_size", 4) != evolution_population_size:
+            msg = "Experiment settings already exist with different evolution_population_size"
+            raise ValueError(msg)
+        if existing_settings.get("evolution_crossover_prob", 0.3) != evolution_crossover_prob:
+            msg = "Experiment settings already exist with different evolution_crossover_prob"
+            raise ValueError(msg)
+        if existing_settings.get("evolution_seed", 0) != evolution_seed:
+            msg = "Experiment settings already exist with different evolution_seed"
+            raise ValueError(msg)
     # Save (update) experiment settings
     with setting_path.open("w") as f:
         json.dump(
@@ -456,6 +520,10 @@ def main(
                 "feedback_diagnostic": feedback_diagnostic,
                 "feedback_visualization": feedback_visualization,
                 "n_feedback_worst_cases": n_feedback_worst_cases,
+                "strategy": strategy,
+                "evolution_population_size": evolution_population_size,
+                "evolution_crossover_prob": evolution_crossover_prob,
+                "evolution_seed": evolution_seed,
             },
             f,
             indent=4,
@@ -505,6 +573,10 @@ def main(
                     feedback_diagnostic,
                     feedback_visualization,
                     n_feedback_worst_cases,
+                    strategy,
+                    evolution_population_size,
+                    evolution_crossover_prob,
+                    evolution_seed,
                 ): problem_id
                 for problem_id in problem_ids
             }

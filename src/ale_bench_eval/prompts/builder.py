@@ -10,10 +10,14 @@ from ale_bench.result import CaseResult, JudgeResult, Result
 from ale_bench.utils import parse_statement
 from ale_bench_eval.language_config import EvalCodeLanguage, EvalJudgeVersion, get_any_languages
 from ale_bench_eval.prompts.texts import (
+    BUDGET_ACTION_MATCH,
+    BUDGET_ACTION_PROMPT,
     CODE_BLOCK_MATCH,
     CODE_BLOCK_STRING,
     CONSIDERATION_PROMPT,
     DIAGNOSTIC_FEEDBACK_PROMPT,
+    EVOLUTION_CROSSOVER_PROMPT,
+    EVOLUTION_MUTATION_PROMPT,
     FEEDBACK_PROMPT,
     IMPLEMENTATION_ANY_PROMPT,
     IMPLEMENTATION_SPECIFIC_PROMPT,
@@ -160,6 +164,16 @@ def result_feedback(args: PromptArgs, result: Result | None) -> str:
     return feedback
 
 
+def refine_instruction(args: PromptArgs) -> str:
+    if args.code_language == "any":
+        return REFINE_ANY_PROMPT[args.prompt_language].substitute(
+            code_blocks=get_code_block_string_any(args.judge_version),
+        )
+    return REFINE_SPECIFIC_PROMPT[args.prompt_language].substitute(
+        code_block=CODE_BLOCK_STRING[args.code_language],
+    )
+
+
 def diagnostic_feedback(args: PromptArgs, result: Result, worst_indices: list[int]) -> str:
     worst_set = set(worst_indices)
     case_lines = []
@@ -185,20 +199,69 @@ def create_feedback_message(
     feedback = result_feedback(args, public_result)
     if diagnostic is not None:
         feedback += diagnostic
-    if args.code_language == "any":
-        refine_prompt = REFINE_ANY_PROMPT[args.prompt_language].substitute(
-            code_blocks=get_code_block_string_any(args.judge_version),
-        )
-    else:
-        refine_prompt = REFINE_SPECIFIC_PROMPT[args.prompt_language].substitute(
-            code_block=CODE_BLOCK_STRING[args.code_language],
-        )
+    refine_prompt = refine_instruction(args)
     feedback_prompt = FEEDBACK_PROMPT[args.prompt_language].substitute(feedback=feedback)
     if not visualizations:
         return [feedback_prompt + refine_prompt]
     case_indices = ", ".join(str(idx + 1) for idx in visualized_case_indices or [])
     feedback_prompt += VIS_FEEDBACK_PROMPT[args.prompt_language].substitute(case_indices=case_indices)
     return [feedback_prompt, *visualizations, refine_prompt]
+
+
+def create_mutation_message(
+    args: PromptArgs,
+    problem: Problem,
+    parent_code: str,
+    parent_feedback: str,
+    image_format: Literal["jpeg", "png", "webp"] = "png",
+) -> list[str | BinaryContent]:
+    contents = create_initial_message(args, problem, image_format)
+    operator_prompt = EVOLUTION_MUTATION_PROMPT[args.prompt_language].substitute(
+        parent_code=parent_code,
+        parent_feedback=parent_feedback,
+    )
+    merged = merge_text_contents([*contents, operator_prompt + refine_instruction(args)])
+    return convert_pillow_to_binary(merged, image_format)
+
+
+def create_crossover_message(
+    args: PromptArgs,
+    problem: Problem,
+    code_a: str,
+    score_a: int,
+    code_b: str,
+    score_b: int,
+    image_format: Literal["jpeg", "png", "webp"] = "png",
+) -> list[str | BinaryContent]:
+    contents = create_initial_message(args, problem, image_format)
+    operator_prompt = EVOLUTION_CROSSOVER_PROMPT[args.prompt_language].substitute(
+        code_a=code_a,
+        score_a=score_a,
+        code_b=code_b,
+        score_b=score_b,
+    )
+    merged = merge_text_contents([*contents, operator_prompt + refine_instruction(args)])
+    return convert_pillow_to_binary(merged, image_format)
+
+
+def create_budget_action_message(
+    args: PromptArgs,
+    remaining_budget: int,
+    history_rows: list[tuple[int, str, int]],
+) -> str:
+    history_table = "\n".join(f"- Attempt {index} ({action}): score={score}" for index, action, score in history_rows)
+    return BUDGET_ACTION_PROMPT[args.prompt_language].substitute(
+        remaining_budget=remaining_budget,
+        history_table=history_table,
+    )
+
+
+def parse_budget_action(response: str) -> Literal["sample", "refine"]:
+    """Parse the controller's action choice; the last match wins, and anything else means refine."""
+    matches = BUDGET_ACTION_MATCH.findall(response)
+    if not matches:
+        return "refine"
+    return "sample" if matches[-1].upper() == "SAMPLE" else "refine"
 
 
 def get_code_from_response(response: str, code_language: str, judge_version: str) -> tuple[str, str]:

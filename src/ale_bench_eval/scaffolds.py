@@ -1,3 +1,4 @@
+import random
 from collections.abc import Callable, Sequence
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from threading import BoundedSemaphore
@@ -9,6 +10,7 @@ from pydantic_ai.messages import ModelMessage, UserContent
 from pydantic_ai.run import AgentRunResult
 
 from ale_bench.constants import NO_LOCAL_VIS
+from ale_bench.data import ScoreType
 from ale_bench.result import JudgeResult, Result
 from ale_bench.session import Session
 from ale_bench_eval.calc_cost import calc_cost
@@ -18,17 +20,29 @@ from ale_bench_eval.language_config import get_default_code_language
 from ale_bench_eval.logger import SaveInfo
 from ale_bench_eval.prompts.builder import (
     convert_pillow_to_binary,
+    create_budget_action_message,
+    create_crossover_message,
     create_feedback_message,
+    create_initial_message,
+    create_mutation_message,
+    create_system_message,
     diagnostic_feedback,
     get_code_from_response,
+    parse_budget_action,
+    result_feedback,
 )
 from ale_bench_eval.safe_generation import MaxTokenError, safe_generation
-from ale_bench_eval.selection import get_worst_score, select_worst_case_indices
+from ale_bench_eval.selection import (
+    get_worst_score,
+    select_solution_from_self_refine,
+    select_worst_case_indices,
+)
 
 TIMEOUT_SECONDS = 3600
 MAX_RETRIES = 30
 JUDGE_MAX_RETRIES = 3
 JUDGE_RETRY_WAIT_SECONDS = 5.0
+MIN_CROSSOVER_POPULATION = 2
 
 T = TypeVar("T")
 
@@ -584,3 +598,449 @@ def run_self_refinement(
         raise RuntimeError(msg)
 
     return results_self_refine
+
+
+PopulationKey = tuple[str, int]
+
+
+def _load_phase3_results(
+    save_info: SaveInfo,
+    results_filename: str,
+    initial_result: dict[str, Any],
+) -> dict[int, dict[str, Any]]:
+    """Load (or seed) a phase-3 results dict whose keys must be continuous from 0 to n-1."""
+    if (save_info.results / results_filename).exists():
+        results_raw = save_info.load_results(results_filename)
+        results = {int(k): v for k, v in results_raw.items()}
+        save_info.logger.info("Loaded %s results from %s", len(results), results_filename)
+    else:
+        save_info.logger.info("No results found for %s, starting from scratch", results_filename)
+        results = {0: initial_result}
+    if set(results.keys()) != set(range(len(results))):
+        msg = "Results keys must be continuous from 0 to n-1"
+        raise ValueError(msg)
+    return results
+
+
+def _save_phase3_step(
+    *,
+    step_name: str,
+    i: int,
+    response: AgentRunResult[str] | None,
+    entry: dict[str, Any],
+    results: dict[int, dict[str, Any]],
+    results_filename: str,
+    conversations_filename: str,
+    save_info: SaveInfo,
+) -> None:
+    if response is not None:
+        _run_with_retries(
+            f"{step_name} conversation save",
+            save_info,
+            lambda: save_info.save_conversations(conversations_filename, response),
+        )
+    updated_results = {**results, i: entry}
+    _run_with_retries(
+        f"{step_name} summary save",
+        save_info,
+        lambda: save_info.save_results(results_filename, {str(k): v for k, v in sorted(updated_results.items())}),
+    )
+    results[i] = entry
+
+
+def _finalize_generation_step(
+    *,
+    response: AgentRunResult[str] | None,
+    code_language: str,
+    code: str,
+    is_context_length_overflow: bool,
+    config: EvaluationConfig,
+    model_config: dict[str, Any],
+    session: Session,
+    public_cases: list[str] | str | None,
+    save_info: SaveInfo,
+    filename: str,
+    extra_response: AgentRunResult[str] | None = None,
+) -> tuple[dict[str, Any], Result | None]:
+    """Evaluate a generated solution and build the standard result entry.
+
+    Token usage and cost cover both `response` and `extra_response` (e.g. a controller call).
+    """
+    overall_absolute_score = get_worst_score(session.problem.metadata.score_type)
+    public_result: Result | None = None
+    if response is not None:
+        eval_code_language = code_language
+        eval_code = code
+        is_code_empty = eval_code.strip() == ""
+        if is_code_empty:
+            if eval_code_language == "":
+                eval_code_language = get_default_code_language(config.prompt_args.judge_version)
+            eval_code = get_ce_code(eval_code_language)
+        public_result = _evaluate_and_save_public_result(
+            config=config,
+            session=session,
+            public_cases=public_cases,
+            code=eval_code,
+            code_language=eval_code_language,
+            save_info=save_info,
+            filename=filename,
+        )
+        overall_absolute_score = (
+            public_result.overall_absolute_score
+            if public_result.overall_judge_result == JudgeResult.ACCEPTED
+            else get_worst_score(session.problem.metadata.score_type)
+        )
+        save_info.logger.info("Overall absolute score: %s", overall_absolute_score)
+        if is_code_empty:
+            public_result = None
+
+    usages = [r.usage for r in (extra_response, response) if r is not None]
+    entry = {
+        "code_language": code_language,
+        "code": code,
+        "overall_absolute_score": overall_absolute_score,
+        "is_context_length_overflow": is_context_length_overflow,
+        "input_tokens": sum(int(usage.input_tokens) for usage in usages) if usages else None,
+        "output_tokens": sum(int(usage.output_tokens) for usage in usages) if usages else None,
+        "total_tokens": sum(int(usage.total_tokens) for usage in usages) if usages else None,
+        "cost": sum(calc_cost(usage, model_config["model_name"]) for usage in usages) if usages else None,
+    }
+    return entry, public_result
+
+
+def _truncate_population(
+    entries: list[tuple[PopulationKey, dict[str, Any]]],
+    size: int,
+    score_type: ScoreType,
+) -> list[tuple[PopulationKey, dict[str, Any]]]:
+    """Keep the top-`size` non-empty solutions ordered from best to worst (deterministic)."""
+    valid = [(key, entry) for key, entry in entries if str(entry.get("code", "")).strip() != ""]
+    sign = -1 if score_type == ScoreType.MAXIMIZE else 1
+    valid.sort(key=lambda item: (sign * item[1]["overall_absolute_score"], item[0]))
+    return valid[:size]
+
+
+def _pick_crossover_parents(
+    population: list[tuple[PopulationKey, dict[str, Any]]],
+) -> tuple[tuple[PopulationKey, dict[str, Any]], tuple[PopulationKey, dict[str, Any]]]:
+    """Pair the best member with the member whose score differs from it the most."""
+    best = population[0]
+    best_score = best[1]["overall_absolute_score"]
+    partner = max(population[1:], key=lambda item: abs(item[1]["overall_absolute_score"] - best_score))
+    return best, partner
+
+
+def _load_parent_feedback(
+    config: EvaluationConfig,
+    save_info: SaveInfo,
+    key: PopulationKey,
+    parent_entry: dict[str, Any],
+) -> str:
+    kind, index = key
+    try:
+        parent_result = save_info.load_ale_bench_results(f"{kind}_results_{index}.json")
+    except Exception as e:
+        save_info.logger.info("Failed to load parent result %s_%s: %s", kind, index, e)
+        return f"Overall absolute score: {parent_entry['overall_absolute_score']}"
+    return result_feedback(config.prompt_args, parent_result)
+
+
+def run_evolutionary_search(
+    config: EvaluationConfig,
+    model_config: dict[str, Any],
+    session: Session,
+    results_repeated_sampling: dict[int, dict[str, Any]],
+    initial_result: dict[str, Any],
+    save_info: SaveInfo,
+    llm_semaphore: BoundedSemaphore | None = None,
+) -> dict[int, dict[str, Any]]:
+    """Run an evolutionary search over a population of solutions.
+
+    The population is seeded with the repeated sampling results. Each iteration generates one
+    child via LLM mutation (improve one parent with its feedback) or crossover (combine two
+    score-diverse parents), evaluates it, and truncates the population by score. Operator and
+    parent choices are deterministic per (evolution_seed, iteration), which makes resuming from
+    saved results exact.
+    """
+    public_cases = None
+    if config.n_public_cases is not None:
+        public_cases = session.case_gen(list(range(config.n_public_cases)))
+
+    results_filename = "evolution_results.json"
+    results_evolution = _load_phase3_results(save_info, results_filename, initial_result)
+    initial_index = len(results_evolution)
+    if initial_index >= config.n_self_refine:
+        if not (save_info.results / results_filename).exists():  # NOTE: n_self_refine=1
+            _run_with_retries(
+                "Evolution summary save",
+                save_info,
+                lambda: save_info.save_results(results_filename, {str(k): v for k, v in results_evolution.items()}),
+            )
+        save_info.logger.info("Skipping evolution because already generated %s results", initial_index)
+        return results_evolution
+
+    score_type = session.problem.metadata.score_type
+    for i in range(initial_index, config.n_self_refine):
+        save_info.logger.info("Evolution %s/%s", i + 1, config.n_self_refine)
+        rng = random.Random(config.evolution_seed * 1_000_003 + i)  # noqa: S311 (not cryptographic)
+        # NOTE: Evolution entry 0 duplicates the selected repeated sampling entry, so exclude it
+        seed_entries = [(("repeated_sampling", j), entry) for j, entry in results_repeated_sampling.items()]
+        child_entries = [(("evolution", j), entry) for j, entry in results_evolution.items() if j > 0]
+        population = _truncate_population(seed_entries + child_entries, config.evolution_population_size, score_type)
+        if not population:
+            msg = "Evolution population is empty (no valid parent solutions)"
+            raise RuntimeError(msg)
+
+        use_crossover = len(population) >= MIN_CROSSOVER_POPULATION and rng.random() < config.evolution_crossover_prob
+        if use_crossover:
+            (key_a, parent_a), (key_b, parent_b) = _pick_crossover_parents(population)
+            user_prompt = create_crossover_message(
+                config.prompt_args,
+                session.problem,
+                parent_a["code"],
+                parent_a["overall_absolute_score"],
+                parent_b["code"],
+                parent_b["overall_absolute_score"],
+            )
+            operation = "crossover"
+            parents = [f"{key_a[0]}_{key_a[1]}", f"{key_b[0]}_{key_b[1]}"]
+        else:
+            parent_key, parent_entry = population[rng.randrange(len(population))]
+            parent_feedback = _load_parent_feedback(config, save_info, parent_key, parent_entry)
+            user_prompt = create_mutation_message(
+                config.prompt_args,
+                session.problem,
+                parent_entry["code"],
+                parent_feedback,
+            )
+            operation = "mutation"
+            parents = [f"{parent_key[0]}_{parent_key[1]}"]
+        save_info.logger.info("Evolution operation: %s on %s", operation, parents)
+
+        is_context_length_overflow = False
+        response: AgentRunResult[str] | None = None
+        code_language = ""
+        code = ""
+        try:
+            response = safe_generation(
+                model_config=model_config,
+                user_prompt=user_prompt,
+                system_prompt=create_system_message(config.prompt_args),
+                timeout=TIMEOUT_SECONDS,
+                num_retries=MAX_RETRIES,
+                llm_semaphore=llm_semaphore,
+            )
+            code_language, code = get_code_from_response(
+                response.output,
+                config.prompt_args.code_language,
+                config.prompt_args.judge_version,
+            )
+        except MaxTokenError as e:
+            # NOTE: Prompts are stateless and bounded, so this should be rare; skip this child
+            save_info.logger.info("Context length overflow for evolution %s: %s", i, e)
+            is_context_length_overflow = True
+        except Exception as e:
+            save_info.logger.info("Error for evolution %s: %s", i, e)
+            msg = f"Error during evolution {i}: {e}"
+            raise ValueError(msg) from e
+
+        entry, _ = _finalize_generation_step(
+            response=response,
+            code_language=code_language,
+            code=code,
+            is_context_length_overflow=is_context_length_overflow,
+            config=config,
+            model_config=model_config,
+            session=session,
+            public_cases=public_cases,
+            save_info=save_info,
+            filename=f"evolution_results_{i}.json",
+        )
+        entry["operation"] = operation
+        entry["parents"] = parents
+        _save_phase3_step(
+            step_name="Evolution",
+            i=i,
+            response=response,
+            entry=entry,
+            results=results_evolution,
+            results_filename=results_filename,
+            conversations_filename=f"evolution_conversations_{i}.json",
+            save_info=save_info,
+        )
+
+    return results_evolution
+
+
+def _load_budget_message_history(
+    save_info: SaveInfo,
+    index: int,
+    initial_message_history: list[ModelMessage],
+) -> list[ModelMessage]:
+    if index == 0:
+        return initial_message_history
+    return save_info.load_conversations(f"budget_conversations_{index}.json").all_messages()
+
+
+def _load_budget_public_result(
+    save_info: SaveInfo,
+    index: int,
+    initial_public_result: Result | None,
+    results: dict[int, dict[str, Any]],
+) -> Result | None:
+    if str(results[index].get("code", "")).strip() == "":
+        return None
+    if index == 0:
+        return initial_public_result
+    return save_info.load_ale_bench_results(f"budget_results_{index}.json")
+
+
+def run_budget_aware(
+    config: EvaluationConfig,
+    model_config: dict[str, Any],
+    session: Session,
+    initial_message_history: list[ModelMessage],
+    initial_public_result: Result | None,
+    initial_result: dict[str, Any],
+    save_info: SaveInfo,
+    llm_semaphore: BoundedSemaphore | None = None,
+) -> dict[int, dict[str, Any]]:
+    """Run a budget-aware strategy where the model chooses each step's action.
+
+    Each step first asks the model (a compact controller call) to choose between SAMPLE
+    (a fresh solution in a fresh context) and REFINE (continue improving the current best
+    solution), given the remaining budget and the attempt history. A context length overflow
+    on REFINE forces SAMPLE for the remaining steps; an overflow on SAMPLE stops the run.
+    """
+    public_cases = None
+    if config.n_public_cases is not None:
+        public_cases = session.case_gen(list(range(config.n_public_cases)))
+
+    results_filename = "budget_results.json"
+    results_budget = _load_phase3_results(save_info, results_filename, initial_result)
+    max_result_index = max(results_budget.keys())
+    last_entry = results_budget[max_result_index]
+    if last_entry["is_context_length_overflow"] and last_entry.get("action") == "sample":
+        save_info.logger.info(
+            "Already found a context length overflow on sample for budget %s, returning the results",
+            max_result_index,
+        )
+        return results_budget
+    initial_index = len(results_budget)
+    if initial_index >= config.n_self_refine:
+        if not (save_info.results / results_filename).exists():  # NOTE: n_self_refine=1
+            _run_with_retries(
+                "Budget summary save",
+                save_info,
+                lambda: save_info.save_results(results_filename, {str(k): v for k, v in results_budget.items()}),
+            )
+        save_info.logger.info("Skipping budget-aware strategy because already generated %s results", initial_index)
+        return results_budget
+
+    score_type = session.problem.metadata.score_type
+    force_sample = any(
+        entry.get("action") == "refine" and entry["is_context_length_overflow"] for entry in results_budget.values()
+    )
+    for i in range(initial_index, config.n_self_refine):
+        remaining_budget = config.n_self_refine - i
+        controller_response: AgentRunResult[str] | None = None
+        if force_sample:
+            action = "sample"
+            save_info.logger.info("Budget %s/%s: forcing sample after refine overflow", i + 1, config.n_self_refine)
+        else:
+            history_rows = [
+                (j, str(results_budget[j].get("action", "initial")), int(results_budget[j]["overall_absolute_score"]))
+                for j in sorted(results_budget)
+            ]
+            try:
+                controller_response = safe_generation(
+                    model_config=model_config,
+                    user_prompt=create_budget_action_message(config.prompt_args, remaining_budget, history_rows),
+                    system_prompt=create_system_message(config.prompt_args),
+                    timeout=TIMEOUT_SECONDS,
+                    num_retries=MAX_RETRIES,
+                    llm_semaphore=llm_semaphore,
+                )
+                action = parse_budget_action(controller_response.output)
+            except Exception as e:
+                save_info.logger.info("Budget controller failed at step %s: %s. Defaulting to refine", i, e)
+                action = "refine"
+            save_info.logger.info("Budget %s/%s: action=%s", i + 1, config.n_self_refine, action)
+
+        refined_from: int | None = None
+        is_context_length_overflow = False
+        response: AgentRunResult[str] | None = None
+        code_language = ""
+        code = ""
+        try:
+            if action == "sample":
+                response = safe_generation(
+                    model_config=model_config,
+                    user_prompt=create_initial_message(config.prompt_args, session.problem),
+                    system_prompt=create_system_message(config.prompt_args),
+                    timeout=TIMEOUT_SECONDS,
+                    num_retries=MAX_RETRIES,
+                    llm_semaphore=llm_semaphore,
+                )
+            else:
+                _, _, best_index = select_solution_from_self_refine(results_budget, score_type=score_type)
+                refined_from = best_index
+                best_public_result = _load_budget_public_result(
+                    save_info, best_index, initial_public_result, results_budget
+                )
+                response = safe_generation(
+                    model_config=model_config,
+                    user_prompt=_build_refinement_user_prompt(config, session, best_public_result, save_info),
+                    message_history=_load_budget_message_history(save_info, best_index, initial_message_history),
+                    timeout=TIMEOUT_SECONDS,
+                    num_retries=MAX_RETRIES,
+                    llm_semaphore=llm_semaphore,
+                )
+            code_language, code = get_code_from_response(
+                response.output,
+                config.prompt_args.code_language,
+                config.prompt_args.judge_version,
+            )
+        except MaxTokenError as e:
+            save_info.logger.info("Context length overflow for budget %s (%s): %s", i, action, e)
+            is_context_length_overflow = True
+            if action == "refine":
+                force_sample = True
+        except Exception as e:
+            save_info.logger.info("Error for budget %s: %s", i, e)
+            msg = f"Error during budget-aware step {i}: {e}"
+            raise ValueError(msg) from e
+
+        entry, _ = _finalize_generation_step(
+            response=response,
+            code_language=code_language,
+            code=code,
+            is_context_length_overflow=is_context_length_overflow,
+            config=config,
+            model_config=model_config,
+            session=session,
+            public_cases=public_cases,
+            save_info=save_info,
+            filename=f"budget_results_{i}.json",
+            extra_response=controller_response,
+        )
+        entry["action"] = action
+        entry["refined_from"] = refined_from
+        # NOTE: Keep all budget conversations because any past best may be refined later
+        _save_phase3_step(
+            step_name="Budget",
+            i=i,
+            response=response,
+            entry=entry,
+            results=results_budget,
+            results_filename=results_filename,
+            conversations_filename=f"budget_conversations_{i}.json",
+            save_info=save_info,
+        )
+
+        # End the run if even a fresh context overflows
+        if is_context_length_overflow and action == "sample":
+            save_info.logger.info("Context length overflow on sample for budget %s, stopping", i)
+            break
+
+    return results_budget

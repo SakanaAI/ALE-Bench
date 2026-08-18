@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Literal
 
 from pydantic import BaseModel, Field
 
@@ -30,3 +31,7 @@ class EvaluationConfig:
     feedback_diagnostic: bool = False
     feedback_visualization: bool = False
     n_feedback_worst_cases: int = 3
+    strategy: Literal["self_refine", "evolution", "budget"] = "self_refine"
+    evolution_population_size: int = 4
+    evolution_crossover_prob: float = 0.3
+    evolution_seed: int = 0
