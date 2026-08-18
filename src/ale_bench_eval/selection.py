@@ -1,8 +1,10 @@
+from collections.abc import Sequence
 from typing import Any, Literal, TypeGuard
 
 import numpy as np
 
 from ale_bench.data import ScoreType
+from ale_bench.result import CaseResult, JudgeResult
 from ale_bench_eval.language_config import ALL_CODE_LANGUAGES_SET, StoredCodeLanguage
 
 VALID_CODE_LANGUAGES = {"", "any", *ALL_CODE_LANGUAGES_SET}
@@ -29,6 +31,32 @@ def get_solution_info(target_result: dict[str, Any]) -> tuple[StoredCodeLanguage
 
 def get_worst_score(score_type: ScoreType) -> int:
     return -1 if score_type == ScoreType.MAXIMIZE else 1000000000000000000
+
+
+def select_worst_case_indices(
+    case_results: Sequence[CaseResult],
+    score_type: ScoreType,
+    k: int,
+) -> list[int]:
+    """Select the indices of the k worst cases; non-AC cases rank worse than any accepted case.
+
+    Args:
+        case_results: Per-case results to rank.
+        score_type: Score type (MINIMIZE or MAXIMIZE).
+        k: Number of indices to return.
+
+    Returns:
+        list of case indices ordered from worst to less bad.
+
+    """
+    sign = -1 if score_type == ScoreType.MAXIMIZE else 1
+
+    def badness(idx: int) -> tuple[int, int, int]:
+        case_result = case_results[idx]
+        is_accepted = case_result.judge_result == JudgeResult.ACCEPTED
+        return (int(is_accepted), -sign * case_result.absolute_score, idx)
+
+    return sorted(range(len(case_results)), key=badness)[:k]
 
 
 def select_solution_from_repeated_sampling(

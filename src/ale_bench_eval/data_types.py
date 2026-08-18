@@ -27,3 +27,6 @@ class EvaluationConfig:
     problem_id: str
     lite_version: bool
     root_path: Path | None = None
+    feedback_diagnostic: bool = False
+    feedback_visualization: bool = False
+    n_feedback_worst_cases: int = 3

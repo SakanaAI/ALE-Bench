@@ -74,6 +74,9 @@ def evaluate_contest(
     root_path: Path | None = None,
     llm_semaphore: BoundedSemaphore | None = None,
     max_repeated_sampling_workers: int | None = None,
+    feedback_diagnostic: bool = False,
+    feedback_visualization: bool = False,
+    n_feedback_worst_cases: int = 3,
 ) -> None:
     """Main evaluation function orchestrating the entire benchmarking process."""
     start_time = get_now_utc()
@@ -90,6 +93,9 @@ def evaluate_contest(
         problem_id=problem_id,
         lite_version=lite_version,
         root_path=root_path,
+        feedback_diagnostic=feedback_diagnostic,
+        feedback_visualization=feedback_visualization,
+        n_feedback_worst_cases=n_feedback_worst_cases,
     )
 
     # Initialize session and logging
@@ -257,6 +263,9 @@ def _run_evaluation_task(
     root_path: Path,
     llm_semaphore: BoundedSemaphore | None,
     max_repeated_sampling_workers: int | None,
+    feedback_diagnostic: bool,
+    feedback_visualization: bool,
+    n_feedback_worst_cases: int,
 ) -> tuple[str, bool, str]:
     """Wrapper function for parallel evaluation execution."""
     try:
@@ -276,6 +285,9 @@ def _run_evaluation_task(
             root_path=root_path,
             llm_semaphore=llm_semaphore,
             max_repeated_sampling_workers=max_repeated_sampling_workers,
+            feedback_diagnostic=feedback_diagnostic,
+            feedback_visualization=feedback_visualization,
+            n_feedback_worst_cases=n_feedback_worst_cases,
         )
         print(f"✅ Completed: {model_name} on {problem_id}")
     except Exception as e:
@@ -304,6 +316,9 @@ def main(
     use_statement_image: bool = False,
     root_path: str | None = None,
     skip_llm_inference: bool = False,
+    feedback_diagnostic: bool = False,
+    feedback_visualization: bool = False,
+    n_feedback_worst_cases: int = 3,
 ) -> None:
     """Main entry point for running LLM benchmarking evaluation."""
     start_time = get_now_utc()
@@ -410,6 +425,15 @@ def main(
         if existing_settings["selection_method"] != selection_method:
             msg = "Experiment settings already exist with different selection_method"
             raise ValueError(msg)
+        if existing_settings.get("feedback_diagnostic", False) != feedback_diagnostic:
+            msg = "Experiment settings already exist with different feedback_diagnostic"
+            raise ValueError(msg)
+        if existing_settings.get("feedback_visualization", False) != feedback_visualization:
+            msg = "Experiment settings already exist with different feedback_visualization"
+            raise ValueError(msg)
+        if existing_settings.get("n_feedback_worst_cases", 3) != n_feedback_worst_cases:
+            msg = "Experiment settings already exist with different n_feedback_worst_cases"
+            raise ValueError(msg)
     # Save (update) experiment settings
     with setting_path.open("w") as f:
         json.dump(
@@ -429,6 +453,9 @@ def main(
                 "max_repeated_sampling_workers": max_repeated_sampling_workers,
                 "problem_ids_type": problem_ids_type,
                 "selection_method": selection_method,
+                "feedback_diagnostic": feedback_diagnostic,
+                "feedback_visualization": feedback_visualization,
+                "n_feedback_worst_cases": n_feedback_worst_cases,
             },
             f,
             indent=4,
@@ -475,6 +502,9 @@ def main(
                     exp_root,
                     llm_semaphore,
                     max_repeated_sampling_workers,
+                    feedback_diagnostic,
+                    feedback_visualization,
+                    n_feedback_worst_cases,
                 ): problem_id
                 for problem_id in problem_ids
             }

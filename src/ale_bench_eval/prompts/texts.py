@@ -681,6 +681,36 @@ FEEDBACK_PROMPT_WITH_SUMMARY = {
         "単純なバグ修正、新しいアルゴリズムの導入、または小さな変更から大きな変更まで、どの程度の変更でも構いません。"
     ),
 }
+DIAGNOSTIC_FEEDBACK_PROMPT = {
+    "en": Template(
+        "\n\n[Per-case diagnostics]\n"
+        "Each public case is listed with its instance parameters (the first line of its input) and its score. "
+        "The worst-scoring cases are marked with (WORST).\n"
+        "${case_table}\n"
+        "Before refining your code, state a hypothesis about which input regimes "
+        "(e.g. parameter ranges) your solution handles poorly and why. "
+    ),
+    "ja": Template(
+        "\n\n[ケースごとの診断]\n"
+        "各パブリックケースについて、インスタンスパラメータ(入力の1行目)とスコアを列挙します。"
+        "スコアが最も悪いケースには (WORST) が付いています。\n"
+        "${case_table}\n"
+        "コードを改良する前に、あなたの解法がどのような入力領域(パラメータ範囲など)で"
+        "性能が悪いのか、そしてその理由について仮説を述べてください。"
+    ),
+}
+VIS_FEEDBACK_PROMPT = {
+    "en": Template(
+        "\n\nThe images below visualize the final state of your solution "
+        "on the worst-scoring cases: ${case_indices}. "
+        "Inspect them for structural weaknesses before refining your code.\n"
+    ),
+    "ja": Template(
+        "\n\n以下の画像は、スコアが最も悪いケース(${case_indices})における"
+        "あなたの解法の最終状態を可視化したものです。"
+        "コードを改良する前に、構造的な弱点がないか確認してください。\n"
+    ),
+}
 REFINE_ANY_PROMPT = {
     "en": Template(
         "Your solution code should be written in the specified code block as follows:\n${code_blocks}"

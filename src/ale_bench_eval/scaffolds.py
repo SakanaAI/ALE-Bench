@@ -4,9 +4,11 @@ from threading import BoundedSemaphore
 from time import sleep
 from typing import Any, TypeVar
 
+from pydantic_ai import BinaryContent
 from pydantic_ai.messages import ModelMessage, UserContent
 from pydantic_ai.run import AgentRunResult
 
+from ale_bench.constants import NO_LOCAL_VIS
 from ale_bench.result import JudgeResult, Result
 from ale_bench.session import Session
 from ale_bench_eval.calc_cost import calc_cost
@@ -15,11 +17,13 @@ from ale_bench_eval.evaluate import get_ce_code
 from ale_bench_eval.language_config import get_default_code_language
 from ale_bench_eval.logger import SaveInfo
 from ale_bench_eval.prompts.builder import (
+    convert_pillow_to_binary,
     create_feedback_message,
+    diagnostic_feedback,
     get_code_from_response,
 )
 from ale_bench_eval.safe_generation import MaxTokenError, safe_generation
-from ale_bench_eval.selection import get_worst_score
+from ale_bench_eval.selection import get_worst_score, select_worst_case_indices
 
 TIMEOUT_SECONDS = 3600
 MAX_RETRIES = 30
@@ -114,6 +118,77 @@ def _evaluate_and_save_public_result(
         lambda: save_info.save_ale_bench_results(filename, public_result),
     )
     return public_result
+
+
+def _render_worst_case_visualizations(
+    session: Session,
+    public_result: Result,
+    worst_indices: list[int],
+    save_info: SaveInfo,
+) -> tuple[list[BinaryContent], list[int]]:
+    """Render visualization images of the worst cases; failures degrade to no images."""
+    if session.problem.metadata.problem_id in NO_LOCAL_VIS:
+        return [], []
+    candidate_indices: list[int] = []
+    input_strs: list[str] = []
+    output_strs: list[str] = []
+    for idx in worst_indices:
+        case_result = public_result.case_results[idx]
+        if case_result.input_str is None or case_result.output_str is None:
+            continue
+        candidate_indices.append(idx)
+        input_strs.append(case_result.input_str)
+        output_strs.append(case_result.output_str)
+    if not candidate_indices:
+        return [], []
+    try:
+        images = session.local_visualization(input_strs, output_strs)
+    except Exception as e:
+        save_info.logger.info("Local visualization failed: %s", e)
+        return [], []
+    if not isinstance(images, list):  # scalar result for a single case
+        images = [images]
+    rendered_indices: list[int] = []
+    rendered_images = []
+    for idx, image in zip(candidate_indices, images, strict=True):
+        if image is not None:
+            rendered_indices.append(idx)
+            rendered_images.append(image)
+    binary_contents = [
+        content for content in convert_pillow_to_binary(rendered_images, "png") if isinstance(content, BinaryContent)
+    ]
+    return binary_contents, rendered_indices
+
+
+def _build_refinement_user_prompt(
+    config: EvaluationConfig,
+    session: Session,
+    public_result: Result | None,
+    save_info: SaveInfo,
+) -> list[str | BinaryContent]:
+    if public_result is None or not (config.feedback_diagnostic or config.feedback_visualization):
+        return create_feedback_message(config.prompt_args, public_result)
+    worst_indices = select_worst_case_indices(
+        public_result.case_results,
+        session.problem.metadata.score_type,
+        config.n_feedback_worst_cases,
+    )
+    diagnostic = None
+    if config.feedback_diagnostic:
+        diagnostic = diagnostic_feedback(config.prompt_args, public_result, worst_indices)
+    visualizations: list[BinaryContent] = []
+    rendered_indices: list[int] = []
+    if config.feedback_visualization:
+        visualizations, rendered_indices = _render_worst_case_visualizations(
+            session, public_result, worst_indices, save_info
+        )
+    return create_feedback_message(
+        config.prompt_args,
+        public_result,
+        diagnostic=diagnostic,
+        visualizations=visualizations,
+        visualized_case_indices=rendered_indices,
+    )
 
 
 def _delete_previous_self_refine_conversation(save_info: SaveInfo, i: int) -> None:
@@ -409,7 +484,7 @@ def run_self_refinement(
         try:
             response = safe_generation(
                 model_config=model_config,
-                user_prompt=create_feedback_message(config.prompt_args, public_result)[0],
+                user_prompt=_build_refinement_user_prompt(config, session, public_result, save_info),
                 message_history=message_history,  # including system prompt
                 timeout=TIMEOUT_SECONDS,
                 num_retries=MAX_RETRIES,

@@ -13,6 +13,7 @@ from ale_bench_eval.prompts.texts import (
     CODE_BLOCK_MATCH,
     CODE_BLOCK_STRING,
     CONSIDERATION_PROMPT,
+    DIAGNOSTIC_FEEDBACK_PROMPT,
     FEEDBACK_PROMPT,
     IMPLEMENTATION_ANY_PROMPT,
     IMPLEMENTATION_SPECIFIC_PROMPT,
@@ -22,6 +23,7 @@ from ale_bench_eval.prompts.texts import (
     REFINE_ANY_PROMPT,
     REFINE_SPECIFIC_PROMPT,
     SYSTEM_PROMPT,
+    VIS_FEEDBACK_PROMPT,
     get_code_block_string_any,
     get_code_language_libraries,
     get_code_language_libraries_any,
@@ -158,21 +160,45 @@ def result_feedback(args: PromptArgs, result: Result | None) -> str:
     return feedback
 
 
-def create_feedback_message(args: PromptArgs, public_result: Result | None) -> list[str]:
+def diagnostic_feedback(args: PromptArgs, result: Result, worst_indices: list[int]) -> str:
+    worst_set = set(worst_indices)
+    case_lines = []
+    for idx, case_result in enumerate(result.case_results):
+        params = case_result.input_str.split("\n", 1)[0].strip() if case_result.input_str else "N/A"
+        line = f'- Case {idx + 1}: params="{params}", score={case_result.absolute_score}'
+        if case_result.judge_result != JudgeResult.ACCEPTED:
+            line += f", judge={case_result.judge_result.value}"
+        if idx in worst_set:
+            line += " (WORST)"
+        case_lines.append(line)
+    return DIAGNOSTIC_FEEDBACK_PROMPT[args.prompt_language].substitute(case_table="\n".join(case_lines))
+
+
+def create_feedback_message(
+    args: PromptArgs,
+    public_result: Result | None,
+    *,
+    diagnostic: str | None = None,
+    visualizations: list[BinaryContent] | None = None,
+    visualized_case_indices: list[int] | None = None,
+) -> list[str | BinaryContent]:
     feedback = result_feedback(args, public_result)
+    if diagnostic is not None:
+        feedback += diagnostic
     if args.code_language == "any":
-        return [
-            FEEDBACK_PROMPT[args.prompt_language].substitute(feedback=feedback)
-            + REFINE_ANY_PROMPT[args.prompt_language].substitute(
-                code_blocks=get_code_block_string_any(args.judge_version),
-            )
-        ]
-    return [
-        FEEDBACK_PROMPT[args.prompt_language].substitute(feedback=feedback)
-        + REFINE_SPECIFIC_PROMPT[args.prompt_language].substitute(
+        refine_prompt = REFINE_ANY_PROMPT[args.prompt_language].substitute(
+            code_blocks=get_code_block_string_any(args.judge_version),
+        )
+    else:
+        refine_prompt = REFINE_SPECIFIC_PROMPT[args.prompt_language].substitute(
             code_block=CODE_BLOCK_STRING[args.code_language],
         )
-    ]
+    feedback_prompt = FEEDBACK_PROMPT[args.prompt_language].substitute(feedback=feedback)
+    if not visualizations:
+        return [feedback_prompt + refine_prompt]
+    case_indices = ", ".join(str(idx + 1) for idx in visualized_case_indices or [])
+    feedback_prompt += VIS_FEEDBACK_PROMPT[args.prompt_language].substitute(case_indices=case_indices)
+    return [feedback_prompt, *visualizations, refine_prompt]
 
 
 def get_code_from_response(response: str, code_language: str, judge_version: str) -> tuple[str, str]:
