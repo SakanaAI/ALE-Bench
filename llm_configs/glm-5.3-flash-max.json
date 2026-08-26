@@ -1,0 +1,24 @@
+{
+    "model_name": "z-ai/glm-5.3-flash",
+    "provider": "openrouter",
+    "settings": {
+        "temperature": 1.0,
+        "top_p": 0.95,
+        "extra_body": {
+            "max_tokens": 131072,
+            "provider": {
+                "allow_fallbacks": false,
+                "data_collection": "deny",
+                "order": ["z-ai/fp8"],
+                "require_parameters": true
+            },
+            "reasoning": {
+                "effort": "max",
+                "enabled": true
+            },
+            "usage": {
+                "include": true
+            }
+        }
+    }
+}

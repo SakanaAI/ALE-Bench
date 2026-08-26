@@ -335,6 +335,11 @@ FALLBACK_DICT = {
         output_mtok=Decimal(44) / Decimal(10),
         cache_read_mtok=Decimal(26) / Decimal(100),
     ),
+    "glm-5.3-flash": ModelPrice(
+        input_mtok=Decimal(15) / Decimal(100),
+        output_mtok=Decimal(5) / Decimal(10),
+        cache_read_mtok=Decimal(3) / Decimal(100),
+    ),
     "glm-5-turbo": ModelPrice(
         input_mtok=Decimal(12) / Decimal(10),
         output_mtok=Decimal(4),
