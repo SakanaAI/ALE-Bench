@@ -60,7 +60,7 @@ eval = [
     "numpy>=2.0.2",
     "pandas>=2.3.3",
     "psutil>=7.0.0",
-    "pydantic-ai>=1.100.0",
+    "pydantic-ai[bedrock]>=1.100.0",
 ]
 
 [tool.uv]
@@ -74,9 +74,11 @@ markers = [
     "slow: marks tests as slow (deselect with '-m \"not slow\"')",
     "docker: marks tests as docker (deselect with '-m \"not docker\"')",
 ]
+testpaths = ["tests"]
 
 [tool.ruff]
 extend-exclude = [
+    "*.md",
     "dockerfiles/tests",
     "mcp",
     "src/ale_bench_eval/codes",

@@ -1,0 +1,10 @@
+{
+    "model_name": "gemini-3.8-flash",
+    "provider": "google",
+    "settings": {
+        "google_thinking_config": {
+            "include_thoughts": true,
+            "thinking_level": "high"
+        }
+    }
+}

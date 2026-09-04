@@ -73,6 +73,11 @@ FALLBACK_DICT = {
         cache_read_mtok=Decimal(125) / Decimal(1000),
         output_mtok=Decimal(10),
     ),
+    "gemini-3.8-flash": ModelPrice(
+        input_mtok=Decimal(15) / Decimal(10),
+        cache_read_mtok=Decimal(15) / Decimal(100),
+        output_mtok=Decimal(75) / Decimal(10),
+    ),
     "gemini-3.7-flash": ModelPrice(
         input_mtok=Decimal(15) / Decimal(10),
         cache_read_mtok=Decimal(15) / Decimal(100),
@@ -201,6 +206,12 @@ FALLBACK_DICT = {
         cache_write_mtok=Decimal(375) / Decimal(100),
         cache_read_mtok=Decimal(3) / Decimal(10),
         output_mtok=Decimal(15),
+    ),
+    "claude-fable-5-1": ModelPrice(
+        input_mtok=Decimal(10),
+        cache_write_mtok=Decimal(125) / Decimal(10),
+        cache_read_mtok=Decimal(25) / Decimal(100),
+        output_mtok=Decimal(50),
     ),
     "grok-4.1-fast": ModelPrice(
         input_mtok=Decimal(2) / Decimal(10),
@@ -351,17 +362,22 @@ FALLBACK_DICT = {
     "muse-spark-1.1": ModelPrice(
         input_mtok=Decimal(125) / Decimal(100),
         output_mtok=Decimal(425) / Decimal(100),
-        cache_read_mtok=Decimal(15) / Decimal(100)
+        cache_read_mtok=Decimal(15) / Decimal(100),
     ),
     "muse-spark-1.2": ModelPrice(
         input_mtok=Decimal(125) / Decimal(100),
         output_mtok=Decimal(425) / Decimal(100),
-        cache_read_mtok=Decimal(15) / Decimal(100)
+        cache_read_mtok=Decimal(15) / Decimal(100),
+    ),
+    "muse-spark-1.3": ModelPrice(
+        input_mtok=Decimal(125) / Decimal(100),
+        output_mtok=Decimal(425) / Decimal(100),
+        cache_read_mtok=Decimal(15) / Decimal(100),
     ),
     "muse-glimmer-30b": ModelPrice(
         input_mtok=Decimal(35) / Decimal(100),
         output_mtok=Decimal(15) / Decimal(10),
-        cache_read_mtok=Decimal(4) / Decimal(100)
+        cache_read_mtok=Decimal(4) / Decimal(100),
     ),
     "llama-4-maverick": ModelPrice(input_mtok=Decimal(18) / Decimal(100), output_mtok=Decimal(6) / Decimal(10)),
     "codestral-2508": ModelPrice(input_mtok=Decimal(3) / Decimal(10), output_mtok=Decimal(9) / Decimal(10)),
