@@ -566,7 +566,8 @@ def load_problem(problem_id: str, *, lite_version: bool) -> tuple[Problem, Seeds
     shutil.rmtree(data_root / problem_id)  # Remove the original directory after moving
 
     # Load the problem data
-    data = json.load((data_root / "data.json").open("r"))
+    with (data_root / "data.json").open() as f:
+        data = json.load(f)
     (data_root / "data.json").unlink()  # Remove the JSON file after loading
     metadata = data["metadata"]
     if metadata["problem_id"] != problem_id:

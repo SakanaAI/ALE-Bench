@@ -1,9 +1,9 @@
 import base64
-import dataclasses
 import datetime
 import json
 import logging
 import os
+from decimal import Decimal
 from pathlib import Path
 from typing import Any, Final
 from uuid import uuid4
@@ -26,20 +26,6 @@ def get_now_utc_string() -> str:
     return get_now_utc().strftime("%Y-%m-%d_%H-%M-%S")
 
 
-class CustomJSONEncoder(json.JSONEncoder):
-    def default(self, o: object) -> object:
-        match o:
-            case bytes():
-                return {
-                    "__type__": "bytes",
-                    "encoding": "base64",
-                    "data": base64.b64encode(o).decode("ascii"),
-                }
-            case datetime.datetime():
-                return {"__type__": "datetime", "data": o.isoformat()}
-        return super().default(o)
-
-
 class CustomJSONDecoder(json.JSONDecoder):
     def __init__(self) -> None:
         super().__init__(object_hook=self.object_hook)
@@ -50,6 +36,8 @@ class CustomJSONDecoder(json.JSONDecoder):
                 return base64.b64decode(data)
             case {"__type__": "datetime", "data": str(data)}:
                 return datetime.datetime.fromisoformat(data)
+            case {"__type__": "decimal", "data": str(data)}:
+                return Decimal(data)
         return obj
 
 
@@ -86,7 +74,7 @@ class Logger:
         self.logger.error(message, *args)
 
     def exception(self, message: object, *args: object) -> None:
-        self.logger.exception(message, *args)
+        self.logger.exception(message, *args)  # noqa: LOG004
 
 
 # NOTE: AgentRunResult is a dataclass, which does not support recursive deserialization
@@ -94,12 +82,12 @@ class AgentRunResultWrapper(BaseModel):
     value: AgentRunResult
 
 
-def atomic_json_dump(path: Path, data: object, encoder_cls: type[json.JSONEncoder] | None = None) -> None:
+def atomic_json_dump(path: Path, data: object) -> None:
     """Atomically write JSON data to a file in the same directory."""
     tmp_path = path.with_name(f".{path.name}.{uuid4().hex[:12]}.tmp")
     try:
         with tmp_path.open("w") as f:
-            json.dump(data, f, cls=encoder_cls)
+            json.dump(data, f)
             f.flush()
             os.fsync(f.fileno())
         tmp_path.replace(path)
@@ -126,10 +114,10 @@ class SaveInfo:
 
     def save_conversations(self, filename: str, agent_run_result: AgentRunResult) -> None:
         """Save conversations to JSON file."""
+        data = AgentRunResultWrapper(value=agent_run_result).model_dump(mode="json", round_trip=True)["value"]
         atomic_json_dump(
             self.conversations / filename,
-            dataclasses.asdict(agent_run_result),
-            encoder_cls=CustomJSONEncoder,
+            data,
         )
 
     def load_conversations(self, filename: str) -> AgentRunResult:

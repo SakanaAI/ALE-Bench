@@ -43,41 +43,45 @@ class TestMLE:
     )
 
     @pytest.fixture(scope="class")
-    def ahc001_session(self) -> Session:
+    @classmethod
+    def ahc001_session(cls) -> Session:
         return ale_bench.start("ahc001", lite_version=False)
 
     @pytest.fixture(scope="class")
-    def ahc003_session(self) -> Session:
+    @classmethod
+    def ahc003_session(cls) -> Session:
         return ale_bench.start("ahc003", lite_version=False)
 
     @pytest.fixture(scope="class")
-    def inputs(self) -> dict[str, str]:
+    @classmethod
+    def inputs(cls) -> dict[str, str]:
         return {
-            "ahc001": (self.INPUTS_ROOT / "ahc001.txt").read_text(),
-            "ahc003": (self.INPUTS_ROOT / "ahc003.txt").read_text(),
+            "ahc001": (cls.INPUTS_ROOT / "ahc001.txt").read_text(),
+            "ahc003": (cls.INPUTS_ROOT / "ahc003.txt").read_text(),
         }
 
     @pytest.fixture(scope="class")
-    def mle_codes(self) -> dict[CodeLanguage, str]:
+    @classmethod
+    def mle_codes(cls) -> dict[CodeLanguage, str]:
         return {
-            CodeLanguage.BASH: (self.CODES_ROOT / "mle_bash.bash").read_text(),
-            CodeLanguage.CPP17: (self.CODES_ROOT / "mle_cpp17.cpp").read_text(),
-            CodeLanguage.CPP20: (self.CODES_ROOT / "mle_cpp20.cpp").read_text(),
-            CodeLanguage.CPP23: (self.CODES_ROOT / "mle_cpp23.cpp").read_text(),
-            CodeLanguage.CSHARP: (self.CODES_ROOT / "mle_csharp.cs").read_text(),
-            CodeLanguage.FISH: (self.CODES_ROOT / "mle_fish.fish").read_text(),
-            CodeLanguage.FORTRAN: (self.CODES_ROOT / "mle_fortran.f90").read_text(),
-            CodeLanguage.GO: (self.CODES_ROOT / "mle_go.go").read_text(),
-            CodeLanguage.HASKELL: (self.CODES_ROOT / "mle_haskell.hs").read_text(),
-            CodeLanguage.JAVASCRIPT: (self.CODES_ROOT / "mle_javascript.js").read_text(),
-            CodeLanguage.JULIA: (self.CODES_ROOT / "mle_julia.jl").read_text(),
-            CodeLanguage.LEAN: (self.CODES_ROOT / "mle_lean.lean").read_text(),
-            CodeLanguage.OCAML: (self.CODES_ROOT / "mle_ocaml.ml").read_text(),
-            CodeLanguage.PERL: (self.CODES_ROOT / "mle_perl.pl").read_text(),
-            CodeLanguage.PYPY: (self.CODES_ROOT / "mle_pypy.py").read_text(),
-            CodeLanguage.PYTHON: (self.CODES_ROOT / "mle_python.py").read_text(),
-            CodeLanguage.RUST: (self.CODES_ROOT / "mle_rust.rs").read_text(),
-            CodeLanguage.TYPESCRIPT: (self.CODES_ROOT / "mle_typescript.ts").read_text(),
+            CodeLanguage.BASH: (cls.CODES_ROOT / "mle_bash.bash").read_text(),
+            CodeLanguage.CPP17: (cls.CODES_ROOT / "mle_cpp17.cpp").read_text(),
+            CodeLanguage.CPP20: (cls.CODES_ROOT / "mle_cpp20.cpp").read_text(),
+            CodeLanguage.CPP23: (cls.CODES_ROOT / "mle_cpp23.cpp").read_text(),
+            CodeLanguage.CSHARP: (cls.CODES_ROOT / "mle_csharp.cs").read_text(),
+            CodeLanguage.FISH: (cls.CODES_ROOT / "mle_fish.fish").read_text(),
+            CodeLanguage.FORTRAN: (cls.CODES_ROOT / "mle_fortran.f90").read_text(),
+            CodeLanguage.GO: (cls.CODES_ROOT / "mle_go.go").read_text(),
+            CodeLanguage.HASKELL: (cls.CODES_ROOT / "mle_haskell.hs").read_text(),
+            CodeLanguage.JAVASCRIPT: (cls.CODES_ROOT / "mle_javascript.js").read_text(),
+            CodeLanguage.JULIA: (cls.CODES_ROOT / "mle_julia.jl").read_text(),
+            CodeLanguage.LEAN: (cls.CODES_ROOT / "mle_lean.lean").read_text(),
+            CodeLanguage.OCAML: (cls.CODES_ROOT / "mle_ocaml.ml").read_text(),
+            CodeLanguage.PERL: (cls.CODES_ROOT / "mle_perl.pl").read_text(),
+            CodeLanguage.PYPY: (cls.CODES_ROOT / "mle_pypy.py").read_text(),
+            CodeLanguage.PYTHON: (cls.CODES_ROOT / "mle_python.py").read_text(),
+            CodeLanguage.RUST: (cls.CODES_ROOT / "mle_rust.rs").read_text(),
+            CodeLanguage.TYPESCRIPT: (cls.CODES_ROOT / "mle_typescript.ts").read_text(),
         }
 
     @staticmethod

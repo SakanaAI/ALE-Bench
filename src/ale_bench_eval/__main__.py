@@ -374,7 +374,8 @@ def main(
 
     setting_path = exp_root / "experiment_settings.json"
     if setting_path.is_file():  # Load the existing experiment settings
-        existing_settings = json.load(setting_path.open())
+        with setting_path.open() as f:
+            existing_settings = json.load(f)
         if existing_settings["model_name"] != model_name:
             msg = "Experiment settings already exist with different model_name"
             raise ValueError(msg)

@@ -853,7 +853,8 @@ class TestSession:
             tmp_path = Path(tmp_dir) / "dummy_session.json"
             dummy_session.save(tmp_path)
             assert tmp_path.is_file()
-            actual = json.load(tmp_path.open())
+            with tmp_path.open() as f:
+                actual = json.load(f)
             assert actual["problem_id"] == "ahc001"
             assert actual["public_seeds"] == [0, 1, 2]
             assert actual["private_seeds"] == [3, 4, 5]

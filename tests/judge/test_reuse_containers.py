@@ -21,7 +21,8 @@ class TestReuseContainers:
     SCORE_RELATIVE_TOLERANCE = 0.005
 
     @pytest.fixture(scope="class")
-    def ahc001_session(self) -> Generator[Session, None, None]:
+    @classmethod
+    def ahc001_session(cls) -> Generator[Session, None, None]:
         session = ale_bench.start("ahc001", lite_version=False)
         try:
             yield session
@@ -29,7 +30,8 @@ class TestReuseContainers:
             session.close()
 
     @pytest.fixture(scope="class")
-    def ahc003_session(self) -> Generator[Session, None, None]:
+    @classmethod
+    def ahc003_session(cls) -> Generator[Session, None, None]:
         session = ale_bench.start("ahc003", lite_version=False)
         try:
             yield session
@@ -37,17 +39,19 @@ class TestReuseContainers:
             session.close()
 
     @pytest.fixture(scope="class")
-    def inputs(self) -> dict[str, str]:
+    @classmethod
+    def inputs(cls) -> dict[str, str]:
         return {
-            "ahc001": (self.INPUTS_ROOT / "ahc001.txt").read_text(),
-            "ahc003": (self.INPUTS_ROOT / "ahc003.txt").read_text(),
+            "ahc001": (cls.INPUTS_ROOT / "ahc001.txt").read_text(),
+            "ahc003": (cls.INPUTS_ROOT / "ahc003.txt").read_text(),
         }
 
     @pytest.fixture(scope="class")
-    def ac_codes(self) -> dict[str, str]:
+    @classmethod
+    def ac_codes(cls) -> dict[str, str]:
         return {
-            "ahc001": (self.CODES_ROOT / "ac_cpp20_ahc001.cpp").read_text(),
-            "ahc003": (self.CODES_ROOT / "ac_cpp20_ahc003.cpp").read_text(),
+            "ahc001": (cls.CODES_ROOT / "ac_cpp20_ahc001.cpp").read_text(),
+            "ahc003": (cls.CODES_ROOT / "ac_cpp20_ahc003.cpp").read_text(),
         }
 
     @classmethod
