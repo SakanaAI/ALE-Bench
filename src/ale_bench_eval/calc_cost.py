@@ -5,6 +5,12 @@ from genai_prices.types import ModelPrice, Tier, TieredPrices
 from pydantic_ai.usage import RunUsage
 
 FALLBACK_DICT = {
+    "gpt-6-astra": ModelPrice(
+        input_mtok=TieredPrices(base=Decimal(10), tiers=[Tier(start=272000, price=Decimal(20))]),
+        cache_read_mtok=TieredPrices(base=Decimal(1), tiers=[Tier(start=272000, price=Decimal(2))]),
+        cache_write_mtok=TieredPrices(base=Decimal(125) / Decimal(10), tiers=[Tier(start=272000, price=Decimal(25))]),
+        output_mtok=TieredPrices(base=Decimal(50), tiers=[Tier(start=272000, price=Decimal(75))]),
+    ),
     "gpt-5.6-sol": ModelPrice(
         input_mtok=TieredPrices(base=Decimal(5), tiers=[Tier(start=272000, price=Decimal(10))]),
         cache_read_mtok=TieredPrices(base=Decimal(5) / Decimal(10), tiers=[Tier(start=272000, price=Decimal(1))]),
