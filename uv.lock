@@ -105,7 +105,7 @@ requires-dist = [
     { name = "cairosvg" },
     { name = "docker" },
     { name = "fire", marker = "extra == 'eval'", specifier = ">=0.7.0" },
-    { name = "genai-prices", marker = "extra == 'eval'", specifier = ">=0.0.61" },
+    { name = "genai-prices", marker = "extra == 'eval'", specifier = ">=0.1.0" },
     { name = "huggingface-hub" },
     { name = "numpy", marker = "extra == 'eval'", specifier = ">=2.0.2" },
     { name = "pandas", marker = "extra == 'eval'", specifier = ">=2.3.3" },
@@ -113,7 +113,7 @@ requires-dist = [
     { name = "polars", specifier = ">=1" },
     { name = "psutil", marker = "extra == 'eval'", specifier = ">=7.0.0" },
     { name = "pydantic", specifier = ">=2" },
-    { name = "pydantic-ai", extras = ["bedrock"], marker = "extra == 'eval'", specifier = ">=1.100.0" },
+    { name = "pydantic-ai", extras = ["bedrock"], marker = "extra == 'eval'", specifier = ">=2.17.0" },
 ]
 provides-extras = ["eval"]
 
