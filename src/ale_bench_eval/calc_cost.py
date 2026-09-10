@@ -278,6 +278,11 @@ FALLBACK_DICT = {
         output_mtok=Decimal(87) / Decimal(100),
         cache_read_mtok=Decimal(3625) / Decimal(1000000),
     ),
+    "deepseek-v4.1-flash": ModelPrice(
+        input_mtok=Decimal(3) / Decimal(10),
+        output_mtok=Decimal(12) / Decimal(10),
+        cache_read_mtok=Decimal(6) / Decimal(100),
+    ),
     "mimo-v2-flash:free": ModelPrice(input_mtok=Decimal(1) / Decimal(10), output_mtok=Decimal(3) / Decimal(10)),
     "mimo-v2-pro": ModelPrice(
         input_mtok=TieredPrices(
