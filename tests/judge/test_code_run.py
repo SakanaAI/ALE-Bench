@@ -9,7 +9,8 @@ from ale_bench.tool_wrappers.code_runner import ExitStatus
 @pytest.mark.docker
 class TestCodeRun:
     @pytest.fixture(scope="class")
-    def session(self) -> Session:
+    @classmethod
+    def session(cls) -> Session:
         return ale_bench.start("ahc001", lite_version=False)
 
     def test_cpp20(self, session: Session) -> None:

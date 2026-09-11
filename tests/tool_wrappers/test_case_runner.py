@@ -1168,9 +1168,11 @@ def test_run_vis_reusable_container() -> None:
 
     assert pool.calls == [
         (
-            "timeout 10 bash -c 'rm -f /tmp/vis.html; "
-            f"vis {reusable_input_file} {reusable_output_file}; "
-            f"cp /tmp/vis.html {reusable_local_visualization_file}'",
+            (
+                "timeout 10 bash -c 'rm -f /tmp/vis.html; "
+                f"vis {reusable_input_file} {reusable_output_file}; "
+                f"cp /tmp/vis.html {reusable_local_visualization_file}'"
+            ),
             ale_bench.constants.TMP_DIR,
         )
     ]

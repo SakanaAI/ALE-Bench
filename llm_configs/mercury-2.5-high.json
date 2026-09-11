@@ -1,0 +1,23 @@
+{
+    "model_name": "inception/mercury-2.5",
+    "provider": "openrouter",
+    "settings": {
+        "temperature": 1.0,
+        "extra_body": {
+            "max_tokens": 65536,
+            "provider": {
+                "allow_fallbacks": false,
+                "data_collection": "deny",
+                "order": ["inception"],
+                "require_parameters": true
+            },
+            "reasoning": {
+                "enabled": true,
+                "effort": "high"
+            },
+            "usage": {
+                "include": true
+            }
+        }
+    }
+}

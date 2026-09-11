@@ -123,7 +123,7 @@ session = ale_bench.start(
     lite_version=False,
     num_workers=13,  # Adjust based on your machine's physical cores
     run_visualization_server=True,
-    visualization_server_port=8080
+    visualization_server_port=8080,
 )
 
 # NOTE: While the `session` object contains attributes like `private_seeds`,
@@ -141,16 +141,10 @@ problem_constraints_obj = problem.constraints  # Structured constraints
 
 # Example: Constructing an initial prompt for an LLM/LMM
 # (Replace with your agent's prompt engineering)
-initial_messages = my_agent.construct_initial_prompt(
-    problem_statement_md,
-    problem_images,
-    problem_constraints_obj
-)
+initial_messages = my_agent.construct_initial_prompt(problem_statement_md, problem_images, problem_constraints_obj)
 
 # Utility for parsing problem statements (e.g., for OpenAI models)
-parsed_content = ale_bench.utils.parse_statement(
-    problem_statement_md, problem_images, return_openai=True
-)
+parsed_content = ale_bench.utils.parse_statement(problem_statement_md, problem_images, return_openai=True)
 
 # Obtain a solution from your LLM/LMM agent
 agent_response = my_agent.get_llm_response(initial_messages)
@@ -169,21 +163,19 @@ current_best_code = extracted_code
 
 # Define your maximum refinement iterations, e.g., MAX_REFINEMENT_ITERATIONS = 5
 for i in range(MAX_REFINEMENT_ITERATIONS):
-    feedback_prompt = my_agent.construct_feedback_prompt(
-        problem, current_best_code, public_result
-    )
+    feedback_prompt = my_agent.construct_feedback_prompt(problem, current_best_code, public_result)
     refined_response = my_agent.get_llm_response(feedback_prompt)
     refined_code = my_agent.parse_code_from_response(refined_response)
 
-    if refined_code: # Agent might not always produce new code
+    if refined_code:  # Agent might not always produce new code
         public_result = session.public_eval(refined_code, code_language=detected_language)
         solution_attempts.append((refined_code, public_result))
         # Update current_best_code based on problem's score type (minimize/maximize)
         # (Implementation depends on your agent's strategy)
         current_best_code = my_agent.select_best_code(solution_attempts, problem.metadata.score_type)
     else:
-        print(f"Iteration {i+1}: No new code generated.")
-        break # Or implement other logic like re-prompting
+        print(f"Iteration {i + 1}: No new code generated.")
+        break  # Or implement other logic like re-prompting
 
 # Select the final submission based on overall public performance
 final_submission_code = my_agent.select_best_code(solution_attempts, problem.metadata.score_type)
@@ -203,7 +195,7 @@ print(f"Current Resource Usage: {session.current_resource_usage}")
 print(f"Remaining Resources: {session.remaining_resource_usage}")
 
 # Inspect local Rust tool sources (if applicable)
-if session.problem.metadata.problem_type == "reactive": # Example condition
+if session.problem.metadata.problem_type == "reactive":  # Example condition
     ale_bench.utils.print_dir_tree(session.rust_src_dir)
 
 # Persist session state for later analysis or resumption

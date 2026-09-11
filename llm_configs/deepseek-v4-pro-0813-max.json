@@ -1,0 +1,24 @@
+{
+    "model_name": "deepseek/deepseek-v4-pro-0813",
+    "provider": "openrouter",
+    "settings": {
+        "temperature": 1.0,
+        "top_p": 1.0,
+        "extra_body": {
+            "max_tokens": 384000,
+            "provider": {
+                "allow_fallbacks": false,
+                "data_collection": "allow",
+                "order": ["deepseek"],
+                "require_parameters": true
+            },
+            "reasoning": {
+                "effort": "max",
+                "enabled": true
+            },
+            "usage": {
+                "include": true
+            }
+        }
+    }
+}

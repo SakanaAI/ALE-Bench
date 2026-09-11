@@ -1,0 +1,24 @@
+{
+    "model_name": "meta/muse-glimmer-30b",
+    "provider": "openrouter",
+    "settings": {
+        "temperature": 1.0,
+        "top_p": 0.95,
+        "extra_body": {
+            "top_k": 64,
+            "provider": {
+                "allow_fallbacks": false,
+                "data_collection": "deny",
+                "order": ["together"],
+                "require_parameters": true
+            },
+            "reasoning": {
+                "effort": "high",
+                "enabled": true
+            },
+            "usage": {
+                "include": true
+            }
+        }
+    }
+}

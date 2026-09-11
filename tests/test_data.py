@@ -1385,7 +1385,8 @@ class TestStandings:
 
 class TestProblemMetaData:
     @pytest.fixture(scope="class")
-    def instantiate_problem_metadata(self, request: pytest.FixtureRequest) -> ProblemMetaData:
+    @classmethod
+    def instantiate_problem_metadata(cls, request: pytest.FixtureRequest) -> ProblemMetaData:
         return ProblemMetaData(
             problem_id="ahc001",
             start_at=request.param[0],
@@ -1498,7 +1499,8 @@ class TestProblemMetaData:
 @pytest.mark.slow
 class TestRatingCalculator:
     @pytest.fixture(scope="class")
-    def rating_calculator_instance(self) -> RatingCalculator:
+    @classmethod
+    def rating_calculator_instance(cls) -> RatingCalculator:
         return RatingCalculator()
 
     @pytest.mark.parametrize(
@@ -1651,7 +1653,8 @@ class TestRatingCalculator:
 @pytest.mark.slow
 class TestRankingCalculator:
     @pytest.fixture(scope="class")
-    def ranking_calculator_instance(self) -> RankingCalculator:
+    @classmethod
+    def ranking_calculator_instance(cls) -> RankingCalculator:
         return RankingCalculator(minimum_participation=0)
 
     @pytest.mark.slow
