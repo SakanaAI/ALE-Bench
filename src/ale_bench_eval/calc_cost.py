@@ -326,6 +326,16 @@ FALLBACK_DICT = {
             tiers=[Tier(start=256000, price=Decimal(4) / Decimal(10))],
         ),
     ),
+    "mimo-v2.6-flash": ModelPrice(
+        input_mtok=Decimal(14) / Decimal(100),
+        output_mtok=Decimal(28) / Decimal(100),
+        cache_read_mtok=Decimal(28) / Decimal(10000),
+    ),
+    "mimo-v2.6-pro": ModelPrice(
+        input_mtok=Decimal(435) / Decimal(1000),
+        output_mtok=Decimal(87) / Decimal(100),
+        cache_read_mtok=Decimal(36) / Decimal(10000),
+    ),
     "glm-4.5": ModelPrice(input_mtok=Decimal(59) / Decimal(100), output_mtok=Decimal(21) / Decimal(10)),
     "glm-4.6": ModelPrice(
         input_mtok=Decimal(6) / Decimal(10),
