@@ -241,6 +241,12 @@ FALLBACK_DICT = {
         cache_read_mtok=Decimal(25) / Decimal(100),
         output_mtok=Decimal(50),
     ),
+    "claude-opus-5-5": ModelPrice(
+        input_mtok=Decimal(4),
+        cache_write_mtok=Decimal(5),
+        cache_read_mtok=Decimal(2) / Decimal(10),
+        output_mtok=Decimal(20),
+    ),
     "grok-4.1-fast": ModelPrice(
         input_mtok=Decimal(2) / Decimal(10),
         cache_read_mtok=Decimal(5) / Decimal(100),
