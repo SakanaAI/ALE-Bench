@@ -5,6 +5,28 @@ from genai_prices.types import ModelPrice, Tier, TieredPrices
 from pydantic_ai.usage import RunUsage
 
 FALLBACK_DICT = {
+    "gpt-6-sol": ModelPrice(
+        input_mtok=TieredPrices(base=Decimal(2), tiers=[Tier(start=272000, price=Decimal(4))]),
+        cache_read_mtok=TieredPrices(
+            base=Decimal(2) / Decimal(10), tiers=[Tier(start=272000, price=Decimal(4) / Decimal(10))]
+        ),
+        cache_write_mtok=TieredPrices(base=Decimal(25) / Decimal(10), tiers=[Tier(start=272000, price=Decimal(5))]),
+        output_mtok=TieredPrices(base=Decimal(10), tiers=[Tier(start=272000, price=Decimal(15))]),
+    ),
+    "gpt-6-luna": ModelPrice(
+        input_mtok=TieredPrices(
+            base=Decimal(1) / Decimal(10), tiers=[Tier(start=272000, price=Decimal(2) / Decimal(10))]
+        ),
+        cache_read_mtok=TieredPrices(
+            base=Decimal(1) / Decimal(100), tiers=[Tier(start=272000, price=Decimal(2) / Decimal(100))]
+        ),
+        cache_write_mtok=TieredPrices(
+            base=Decimal(125) / Decimal(1000), tiers=[Tier(start=272000, price=Decimal(25) / Decimal(100))]
+        ),
+        output_mtok=TieredPrices(
+            base=Decimal(5) / Decimal(10), tiers=[Tier(start=272000, price=Decimal(75) / Decimal(100))]
+        ),
+    ),
     "gpt-6-astra": ModelPrice(
         input_mtok=TieredPrices(base=Decimal(10), tiers=[Tier(start=272000, price=Decimal(20))]),
         cache_read_mtok=TieredPrices(base=Decimal(1), tiers=[Tier(start=272000, price=Decimal(2))]),
