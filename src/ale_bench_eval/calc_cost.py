@@ -247,6 +247,12 @@ FALLBACK_DICT = {
         cache_read_mtok=Decimal(2) / Decimal(10),
         output_mtok=Decimal(20),
     ),
+    "claude-sonnet-5-5": ModelPrice(
+        input_mtok=Decimal(2),
+        cache_write_mtok=Decimal(25) / Decimal(10),
+        cache_read_mtok=Decimal(2) / Decimal(10),
+        output_mtok=Decimal(10),
+    ),
     "grok-4.1-fast": ModelPrice(
         input_mtok=Decimal(2) / Decimal(10),
         cache_read_mtok=Decimal(5) / Decimal(100),
