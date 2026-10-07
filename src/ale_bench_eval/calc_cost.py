@@ -448,6 +448,11 @@ FALLBACK_DICT = {
     "mistral-large-2512": ModelPrice(input_mtok=Decimal(5) / Decimal(10), output_mtok=Decimal(15) / Decimal(10)),
     "mistral-small-2603": ModelPrice(input_mtok=Decimal(15) / Decimal(100), output_mtok=Decimal(6) / Decimal(10)),
     "mistral-medium-3-5": ModelPrice(input_mtok=Decimal(15) / Decimal(10), output_mtok=Decimal(75) / Decimal(10)),
+    "mistral-large-4-0": ModelPrice(
+        input_mtok=Decimal(136) / Decimal(100),
+        cache_read_mtok=Decimal(14) / Decimal(100),
+        output_mtok=Decimal(418) / Decimal(100),
+    ),
     "inkling": ModelPrice(
         input_mtok=Decimal(1),
         cache_read_mtok=Decimal(17) / Decimal(100),

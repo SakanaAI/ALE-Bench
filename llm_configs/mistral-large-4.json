@@ -1,0 +1,22 @@
+{
+    "model_name": "mistralai/mistral-large-4-0",
+    "provider": "openrouter",
+    "settings": {
+        "extra_body": {
+            "max_tokens": 262144,
+            "provider": {
+                "allow_fallbacks": false,
+                "data_collection": "deny",
+                "order": ["mistral"],
+                "require_parameters": true
+            },
+            "reasoning": {
+                "effort": "xhigh",
+                "enabled": true
+            },
+            "usage": {
+                "include": true
+            }
+        }
+    }
+}
