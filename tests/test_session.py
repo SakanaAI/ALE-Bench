@@ -115,30 +115,28 @@ class TestSession:
     @pytest.mark.parametrize(
         ("current_resource_usage", "utc_now", "context"),
         [
-            pytest.param(
-                ResourceUsage(), dt.datetime(2000, 1, 1, 0, 30, tzinfo=dt.timezone.utc), does_not_raise(), id="ok"
-            ),
+            pytest.param(ResourceUsage(), dt.datetime(2000, 1, 1, 0, 30, tzinfo=dt.UTC), does_not_raise(), id="ok"),
             pytest.param(
                 ResourceUsage(),
-                dt.datetime(2000, 1, 1, 1, 0, tzinfo=dt.timezone.utc),
+                dt.datetime(2000, 1, 1, 1, 0, tzinfo=dt.UTC),
                 pytest.raises(AleBenchError, match=r"The session is finished\."),
                 id="ng_session_duration",
             ),
             pytest.param(
                 ResourceUsage(num_call_private_eval=1),
-                dt.datetime(2000, 1, 1, 0, 30, tzinfo=dt.timezone.utc),
+                dt.datetime(2000, 1, 1, 0, 30, tzinfo=dt.UTC),
                 pytest.raises(AleBenchError, match=r"The session is finished\."),
                 id="ng_private_eval_called",
             ),
             pytest.param(
                 ResourceUsage(execution_time_case_eval=55.2),
-                dt.datetime(2000, 1, 1, 0, 30, tzinfo=dt.timezone.utc),
+                dt.datetime(2000, 1, 1, 0, 30, tzinfo=dt.UTC),
                 does_not_raise(),
                 id="ok_maximum",
             ),
             pytest.param(
                 ResourceUsage(execution_time_case_eval=55.3),
-                dt.datetime(2000, 1, 1, 0, 30, tzinfo=dt.timezone.utc),
+                dt.datetime(2000, 1, 1, 0, 30, tzinfo=dt.UTC),
                 pytest.raises(
                     AleBenchError,
                     match=r"Exceeded the maximum resource usage for the `code_run` function after the action\.",
@@ -147,7 +145,7 @@ class TestSession:
             ),
             pytest.param(
                 ResourceUsage(execution_time_case_eval=59.9),
-                dt.datetime(2000, 1, 1, 0, 30, tzinfo=dt.timezone.utc),
+                dt.datetime(2000, 1, 1, 0, 30, tzinfo=dt.UTC),
                 pytest.raises(
                     AleBenchError,
                     match=r"Exceeded the maximum resource usage for the `code_run` function after the action\.",
@@ -156,7 +154,7 @@ class TestSession:
             ),
             pytest.param(
                 ResourceUsage(execution_time_case_eval=60.0),
-                dt.datetime(2000, 1, 1, 0, 30, tzinfo=dt.timezone.utc),
+                dt.datetime(2000, 1, 1, 0, 30, tzinfo=dt.UTC),
                 pytest.raises(
                     AleBenchError, match=r"Exceeded the maximum resource usage for the `code_run` function\."
                 ),
@@ -172,7 +170,7 @@ class TestSession:
         dummy_session: Session,
         mocker: MockerFixture,
     ) -> None:
-        dummy_session._session_started_at = dt.datetime(2000, 1, 1, 0, 0, tzinfo=dt.timezone.utc)
+        dummy_session._session_started_at = dt.datetime(2000, 1, 1, 0, 0, tzinfo=dt.UTC)
         dummy_session._current_resource_usage = current_resource_usage
         mocked_datetime = mocker.patch("ale_bench.session.dt.datetime", return_value=utc_now)
         mocked_datetime.now.return_value = utc_now
@@ -327,30 +325,28 @@ class TestSession:
     @pytest.mark.parametrize(
         ("current_resource_usage", "utc_now", "context"),
         [
-            pytest.param(
-                ResourceUsage(), dt.datetime(2000, 1, 1, 0, 30, tzinfo=dt.timezone.utc), does_not_raise(), id="ok"
-            ),
+            pytest.param(ResourceUsage(), dt.datetime(2000, 1, 1, 0, 30, tzinfo=dt.UTC), does_not_raise(), id="ok"),
             pytest.param(
                 ResourceUsage(),
-                dt.datetime(2000, 1, 1, 1, 0, tzinfo=dt.timezone.utc),
+                dt.datetime(2000, 1, 1, 1, 0, tzinfo=dt.UTC),
                 pytest.raises(AleBenchError, match=r"The session is finished\."),
                 id="ng_session_duration",
             ),
             pytest.param(
                 ResourceUsage(num_call_private_eval=1),
-                dt.datetime(2000, 1, 1, 0, 30, tzinfo=dt.timezone.utc),
+                dt.datetime(2000, 1, 1, 0, 30, tzinfo=dt.UTC),
                 pytest.raises(AleBenchError, match=r"The session is finished\."),
                 id="ng_private_eval_called",
             ),
             pytest.param(
                 ResourceUsage(num_case_gen=2),
-                dt.datetime(2000, 1, 1, 0, 30, tzinfo=dt.timezone.utc),
+                dt.datetime(2000, 1, 1, 0, 30, tzinfo=dt.UTC),
                 does_not_raise(),
                 id="ok_maximum",
             ),
             pytest.param(
                 ResourceUsage(num_case_gen=3),
-                dt.datetime(2000, 1, 1, 0, 30, tzinfo=dt.timezone.utc),
+                dt.datetime(2000, 1, 1, 0, 30, tzinfo=dt.UTC),
                 pytest.raises(
                     AleBenchError,
                     match=r"Exceeded the maximum resource usage for the `case_gen` function after the action\.",
@@ -359,7 +355,7 @@ class TestSession:
             ),
             pytest.param(
                 ResourceUsage(num_case_gen=4),
-                dt.datetime(2000, 1, 1, 0, 30, tzinfo=dt.timezone.utc),
+                dt.datetime(2000, 1, 1, 0, 30, tzinfo=dt.UTC),
                 pytest.raises(
                     AleBenchError,
                     match=r"Exceeded the maximum resource usage for the `case_gen` function after the action\.",
@@ -368,7 +364,7 @@ class TestSession:
             ),
             pytest.param(
                 ResourceUsage(num_case_gen=5),
-                dt.datetime(2000, 1, 1, 0, 30, tzinfo=dt.timezone.utc),
+                dt.datetime(2000, 1, 1, 0, 30, tzinfo=dt.UTC),
                 pytest.raises(
                     AleBenchError, match=r"Exceeded the maximum resource usage for the `case_gen` function\."
                 ),
@@ -384,7 +380,7 @@ class TestSession:
         dummy_session: Session,
         mocker: MockerFixture,
     ) -> None:
-        dummy_session._session_started_at = dt.datetime(2000, 1, 1, 0, 0, tzinfo=dt.timezone.utc)
+        dummy_session._session_started_at = dt.datetime(2000, 1, 1, 0, 0, tzinfo=dt.UTC)
         dummy_session._current_resource_usage = current_resource_usage
         mocked_datetime = mocker.patch("ale_bench.session.dt.datetime", return_value=utc_now)
         mocked_datetime.now.return_value = utc_now
@@ -401,30 +397,28 @@ class TestSession:
     @pytest.mark.parametrize(
         ("current_resource_usage", "utc_now", "context"),
         [
-            pytest.param(
-                ResourceUsage(), dt.datetime(2000, 1, 1, 0, 30, tzinfo=dt.timezone.utc), does_not_raise(), id="ok"
-            ),
+            pytest.param(ResourceUsage(), dt.datetime(2000, 1, 1, 0, 30, tzinfo=dt.UTC), does_not_raise(), id="ok"),
             pytest.param(
                 ResourceUsage(),
-                dt.datetime(2000, 1, 1, 1, 0, tzinfo=dt.timezone.utc),
+                dt.datetime(2000, 1, 1, 1, 0, tzinfo=dt.UTC),
                 pytest.raises(AleBenchError, match=r"The session is finished\."),
                 id="ng_session_duration",
             ),
             pytest.param(
                 ResourceUsage(num_call_private_eval=1),
-                dt.datetime(2000, 1, 1, 0, 30, tzinfo=dt.timezone.utc),
+                dt.datetime(2000, 1, 1, 0, 30, tzinfo=dt.UTC),
                 pytest.raises(AleBenchError, match=r"The session is finished\."),
                 id="ng_private_eval_called",
             ),
             pytest.param(
                 ResourceUsage(num_case_eval=2, execution_time_case_eval=45.6),
-                dt.datetime(2000, 1, 1, 0, 30, tzinfo=dt.timezone.utc),
+                dt.datetime(2000, 1, 1, 0, 30, tzinfo=dt.UTC),
                 does_not_raise(),
                 id="ok_maximum",
             ),
             pytest.param(
                 ResourceUsage(num_case_eval=3, execution_time_case_eval=45.6),
-                dt.datetime(2000, 1, 1, 0, 30, tzinfo=dt.timezone.utc),
+                dt.datetime(2000, 1, 1, 0, 30, tzinfo=dt.UTC),
                 pytest.raises(
                     AleBenchError,
                     match=r"Exceeded the maximum resource usage for the `case_eval` function after the action\.",
@@ -433,7 +427,7 @@ class TestSession:
             ),
             pytest.param(
                 ResourceUsage(num_case_eval=4, execution_time_case_eval=45.6),
-                dt.datetime(2000, 1, 1, 0, 30, tzinfo=dt.timezone.utc),
+                dt.datetime(2000, 1, 1, 0, 30, tzinfo=dt.UTC),
                 pytest.raises(
                     AleBenchError,
                     match=r"Exceeded the maximum resource usage for the `case_eval` function after the action\.",
@@ -442,7 +436,7 @@ class TestSession:
             ),
             pytest.param(
                 ResourceUsage(num_case_eval=5, execution_time_case_eval=45.6),
-                dt.datetime(2000, 1, 1, 0, 30, tzinfo=dt.timezone.utc),
+                dt.datetime(2000, 1, 1, 0, 30, tzinfo=dt.UTC),
                 pytest.raises(
                     AleBenchError, match=r"Exceeded the maximum resource usage for the `case_eval` function\."
                 ),
@@ -450,7 +444,7 @@ class TestSession:
             ),
             pytest.param(
                 ResourceUsage(num_case_eval=2, execution_time_case_eval=45.7),
-                dt.datetime(2000, 1, 1, 0, 30, tzinfo=dt.timezone.utc),
+                dt.datetime(2000, 1, 1, 0, 30, tzinfo=dt.UTC),
                 pytest.raises(
                     AleBenchError,
                     match=r"Exceeded the maximum resource usage for the `case_eval` function after the action\.",
@@ -459,7 +453,7 @@ class TestSession:
             ),
             pytest.param(
                 ResourceUsage(num_case_eval=2, execution_time_case_eval=59.9),
-                dt.datetime(2000, 1, 1, 0, 30, tzinfo=dt.timezone.utc),
+                dt.datetime(2000, 1, 1, 0, 30, tzinfo=dt.UTC),
                 pytest.raises(
                     AleBenchError,
                     match=r"Exceeded the maximum resource usage for the `case_eval` function after the action\.",
@@ -468,7 +462,7 @@ class TestSession:
             ),
             pytest.param(
                 ResourceUsage(num_case_eval=2, execution_time_case_eval=60.0),
-                dt.datetime(2000, 1, 1, 0, 30, tzinfo=dt.timezone.utc),
+                dt.datetime(2000, 1, 1, 0, 30, tzinfo=dt.UTC),
                 pytest.raises(
                     AleBenchError, match=r"Exceeded the maximum resource usage for the `case_eval` function\."
                 ),
@@ -484,7 +478,7 @@ class TestSession:
         dummy_session: Session,
         mocker: MockerFixture,
     ) -> None:
-        dummy_session._session_started_at = dt.datetime(2000, 1, 1, 0, 0, tzinfo=dt.timezone.utc)
+        dummy_session._session_started_at = dt.datetime(2000, 1, 1, 0, 0, tzinfo=dt.UTC)
         dummy_session._current_resource_usage = current_resource_usage
         mocked_datetime = mocker.patch("ale_bench.session.dt.datetime", return_value=utc_now)
         mocked_datetime.now.return_value = utc_now
@@ -510,30 +504,28 @@ class TestSession:
     @pytest.mark.parametrize(
         ("current_resource_usage", "utc_now", "context"),
         [
-            pytest.param(
-                ResourceUsage(), dt.datetime(2000, 1, 1, 0, 30, tzinfo=dt.timezone.utc), does_not_raise(), id="ok"
-            ),
+            pytest.param(ResourceUsage(), dt.datetime(2000, 1, 1, 0, 30, tzinfo=dt.UTC), does_not_raise(), id="ok"),
             pytest.param(
                 ResourceUsage(),
-                dt.datetime(2000, 1, 1, 1, 0, tzinfo=dt.timezone.utc),
+                dt.datetime(2000, 1, 1, 1, 0, tzinfo=dt.UTC),
                 pytest.raises(AleBenchError, match=r"The session is finished\."),
                 id="ng_session_duration",
             ),
             pytest.param(
                 ResourceUsage(num_call_private_eval=1),
-                dt.datetime(2000, 1, 1, 0, 30, tzinfo=dt.timezone.utc),
+                dt.datetime(2000, 1, 1, 0, 30, tzinfo=dt.UTC),
                 pytest.raises(AleBenchError, match=r"The session is finished\."),
                 id="ng_private_eval_called",
             ),
             pytest.param(
                 ResourceUsage(num_case_gen=2, num_case_eval=2, execution_time_case_eval=45.6),
-                dt.datetime(2000, 1, 1, 0, 30, tzinfo=dt.timezone.utc),
+                dt.datetime(2000, 1, 1, 0, 30, tzinfo=dt.UTC),
                 does_not_raise(),
                 id="ok_maximum",
             ),
             pytest.param(
                 ResourceUsage(num_case_gen=3, num_case_eval=2, execution_time_case_eval=45.6),
-                dt.datetime(2000, 1, 1, 0, 30, tzinfo=dt.timezone.utc),
+                dt.datetime(2000, 1, 1, 0, 30, tzinfo=dt.UTC),
                 pytest.raises(
                     AleBenchError,
                     match=r"Exceeded the maximum resource usage for the `case_gen` function after the action\.",
@@ -542,7 +534,7 @@ class TestSession:
             ),
             pytest.param(
                 ResourceUsage(num_case_gen=4, num_case_eval=2, execution_time_case_eval=45.6),
-                dt.datetime(2000, 1, 1, 0, 30, tzinfo=dt.timezone.utc),
+                dt.datetime(2000, 1, 1, 0, 30, tzinfo=dt.UTC),
                 pytest.raises(
                     AleBenchError,
                     match=r"Exceeded the maximum resource usage for the `case_gen` function after the action\.",
@@ -551,7 +543,7 @@ class TestSession:
             ),
             pytest.param(
                 ResourceUsage(num_case_gen=5, num_case_eval=2, execution_time_case_eval=45.6),
-                dt.datetime(2000, 1, 1, 0, 30, tzinfo=dt.timezone.utc),
+                dt.datetime(2000, 1, 1, 0, 30, tzinfo=dt.UTC),
                 pytest.raises(
                     AleBenchError, match=r"Exceeded the maximum resource usage for the `case_gen_eval` function\."
                 ),
@@ -559,7 +551,7 @@ class TestSession:
             ),
             pytest.param(
                 ResourceUsage(num_case_gen=2, num_case_eval=3, execution_time_case_eval=45.6),
-                dt.datetime(2000, 1, 1, 0, 30, tzinfo=dt.timezone.utc),
+                dt.datetime(2000, 1, 1, 0, 30, tzinfo=dt.UTC),
                 pytest.raises(
                     AleBenchError,
                     match=r"Exceeded the maximum resource usage for the `case_eval` function after the action\.",
@@ -568,7 +560,7 @@ class TestSession:
             ),
             pytest.param(
                 ResourceUsage(num_case_gen=2, num_case_eval=4, execution_time_case_eval=45.6),
-                dt.datetime(2000, 1, 1, 0, 30, tzinfo=dt.timezone.utc),
+                dt.datetime(2000, 1, 1, 0, 30, tzinfo=dt.UTC),
                 pytest.raises(
                     AleBenchError,
                     match=r"Exceeded the maximum resource usage for the `case_eval` function after the action\.",
@@ -577,7 +569,7 @@ class TestSession:
             ),
             pytest.param(
                 ResourceUsage(num_case_gen=2, num_case_eval=5, execution_time_case_eval=45.6),
-                dt.datetime(2000, 1, 1, 0, 30, tzinfo=dt.timezone.utc),
+                dt.datetime(2000, 1, 1, 0, 30, tzinfo=dt.UTC),
                 pytest.raises(
                     AleBenchError, match=r"Exceeded the maximum resource usage for the `case_gen_eval` function\."
                 ),
@@ -585,7 +577,7 @@ class TestSession:
             ),
             pytest.param(
                 ResourceUsage(num_case_gen=2, num_case_eval=2, execution_time_case_eval=45.7),
-                dt.datetime(2000, 1, 1, 0, 30, tzinfo=dt.timezone.utc),
+                dt.datetime(2000, 1, 1, 0, 30, tzinfo=dt.UTC),
                 pytest.raises(
                     AleBenchError,
                     match=r"Exceeded the maximum resource usage for the `case_eval` function after the action\.",
@@ -594,7 +586,7 @@ class TestSession:
             ),
             pytest.param(
                 ResourceUsage(num_case_gen=2, num_case_eval=2, execution_time_case_eval=59.9),
-                dt.datetime(2000, 1, 1, 0, 30, tzinfo=dt.timezone.utc),
+                dt.datetime(2000, 1, 1, 0, 30, tzinfo=dt.UTC),
                 pytest.raises(
                     AleBenchError,
                     match=r"Exceeded the maximum resource usage for the `case_eval` function after the action\.",
@@ -603,7 +595,7 @@ class TestSession:
             ),
             pytest.param(
                 ResourceUsage(num_case_gen=2, num_case_eval=2, execution_time_case_eval=60.0),
-                dt.datetime(2000, 1, 1, 0, 30, tzinfo=dt.timezone.utc),
+                dt.datetime(2000, 1, 1, 0, 30, tzinfo=dt.UTC),
                 pytest.raises(
                     AleBenchError, match=r"Exceeded the maximum resource usage for the `case_gen_eval` function\."
                 ),
@@ -619,7 +611,7 @@ class TestSession:
         dummy_session: Session,
         mocker: MockerFixture,
     ) -> None:
-        dummy_session._session_started_at = dt.datetime(2000, 1, 1, 0, 0, tzinfo=dt.timezone.utc)
+        dummy_session._session_started_at = dt.datetime(2000, 1, 1, 0, 0, tzinfo=dt.UTC)
         dummy_session._current_resource_usage = current_resource_usage
         mocked_datetime = mocker.patch("ale_bench.session.dt.datetime", return_value=utc_now)
         mocked_datetime.now.return_value = utc_now
@@ -661,9 +653,9 @@ class TestSession:
     @pytest.mark.parametrize(
         ("utc_now", "context"),
         [
-            pytest.param(dt.datetime(2000, 1, 1, 0, 30, tzinfo=dt.timezone.utc), does_not_raise(), id="ok"),
+            pytest.param(dt.datetime(2000, 1, 1, 0, 30, tzinfo=dt.UTC), does_not_raise(), id="ok"),
             pytest.param(
-                dt.datetime(2000, 1, 1, 1, 0, tzinfo=dt.timezone.utc),
+                dt.datetime(2000, 1, 1, 1, 0, tzinfo=dt.UTC),
                 pytest.raises(AleBenchError, match=r"The session is finished\."),
                 id="ng_session_duration",
             ),
@@ -676,7 +668,7 @@ class TestSession:
         dummy_session: Session,
         mocker: MockerFixture,
     ) -> None:
-        dummy_session._session_started_at = dt.datetime(2000, 1, 1, 0, 0, tzinfo=dt.timezone.utc)
+        dummy_session._session_started_at = dt.datetime(2000, 1, 1, 0, 0, tzinfo=dt.UTC)
         mocked_datetime = mocker.patch("ale_bench.session.dt.datetime", return_value=utc_now)
         mocked_datetime.now.return_value = utc_now
         with context:
@@ -692,36 +684,34 @@ class TestSession:
     @pytest.mark.parametrize(
         ("current_resource_usage", "utc_now", "context"),
         [
-            pytest.param(
-                ResourceUsage(), dt.datetime(2000, 1, 1, 0, 30, tzinfo=dt.timezone.utc), does_not_raise(), id="ok"
-            ),
+            pytest.param(ResourceUsage(), dt.datetime(2000, 1, 1, 0, 30, tzinfo=dt.UTC), does_not_raise(), id="ok"),
             pytest.param(
                 ResourceUsage(),
-                dt.datetime(2000, 1, 1, 0, 29, 59, tzinfo=dt.timezone.utc),
+                dt.datetime(2000, 1, 1, 0, 29, 59, tzinfo=dt.UTC),
                 pytest.raises(AleBenchError, match=r"The next public evaluation is not allowed yet\."),
                 id="ng_before_next_public_eval",
             ),
             pytest.param(
                 ResourceUsage(),
-                dt.datetime(2000, 1, 1, 1, 0, tzinfo=dt.timezone.utc),
+                dt.datetime(2000, 1, 1, 1, 0, tzinfo=dt.UTC),
                 pytest.raises(AleBenchError, match=r"The session is finished\."),
                 id="ng_session_duration",
             ),
             pytest.param(
                 ResourceUsage(num_call_private_eval=1),
-                dt.datetime(2000, 1, 1, 0, 30, tzinfo=dt.timezone.utc),
+                dt.datetime(2000, 1, 1, 0, 30, tzinfo=dt.UTC),
                 pytest.raises(AleBenchError, match=r"The session is finished\."),
                 id="ng_private_eval_called",
             ),
             pytest.param(
                 ResourceUsage(num_call_public_eval=2),
-                dt.datetime(2000, 1, 1, 0, 30, tzinfo=dt.timezone.utc),
+                dt.datetime(2000, 1, 1, 0, 30, tzinfo=dt.UTC),
                 does_not_raise(),
                 id="ok_maximum",
             ),
             pytest.param(
                 ResourceUsage(num_call_public_eval=3),
-                dt.datetime(2000, 1, 1, 0, 30, tzinfo=dt.timezone.utc),
+                dt.datetime(2000, 1, 1, 0, 30, tzinfo=dt.UTC),
                 pytest.raises(
                     AleBenchError, match=r"Exceeded the maximum resource usage for the `public_eval` function\."
                 ),
@@ -737,8 +727,8 @@ class TestSession:
         dummy_session: Session,
         mocker: MockerFixture,
     ) -> None:
-        dummy_session._session_started_at = dt.datetime(2000, 1, 1, 0, 0, tzinfo=dt.timezone.utc)
-        dummy_session._last_public_eval_time = dt.datetime(2000, 1, 1, 0, 0, 0, tzinfo=dt.timezone.utc)
+        dummy_session._session_started_at = dt.datetime(2000, 1, 1, 0, 0, tzinfo=dt.UTC)
+        dummy_session._last_public_eval_time = dt.datetime(2000, 1, 1, 0, 0, 0, tzinfo=dt.UTC)
         dummy_session._current_resource_usage = current_resource_usage
         mocked_datetime = mocker.patch("ale_bench.session.dt.datetime", return_value=utc_now)
         mocked_datetime.now.return_value = utc_now
@@ -759,18 +749,16 @@ class TestSession:
     @pytest.mark.parametrize(
         ("current_resource_usage", "utc_now", "context"),
         [
-            pytest.param(
-                ResourceUsage(), dt.datetime(2000, 1, 1, 0, 30, tzinfo=dt.timezone.utc), does_not_raise(), id="ok"
-            ),
+            pytest.param(ResourceUsage(), dt.datetime(2000, 1, 1, 0, 30, tzinfo=dt.UTC), does_not_raise(), id="ok"),
             pytest.param(
                 ResourceUsage(),
-                dt.datetime(2000, 1, 1, 1, 0, tzinfo=dt.timezone.utc),
+                dt.datetime(2000, 1, 1, 1, 0, tzinfo=dt.UTC),
                 pytest.raises(AleBenchError, match=r"The session is finished\."),
                 id="ng_session_duration",
             ),
             pytest.param(
                 ResourceUsage(num_call_private_eval=1),
-                dt.datetime(2000, 1, 1, 0, 30, tzinfo=dt.timezone.utc),
+                dt.datetime(2000, 1, 1, 0, 30, tzinfo=dt.UTC),
                 pytest.raises(AleBenchError, match=r"The session is finished\."),
                 id="ng_private_eval_called",
             ),
@@ -784,7 +772,7 @@ class TestSession:
         dummy_session: Session,
         mocker: MockerFixture,
     ) -> None:
-        dummy_session._session_started_at = dt.datetime(2000, 1, 1, 0, 0, tzinfo=dt.timezone.utc)
+        dummy_session._session_started_at = dt.datetime(2000, 1, 1, 0, 0, tzinfo=dt.UTC)
         dummy_session._current_resource_usage = current_resource_usage
         mocked_datetime = mocker.patch("ale_bench.session.dt.datetime", return_value=utc_now)
         mocked_datetime.now.return_value = utc_now
@@ -958,7 +946,7 @@ class TestSession:
         )
         for _ in range(2):
             dummy_session.public_eval(code="dummy code", code_language="rust")
-            dummy_session._last_public_eval_time = dt.datetime.fromtimestamp(0, tz=dt.timezone.utc)
+            dummy_session._last_public_eval_time = dt.datetime.fromtimestamp(0, tz=dt.UTC)
         assert dummy_session.current_resource_usage.num_case_gen == 0
         assert dummy_session.current_resource_usage.num_case_eval == 3
         assert dummy_session.current_resource_usage.execution_time_case_eval == pytest.approx(14.4)
@@ -975,7 +963,7 @@ class TestSession:
         dummy_session.case_gen_eval(seed=[0, 1, 2], code="dummy code", code_language="rust")
         for _ in range(2):
             dummy_session.public_eval(code="dummy code", code_language="rust")
-            dummy_session._last_public_eval_time = dt.datetime.fromtimestamp(0, tz=dt.timezone.utc)
+            dummy_session._last_public_eval_time = dt.datetime.fromtimestamp(0, tz=dt.UTC)
         assert dummy_session.remaining_resource_usage.num_case_gen == 2
         assert dummy_session.remaining_resource_usage.num_case_eval == 2
         assert dummy_session.remaining_resource_usage.execution_time_case_eval == pytest.approx(45.6)
@@ -989,7 +977,7 @@ class TestSession:
         dummy_session.case_gen_eval(seed=[0, 1, 2], code="dummy code", code_language="rust")
         for _ in range(2):
             dummy_session.public_eval(code="dummy code", code_language="rust")
-            dummy_session._last_public_eval_time = dt.datetime.fromtimestamp(0, tz=dt.timezone.utc)
+            dummy_session._last_public_eval_time = dt.datetime.fromtimestamp(0, tz=dt.UTC)
         action_log = [json.loads(log) for log in dummy_session.action_log]
         assert len(action_log) == 4
         assert action_log[0]["function"] == "case_gen"
@@ -1013,47 +1001,45 @@ class TestSession:
         assert isinstance(action_log[3]["elapsed_time"], float)
 
     def test_last_public_eval_time(self, dummy_session: Session) -> None:
-        assert dummy_session.last_public_eval_time == dt.datetime(1970, 1, 1, 0, 0, tzinfo=dt.timezone.utc)
+        assert dummy_session.last_public_eval_time == dt.datetime(1970, 1, 1, 0, 0, tzinfo=dt.UTC)
 
     def next_public_eval_time(self, dummy_session: Session) -> None:
-        assert dummy_session.next_public_eval_time == dt.datetime(1970, 1, 1, 0, 30, tzinfo=dt.timezone.utc)
+        assert dummy_session.next_public_eval_time == dt.datetime(1970, 1, 1, 0, 30, tzinfo=dt.UTC)
 
     def test_last_private_eval_time(self, dummy_session: Session) -> None:
-        assert dummy_session.last_private_eval_time == dt.datetime(1970, 1, 1, 0, 0, tzinfo=dt.timezone.utc)
+        assert dummy_session.last_private_eval_time == dt.datetime(1970, 1, 1, 0, 0, tzinfo=dt.UTC)
 
     def test_session_duration(self, dummy_session: Session) -> None:
         assert dummy_session.session_duration == dt.timedelta(hours=1)
 
     def test_session_started_at(self, dummy_session: Session) -> None:
-        dummy_session._session_started_at = dt.datetime(2000, 1, 1, 0, 0, tzinfo=dt.timezone.utc)
-        assert dummy_session.session_started_at == dt.datetime(2000, 1, 1, 0, 0, tzinfo=dt.timezone.utc)
+        dummy_session._session_started_at = dt.datetime(2000, 1, 1, 0, 0, tzinfo=dt.UTC)
+        assert dummy_session.session_started_at == dt.datetime(2000, 1, 1, 0, 0, tzinfo=dt.UTC)
 
     @pytest.mark.parametrize(
         ("utc_now", "expected"),
         [
             pytest.param(
-                dt.datetime(1999, 12, 31, 23, 59, tzinfo=dt.timezone.utc),
+                dt.datetime(1999, 12, 31, 23, 59, tzinfo=dt.UTC),
                 dt.timedelta(seconds=3660),
                 id="session_not_started",
             ),
             pytest.param(
-                dt.datetime(2000, 1, 1, 0, 0, tzinfo=dt.timezone.utc),
+                dt.datetime(2000, 1, 1, 0, 0, tzinfo=dt.UTC),
                 dt.timedelta(seconds=3600),
                 id="session_just_started",
             ),
             pytest.param(
-                dt.datetime(2000, 1, 1, 0, 30, tzinfo=dt.timezone.utc), dt.timedelta(seconds=1800), id="session_middle"
+                dt.datetime(2000, 1, 1, 0, 30, tzinfo=dt.UTC), dt.timedelta(seconds=1800), id="session_middle"
             ),
             pytest.param(
-                dt.datetime(2000, 1, 1, 0, 59, 59, tzinfo=dt.timezone.utc),
+                dt.datetime(2000, 1, 1, 0, 59, 59, tzinfo=dt.UTC),
                 dt.timedelta(seconds=1),
                 id="session_almost_finished",
             ),
+            pytest.param(dt.datetime(2000, 1, 1, 1, 0, tzinfo=dt.UTC), dt.timedelta(seconds=0), id="session_finished"),
             pytest.param(
-                dt.datetime(2000, 1, 1, 1, 0, tzinfo=dt.timezone.utc), dt.timedelta(seconds=0), id="session_finished"
-            ),
-            pytest.param(
-                dt.datetime(2000, 1, 1, 1, 0, 1, tzinfo=dt.timezone.utc),
+                dt.datetime(2000, 1, 1, 1, 0, 1, tzinfo=dt.UTC),
                 dt.timedelta(seconds=-1),
                 id="session_finished_over",
             ),
@@ -1066,7 +1052,7 @@ class TestSession:
         dummy_session: Session,
         mocker: MockerFixture,
     ) -> None:
-        dummy_session._session_started_at = dt.datetime(2000, 1, 1, 0, 0, tzinfo=dt.timezone.utc)
+        dummy_session._session_started_at = dt.datetime(2000, 1, 1, 0, 0, tzinfo=dt.UTC)
         mocked_datetime = mocker.patch("ale_bench.session.dt.datetime", return_value=utc_now)
         mocked_datetime.now.return_value = utc_now
         assert dummy_session.session_remaining_time == expected
@@ -1074,25 +1060,21 @@ class TestSession:
     @pytest.mark.parametrize(
         ("utc_now", "context"),
         [
+            pytest.param(dt.datetime(1999, 12, 31, 23, 59, tzinfo=dt.UTC), does_not_raise(), id="session_not_started"),
+            pytest.param(dt.datetime(2000, 1, 1, 0, 0, tzinfo=dt.UTC), does_not_raise(), id="session_just_started"),
+            pytest.param(dt.datetime(2000, 1, 1, 0, 30, tzinfo=dt.UTC), does_not_raise(), id="session_middle"),
             pytest.param(
-                dt.datetime(1999, 12, 31, 23, 59, tzinfo=dt.timezone.utc), does_not_raise(), id="session_not_started"
-            ),
-            pytest.param(
-                dt.datetime(2000, 1, 1, 0, 0, tzinfo=dt.timezone.utc), does_not_raise(), id="session_just_started"
-            ),
-            pytest.param(dt.datetime(2000, 1, 1, 0, 30, tzinfo=dt.timezone.utc), does_not_raise(), id="session_middle"),
-            pytest.param(
-                dt.datetime(2000, 1, 1, 0, 59, 59, tzinfo=dt.timezone.utc),
+                dt.datetime(2000, 1, 1, 0, 59, 59, tzinfo=dt.UTC),
                 does_not_raise(),
                 id="session_almost_finished",
             ),
             pytest.param(
-                dt.datetime(2000, 1, 1, 1, 0, tzinfo=dt.timezone.utc),
+                dt.datetime(2000, 1, 1, 1, 0, tzinfo=dt.UTC),
                 pytest.raises(AleBenchError, match=r"The session has already finished\."),
                 id="session_finished",
             ),
             pytest.param(
-                dt.datetime(2000, 1, 1, 1, 0, 1, tzinfo=dt.timezone.utc),
+                dt.datetime(2000, 1, 1, 1, 0, 1, tzinfo=dt.UTC),
                 pytest.raises(AleBenchError, match=r"The session has already finished\."),
                 id="session_finished_over",
             ),
@@ -1105,7 +1087,7 @@ class TestSession:
         dummy_session: Session,
         mocker: MockerFixture,
     ) -> None:
-        dummy_session._session_started_at = dt.datetime(2000, 1, 1, 0, 0, tzinfo=dt.timezone.utc)
+        dummy_session._session_started_at = dt.datetime(2000, 1, 1, 0, 0, tzinfo=dt.UTC)
         mocked_datetime = mocker.patch("ale_bench.session.dt.datetime", return_value=utc_now)
         mocked_datetime.now.return_value = utc_now
         with context:
@@ -1132,7 +1114,7 @@ class TestSession:
                     num_call_public_eval=3,
                     num_call_private_eval=1,
                 ),
-                dt.datetime(2000, 1, 1, 0, 59, 59, tzinfo=dt.timezone.utc),
+                dt.datetime(2000, 1, 1, 0, 59, 59, tzinfo=dt.UTC),
                 does_not_raise(),
                 id="code_run_ok",
             ),
@@ -1145,7 +1127,7 @@ class TestSession:
                     num_call_public_eval=3,
                     num_call_private_eval=1,
                 ),
-                dt.datetime(2000, 1, 1, 1, 0, 0, tzinfo=dt.timezone.utc),
+                dt.datetime(2000, 1, 1, 1, 0, 0, tzinfo=dt.UTC),
                 pytest.raises(AleBenchError, match=r"The session has already finished\."),
                 id="code_run_ng_session_duration",
             ),
@@ -1158,7 +1140,7 @@ class TestSession:
                     num_call_public_eval=3,
                     num_call_private_eval=1,
                 ),
-                dt.datetime(2000, 1, 1, 0, 59, 59, tzinfo=dt.timezone.utc),
+                dt.datetime(2000, 1, 1, 0, 59, 59, tzinfo=dt.UTC),
                 pytest.raises(
                     AleBenchError, match=r"Exceeded the maximum resource usage for the `code_run` function\."
                 ),
@@ -1173,7 +1155,7 @@ class TestSession:
                     num_call_public_eval=3,
                     num_call_private_eval=1,
                 ),
-                dt.datetime(2000, 1, 1, 0, 59, 59, tzinfo=dt.timezone.utc),
+                dt.datetime(2000, 1, 1, 0, 59, 59, tzinfo=dt.UTC),
                 does_not_raise(),
                 id="case_gen_ok",
             ),
@@ -1186,7 +1168,7 @@ class TestSession:
                     num_call_public_eval=3,
                     num_call_private_eval=1,
                 ),
-                dt.datetime(2000, 1, 1, 1, 0, 0, tzinfo=dt.timezone.utc),
+                dt.datetime(2000, 1, 1, 1, 0, 0, tzinfo=dt.UTC),
                 pytest.raises(AleBenchError, match=r"The session has already finished\."),
                 id="case_gen_ng_session_duration",
             ),
@@ -1199,7 +1181,7 @@ class TestSession:
                     num_call_public_eval=3,
                     num_call_private_eval=1,
                 ),
-                dt.datetime(2000, 1, 1, 0, 59, 59, tzinfo=dt.timezone.utc),
+                dt.datetime(2000, 1, 1, 0, 59, 59, tzinfo=dt.UTC),
                 pytest.raises(
                     AleBenchError, match=r"Exceeded the maximum resource usage for the `case_gen` function\."
                 ),
@@ -1214,7 +1196,7 @@ class TestSession:
                     num_call_public_eval=3,
                     num_call_private_eval=1,
                 ),
-                dt.datetime(2000, 1, 1, 0, 59, 59, tzinfo=dt.timezone.utc),
+                dt.datetime(2000, 1, 1, 0, 59, 59, tzinfo=dt.UTC),
                 does_not_raise(),
                 id="case_eval_ok",
             ),
@@ -1227,7 +1209,7 @@ class TestSession:
                     num_call_public_eval=3,
                     num_call_private_eval=1,
                 ),
-                dt.datetime(2000, 1, 1, 1, 0, 0, tzinfo=dt.timezone.utc),
+                dt.datetime(2000, 1, 1, 1, 0, 0, tzinfo=dt.UTC),
                 pytest.raises(AleBenchError, match=r"The session has already finished\."),
                 id="case_eval_ng_session_duration",
             ),
@@ -1240,7 +1222,7 @@ class TestSession:
                     num_call_public_eval=3,
                     num_call_private_eval=1,
                 ),
-                dt.datetime(2000, 1, 1, 0, 59, 59, tzinfo=dt.timezone.utc),
+                dt.datetime(2000, 1, 1, 0, 59, 59, tzinfo=dt.UTC),
                 pytest.raises(
                     AleBenchError, match=r"Exceeded the maximum resource usage for the `case_eval` function\."
                 ),
@@ -1255,7 +1237,7 @@ class TestSession:
                     num_call_public_eval=3,
                     num_call_private_eval=1,
                 ),
-                dt.datetime(2000, 1, 1, 0, 59, 59, tzinfo=dt.timezone.utc),
+                dt.datetime(2000, 1, 1, 0, 59, 59, tzinfo=dt.UTC),
                 pytest.raises(
                     AleBenchError, match=r"Exceeded the maximum resource usage for the `case_eval` function\."
                 ),
@@ -1270,7 +1252,7 @@ class TestSession:
                     num_call_public_eval=3,
                     num_call_private_eval=1,
                 ),
-                dt.datetime(2000, 1, 1, 0, 59, 59, tzinfo=dt.timezone.utc),
+                dt.datetime(2000, 1, 1, 0, 59, 59, tzinfo=dt.UTC),
                 does_not_raise(),
                 id="case_gen_eval_ok",
             ),
@@ -1283,7 +1265,7 @@ class TestSession:
                     num_call_public_eval=3,
                     num_call_private_eval=1,
                 ),
-                dt.datetime(2000, 1, 1, 1, 0, 0, tzinfo=dt.timezone.utc),
+                dt.datetime(2000, 1, 1, 1, 0, 0, tzinfo=dt.UTC),
                 pytest.raises(AleBenchError, match=r"The session has already finished\."),
                 id="case_gen_eval_ng_session_duration",
             ),
@@ -1296,7 +1278,7 @@ class TestSession:
                     num_call_public_eval=3,
                     num_call_private_eval=1,
                 ),
-                dt.datetime(2000, 1, 1, 0, 59, 59, tzinfo=dt.timezone.utc),
+                dt.datetime(2000, 1, 1, 0, 59, 59, tzinfo=dt.UTC),
                 pytest.raises(
                     AleBenchError, match=r"Exceeded the maximum resource usage for the `case_gen_eval` function\."
                 ),
@@ -1311,7 +1293,7 @@ class TestSession:
                     num_call_public_eval=3,
                     num_call_private_eval=1,
                 ),
-                dt.datetime(2000, 1, 1, 0, 59, 59, tzinfo=dt.timezone.utc),
+                dt.datetime(2000, 1, 1, 0, 59, 59, tzinfo=dt.UTC),
                 pytest.raises(
                     AleBenchError, match=r"Exceeded the maximum resource usage for the `case_gen_eval` function\."
                 ),
@@ -1326,7 +1308,7 @@ class TestSession:
                     num_call_public_eval=3,
                     num_call_private_eval=1,
                 ),
-                dt.datetime(2000, 1, 1, 0, 59, 59, tzinfo=dt.timezone.utc),
+                dt.datetime(2000, 1, 1, 0, 59, 59, tzinfo=dt.UTC),
                 pytest.raises(
                     AleBenchError, match=r"Exceeded the maximum resource usage for the `case_gen_eval` function\."
                 ),
@@ -1341,7 +1323,7 @@ class TestSession:
                     num_call_public_eval=2,
                     num_call_private_eval=1,
                 ),
-                dt.datetime(2000, 1, 1, 0, 59, 59, tzinfo=dt.timezone.utc),
+                dt.datetime(2000, 1, 1, 0, 59, 59, tzinfo=dt.UTC),
                 does_not_raise(),
                 id="public_eval_ok",
             ),
@@ -1354,7 +1336,7 @@ class TestSession:
                     num_call_public_eval=2,
                     num_call_private_eval=1,
                 ),
-                dt.datetime(2000, 1, 1, 1, 0, 0, tzinfo=dt.timezone.utc),
+                dt.datetime(2000, 1, 1, 1, 0, 0, tzinfo=dt.UTC),
                 pytest.raises(AleBenchError, match=r"The session has already finished\."),
                 id="public_eval_ng_session_duration",
             ),
@@ -1367,7 +1349,7 @@ class TestSession:
                     num_call_public_eval=3,
                     num_call_private_eval=1,
                 ),
-                dt.datetime(2000, 1, 1, 0, 59, 59, tzinfo=dt.timezone.utc),
+                dt.datetime(2000, 1, 1, 0, 59, 59, tzinfo=dt.UTC),
                 pytest.raises(
                     AleBenchError, match=r"Exceeded the maximum resource usage for the `public_eval` function\."
                 ),
@@ -1382,7 +1364,7 @@ class TestSession:
                     num_call_public_eval=2,
                     num_call_private_eval=1,
                 ),
-                dt.datetime(2000, 1, 1, 0, 59, 58, tzinfo=dt.timezone.utc),
+                dt.datetime(2000, 1, 1, 0, 59, 58, tzinfo=dt.UTC),
                 pytest.raises(AleBenchError, match=r"The next public evaluation is not allowed yet\."),
                 id="public_eval_ng_submission_interval",
             ),
@@ -1395,7 +1377,7 @@ class TestSession:
                     num_call_public_eval=3,
                     num_call_private_eval=0,
                 ),
-                dt.datetime(2000, 1, 1, 0, 59, 59, tzinfo=dt.timezone.utc),
+                dt.datetime(2000, 1, 1, 0, 59, 59, tzinfo=dt.UTC),
                 does_not_raise(),
                 id="private_eval_ok",
             ),
@@ -1408,7 +1390,7 @@ class TestSession:
                     num_call_public_eval=3,
                     num_call_private_eval=0,
                 ),
-                dt.datetime(2000, 1, 1, 1, 0, 0, tzinfo=dt.timezone.utc),
+                dt.datetime(2000, 1, 1, 1, 0, 0, tzinfo=dt.UTC),
                 pytest.raises(AleBenchError, match=r"The session has already finished\."),
                 id="private_eval_ng_session_duration",
             ),
@@ -1421,7 +1403,7 @@ class TestSession:
                     num_call_public_eval=3,
                     num_call_private_eval=1,
                 ),
-                dt.datetime(2000, 1, 1, 0, 59, 59, tzinfo=dt.timezone.utc),
+                dt.datetime(2000, 1, 1, 0, 59, 59, tzinfo=dt.UTC),
                 pytest.raises(
                     AleBenchError, match=r"Exceeded the maximum resource usage for the `private_eval` function\."
                 ),
@@ -1438,8 +1420,8 @@ class TestSession:
         dummy_session: Session,
         mocker: MockerFixture,
     ) -> None:
-        dummy_session._session_started_at = dt.datetime(2000, 1, 1, 0, 0, tzinfo=dt.timezone.utc)
-        dummy_session._last_public_eval_time = dt.datetime(2000, 1, 1, 0, 29, 59, tzinfo=dt.timezone.utc)
+        dummy_session._session_started_at = dt.datetime(2000, 1, 1, 0, 0, tzinfo=dt.UTC)
+        dummy_session._last_public_eval_time = dt.datetime(2000, 1, 1, 0, 29, 59, tzinfo=dt.UTC)
         dummy_session._current_resource_usage = current_resource_usage
         mocked_datetime = mocker.patch("ale_bench.session.dt.datetime", return_value=utc_now)
         mocked_datetime.now.return_value = utc_now
@@ -1458,7 +1440,7 @@ class TestSession:
                     num_call_public_eval=3,
                     num_call_private_eval=1,
                 ),
-                dt.datetime(2000, 1, 1, 1, 0, 1, tzinfo=dt.timezone.utc),
+                dt.datetime(2000, 1, 1, 1, 0, 1, tzinfo=dt.UTC),
                 does_not_raise(),
                 id="code_run_ok",
             ),
@@ -1471,7 +1453,7 @@ class TestSession:
                     num_call_public_eval=3,
                     num_call_private_eval=1,
                 ),
-                dt.datetime(2000, 1, 1, 1, 0, 1, tzinfo=dt.timezone.utc),
+                dt.datetime(2000, 1, 1, 1, 0, 1, tzinfo=dt.UTC),
                 pytest.raises(
                     AleBenchError,
                     match=r"Exceeded the maximum resource usage for the `code_run` function after the action\.",
@@ -1487,7 +1469,7 @@ class TestSession:
                     num_call_public_eval=3,
                     num_call_private_eval=1,
                 ),
-                dt.datetime(2000, 1, 1, 1, 0, 1, tzinfo=dt.timezone.utc),
+                dt.datetime(2000, 1, 1, 1, 0, 1, tzinfo=dt.UTC),
                 does_not_raise(),
                 id="case_gen_ok",
             ),
@@ -1500,7 +1482,7 @@ class TestSession:
                     num_call_public_eval=3,
                     num_call_private_eval=1,
                 ),
-                dt.datetime(2000, 1, 1, 1, 0, 1, tzinfo=dt.timezone.utc),
+                dt.datetime(2000, 1, 1, 1, 0, 1, tzinfo=dt.UTC),
                 pytest.raises(
                     AleBenchError,
                     match=r"Exceeded the maximum resource usage for the `case_gen` function after the action\.",
@@ -1516,7 +1498,7 @@ class TestSession:
                     num_call_public_eval=3,
                     num_call_private_eval=1,
                 ),
-                dt.datetime(2000, 1, 1, 1, 0, 1, tzinfo=dt.timezone.utc),
+                dt.datetime(2000, 1, 1, 1, 0, 1, tzinfo=dt.UTC),
                 does_not_raise(),
                 id="case_eval_ok",
             ),
@@ -1529,7 +1511,7 @@ class TestSession:
                     num_call_public_eval=3,
                     num_call_private_eval=1,
                 ),
-                dt.datetime(2000, 1, 1, 1, 0, 1, tzinfo=dt.timezone.utc),
+                dt.datetime(2000, 1, 1, 1, 0, 1, tzinfo=dt.UTC),
                 pytest.raises(
                     AleBenchError,
                     match=r"Exceeded the maximum resource usage for the `case_eval` function after the action\.",
@@ -1545,7 +1527,7 @@ class TestSession:
                     num_call_public_eval=3,
                     num_call_private_eval=1,
                 ),
-                dt.datetime(2000, 1, 1, 1, 0, 1, tzinfo=dt.timezone.utc),
+                dt.datetime(2000, 1, 1, 1, 0, 1, tzinfo=dt.UTC),
                 pytest.raises(
                     AleBenchError,
                     match=r"Exceeded the maximum resource usage for the `case_eval` function after the action\.",
@@ -1561,7 +1543,7 @@ class TestSession:
                     num_call_public_eval=3,
                     num_call_private_eval=1,
                 ),
-                dt.datetime(2000, 1, 1, 1, 0, 1, tzinfo=dt.timezone.utc),
+                dt.datetime(2000, 1, 1, 1, 0, 1, tzinfo=dt.UTC),
                 does_not_raise(),
                 id="case_gen_eval_ok",
             ),
@@ -1574,7 +1556,7 @@ class TestSession:
                     num_call_public_eval=3,
                     num_call_private_eval=1,
                 ),
-                dt.datetime(2000, 1, 1, 1, 0, 1, tzinfo=dt.timezone.utc),
+                dt.datetime(2000, 1, 1, 1, 0, 1, tzinfo=dt.UTC),
                 pytest.raises(
                     AleBenchError,
                     match=r"Exceeded the maximum resource usage for the `case_gen_eval` function after the action\.",
@@ -1590,7 +1572,7 @@ class TestSession:
                     num_call_public_eval=3,
                     num_call_private_eval=1,
                 ),
-                dt.datetime(2000, 1, 1, 1, 0, 1, tzinfo=dt.timezone.utc),
+                dt.datetime(2000, 1, 1, 1, 0, 1, tzinfo=dt.UTC),
                 pytest.raises(
                     AleBenchError,
                     match=r"Exceeded the maximum resource usage for the `case_gen_eval` function after the action\.",
@@ -1606,7 +1588,7 @@ class TestSession:
                     num_call_public_eval=3,
                     num_call_private_eval=1,
                 ),
-                dt.datetime(2000, 1, 1, 1, 0, 1, tzinfo=dt.timezone.utc),
+                dt.datetime(2000, 1, 1, 1, 0, 1, tzinfo=dt.UTC),
                 pytest.raises(
                     AleBenchError,
                     match=r"Exceeded the maximum resource usage for the `case_gen_eval` function after the action\.",
@@ -1622,7 +1604,7 @@ class TestSession:
                     num_call_public_eval=3,
                     num_call_private_eval=1,
                 ),
-                dt.datetime(2000, 1, 1, 1, 0, 1, tzinfo=dt.timezone.utc),
+                dt.datetime(2000, 1, 1, 1, 0, 1, tzinfo=dt.UTC),
                 does_not_raise(),
                 id="public_eval_ok",
             ),
@@ -1635,7 +1617,7 @@ class TestSession:
                     num_call_public_eval=4,
                     num_call_private_eval=1,
                 ),
-                dt.datetime(2000, 1, 1, 1, 0, 1, tzinfo=dt.timezone.utc),
+                dt.datetime(2000, 1, 1, 1, 0, 1, tzinfo=dt.UTC),
                 pytest.raises(
                     AleBenchError,
                     match=r"Exceeded the maximum resource usage for the `public_eval` function after the action\.",
@@ -1651,7 +1633,7 @@ class TestSession:
                     num_call_public_eval=3,
                     num_call_private_eval=1,
                 ),
-                dt.datetime(2000, 1, 1, 1, 0, 1, tzinfo=dt.timezone.utc),
+                dt.datetime(2000, 1, 1, 1, 0, 1, tzinfo=dt.UTC),
                 does_not_raise(),
                 id="private_eval_ok",
             ),
@@ -1664,7 +1646,7 @@ class TestSession:
                     num_call_public_eval=3,
                     num_call_private_eval=2,
                 ),
-                dt.datetime(2000, 1, 1, 1, 0, 1, tzinfo=dt.timezone.utc),
+                dt.datetime(2000, 1, 1, 1, 0, 1, tzinfo=dt.UTC),
                 pytest.raises(
                     AleBenchError,
                     match=r"Exceeded the maximum resource usage for the `private_eval` function after the action\.",
@@ -1682,8 +1664,8 @@ class TestSession:
         dummy_session: Session,
         mocker: MockerFixture,
     ) -> None:
-        dummy_session._session_started_at = dt.datetime(2000, 1, 1, 0, 0, tzinfo=dt.timezone.utc)
-        dummy_session._last_public_eval_time = dt.datetime(2000, 1, 1, 0, 29, 59, tzinfo=dt.timezone.utc)
+        dummy_session._session_started_at = dt.datetime(2000, 1, 1, 0, 0, tzinfo=dt.UTC)
+        dummy_session._last_public_eval_time = dt.datetime(2000, 1, 1, 0, 29, 59, tzinfo=dt.UTC)
         dummy_session._current_resource_usage = current_resource_usage
         mocked_datetime = mocker.patch("ale_bench.session.dt.datetime", return_value=utc_now)
         mocked_datetime.now.return_value = utc_now

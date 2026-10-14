@@ -8,7 +8,7 @@ import shutil
 import tempfile
 import zipfile
 from collections import Counter
-from enum import Enum
+from enum import StrEnum
 from pathlib import Path
 from typing import Final
 
@@ -22,7 +22,7 @@ from ale_bench.result import JudgeResult, Result
 from ale_bench.utils import docker_client, get_cache_dir, get_local_data_dir, read_svg
 
 
-class ProblemType(str, Enum):
+class ProblemType(StrEnum):
     """Problem types for ALE-Bench.
 
     - `batch`: Batch problem
@@ -33,7 +33,7 @@ class ProblemType(str, Enum):
     REACTIVE = "reactive"
 
 
-class ScoreType(str, Enum):
+class ScoreType(StrEnum):
     """Score types for ALE-Bench.
 
     - `minimize`: Minimize the absolute score
@@ -133,7 +133,7 @@ class RankPerformanceMap(BaseModel):
         return round(perf_high - (perf_high - perf_low) * (rank - rank_high) / (rank_low - rank_high))
 
 
-class RelativeScoreType(str, Enum):
+class RelativeScoreType(StrEnum):
     """Relative score types for ALE-Bench.
 
     - `min`: Relative score is calculated by the absolute score, lower absolute score is better
@@ -839,7 +839,7 @@ class RatingCalculator:
         }
 
 
-class RankPercentileMapMethod(str, Enum):
+class RankPercentileMapMethod(StrEnum):
     """Method for converting rank to percentile."""
 
     ORIGINAL = "original"

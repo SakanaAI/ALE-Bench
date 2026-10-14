@@ -39,7 +39,7 @@ def _run_with_retries(
     for attempt in range(1, max_attempts + 1):
         try:
             return operation()
-        except Exception as e:  # noqa: PERF203
+        except Exception as e:
             last_error = e
             if attempt == max_attempts:
                 save_info.logger.info("%s failed after %s attempts: %s", operation_name, max_attempts, e)

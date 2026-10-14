@@ -1,6 +1,6 @@
 """Code language definitions and command helpers for ALE-Bench."""
 
-from enum import Enum
+from enum import StrEnum
 
 import ale_bench.constants
 from ale_bench.judge_command_profiles import (
@@ -10,7 +10,7 @@ from ale_bench.judge_command_profiles import (
 )
 
 
-class CodeLanguage(str, Enum):
+class CodeLanguage(StrEnum):
     """Enum for code languages."""
 
     BASH = "bash"
@@ -34,7 +34,7 @@ class CodeLanguage(str, Enum):
     # NOTE: Add more code languages here
 
 
-class JudgeVersion(str, Enum):
+class JudgeVersion(StrEnum):
     """Enum for judge versions."""
 
     V201907 = "201907"

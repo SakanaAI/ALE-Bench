@@ -68,7 +68,7 @@ class SharedAsyncLoop:
         except FutureTimeoutError as exc:
             future.cancel()
             msg = f"Timed out waiting for coroutine result after {timeout}s"
-            raise asyncio.TimeoutError(msg) from exc
+            raise TimeoutError(msg) from exc
         except Exception:
             future.cancel()
             raise

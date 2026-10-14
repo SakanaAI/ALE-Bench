@@ -1402,40 +1402,40 @@ class TestProblemMetaData:
         [
             pytest.param(
                 (
-                    dt.datetime(2023, 1, 1, 0, 0, 0, tzinfo=dt.timezone.utc),
-                    dt.datetime(2023, 1, 1, 6, 0, 0, tzinfo=dt.timezone.utc),
+                    dt.datetime(2023, 1, 1, 0, 0, 0, tzinfo=dt.UTC),
+                    dt.datetime(2023, 1, 1, 6, 0, 0, tzinfo=dt.UTC),
                 ),
                 dt.timedelta(hours=6),
                 id="06:00:00",
             ),
             pytest.param(
                 (
-                    dt.datetime(2023, 1, 1, 0, 0, 0, tzinfo=dt.timezone.utc),
-                    dt.datetime(2023, 1, 1, 23, 59, 59, tzinfo=dt.timezone.utc),
+                    dt.datetime(2023, 1, 1, 0, 0, 0, tzinfo=dt.UTC),
+                    dt.datetime(2023, 1, 1, 23, 59, 59, tzinfo=dt.UTC),
                 ),
                 dt.timedelta(hours=23, minutes=59, seconds=59),
                 id="23:59:59",
             ),
             pytest.param(
                 (
-                    dt.datetime(2023, 1, 1, 0, 0, 0, tzinfo=dt.timezone.utc),
-                    dt.datetime(2023, 1, 2, 0, 0, 0, tzinfo=dt.timezone.utc),
+                    dt.datetime(2023, 1, 1, 0, 0, 0, tzinfo=dt.UTC),
+                    dt.datetime(2023, 1, 2, 0, 0, 0, tzinfo=dt.UTC),
                 ),
                 dt.timedelta(days=1),
                 id="1day",
             ),
             pytest.param(
                 (
-                    dt.datetime(2023, 1, 1, 0, 0, 0, tzinfo=dt.timezone.utc),
-                    dt.datetime(2023, 1, 8, 0, 0, 0, tzinfo=dt.timezone.utc),
+                    dt.datetime(2023, 1, 1, 0, 0, 0, tzinfo=dt.UTC),
+                    dt.datetime(2023, 1, 8, 0, 0, 0, tzinfo=dt.UTC),
                 ),
                 dt.timedelta(weeks=1),
                 id="1week",
             ),
             pytest.param(
                 (
-                    dt.datetime(2023, 1, 1, 0, 0, 0, tzinfo=dt.timezone.utc),
-                    dt.datetime(2023, 1, 11, 4, 0, 0, tzinfo=dt.timezone.utc),
+                    dt.datetime(2023, 1, 1, 0, 0, 0, tzinfo=dt.UTC),
+                    dt.datetime(2023, 1, 11, 4, 0, 0, tzinfo=dt.UTC),
                 ),
                 dt.timedelta(weeks=1, days=3, hours=4),
                 id="10days 4hours",
@@ -1451,40 +1451,40 @@ class TestProblemMetaData:
         [
             pytest.param(
                 (
-                    dt.datetime(2023, 1, 1, 0, 0, 0, tzinfo=dt.timezone.utc),
-                    dt.datetime(2023, 1, 1, 6, 0, 0, tzinfo=dt.timezone.utc),
+                    dt.datetime(2023, 1, 1, 0, 0, 0, tzinfo=dt.UTC),
+                    dt.datetime(2023, 1, 1, 6, 0, 0, tzinfo=dt.UTC),
                 ),
                 300,
                 id="06:00:00",
             ),
             pytest.param(
                 (
-                    dt.datetime(2023, 1, 1, 0, 0, 0, tzinfo=dt.timezone.utc),
-                    dt.datetime(2023, 1, 1, 23, 59, 59, tzinfo=dt.timezone.utc),
+                    dt.datetime(2023, 1, 1, 0, 0, 0, tzinfo=dt.UTC),
+                    dt.datetime(2023, 1, 1, 23, 59, 59, tzinfo=dt.UTC),
                 ),
                 300,
                 id="23:59:59",
             ),
             pytest.param(
                 (
-                    dt.datetime(2023, 1, 1, 0, 0, 0, tzinfo=dt.timezone.utc),
-                    dt.datetime(2023, 1, 2, 0, 0, 0, tzinfo=dt.timezone.utc),
+                    dt.datetime(2023, 1, 1, 0, 0, 0, tzinfo=dt.UTC),
+                    dt.datetime(2023, 1, 2, 0, 0, 0, tzinfo=dt.UTC),
                 ),
                 1800,
                 id="1day",
             ),
             pytest.param(
                 (
-                    dt.datetime(2023, 1, 1, 0, 0, 0, tzinfo=dt.timezone.utc),
-                    dt.datetime(2023, 1, 8, 0, 0, 0, tzinfo=dt.timezone.utc),
+                    dt.datetime(2023, 1, 1, 0, 0, 0, tzinfo=dt.UTC),
+                    dt.datetime(2023, 1, 8, 0, 0, 0, tzinfo=dt.UTC),
                 ),
                 1800,
                 id="1week",
             ),
             pytest.param(
                 (
-                    dt.datetime(2023, 1, 1, 0, 0, 0, tzinfo=dt.timezone.utc),
-                    dt.datetime(2023, 1, 11, 4, 0, 0, tzinfo=dt.timezone.utc),
+                    dt.datetime(2023, 1, 1, 0, 0, 0, tzinfo=dt.UTC),
+                    dt.datetime(2023, 1, 11, 4, 0, 0, tzinfo=dt.UTC),
                 ),
                 1800,
                 id="10days 4hours",
