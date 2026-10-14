@@ -1,0 +1,11 @@
+{
+    "model_name": "gemini-4-argon",
+    "provider": "google",
+    "settings": {
+        "max_tokens": 262144,
+        "google_thinking_config": {
+            "include_thoughts": true,
+            "thinking_level": "high"
+        }
+    }
+}

@@ -15,11 +15,11 @@ The tool evaluates LLMs' performance on ALE-Bench problems using two evaluation 
 
 1. Setup ALE-Bench as [ALE-Bench Setup Instructions](../README.md#setup):
 ```sh
-uv venv --python 3.12.11  # Or any supported Python version (3.10 ~ 3.14)
+uv venv --python 3.13.16  # Or any supported Python version (3.11 ~ 3.15)
 uv sync --no-dev --extra eval
 ```
 
-> **Note**: We require Python 3.10 or higher due to dependencies on Pydantic AI.
+> **Note**: We require Python 3.11 or higher due to dependencies on Pydantic AI.
 
 > **Note**: The `eval` extra includes dependencies required for evaluation.
 
