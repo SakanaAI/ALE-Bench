@@ -29,18 +29,18 @@ jobs:
         ]
 
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
 
     - name: Set library path for Homebrew on macOS
       if: runner.os == 'macOS'
       run: echo "DYLD_FALLBACK_LIBRARY_PATH=$(brew --prefix)/lib" >> "$GITHUB_ENV"
 
     - name: Install uv and set the python version
-      uses: astral-sh/setup-uv@v7
+      uses: astral-sh/setup-uv@v10.3.0
       with:
         enable-cache: true
         python-version: ${{ matrix.python-version }}
-        version: 0.10.0
+        version: 0.13.0
 
     - name: Install the project
       run: uv sync --dev --extra eval
