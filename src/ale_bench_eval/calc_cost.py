@@ -442,6 +442,11 @@ FALLBACK_DICT = {
         output_mtok=Decimal(425) / Decimal(100),
         cache_read_mtok=Decimal(15) / Decimal(100),
     ),
+    "muse-spark-open": ModelPrice(
+        input_mtok=Decimal(125) / Decimal(100),
+        output_mtok=Decimal(425) / Decimal(100),
+        cache_read_mtok=Decimal(15) / Decimal(100),
+    ),
     "muse-glimmer-30b": ModelPrice(
         input_mtok=Decimal(35) / Decimal(100),
         output_mtok=Decimal(15) / Decimal(10),
