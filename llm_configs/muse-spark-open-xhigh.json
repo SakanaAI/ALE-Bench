@@ -1,0 +1,24 @@
+{
+    "model_name": "meta/muse-spark-open",
+    "provider": "openrouter",
+    "settings": {
+        "temperature": 1.0,
+        "top_p": 1.0,
+        "extra_body": {
+            "provider": {
+                "allow_fallbacks": false,
+                "data_collection": "deny",
+                "order": ["together"],
+                "require_parameters": true
+            },
+            "reasoning": {
+                "effort": "xhigh",
+                "summary": "detailed",
+                "enabled": true
+            },
+            "usage": {
+                "include": true
+            }
+        }
+    }
+}

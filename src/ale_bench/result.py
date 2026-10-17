@@ -1,7 +1,7 @@
 """Result models returned by judge and evaluation steps."""
 
 from collections.abc import Sequence
-from enum import Enum
+from enum import StrEnum
 
 from PIL import Image
 from pydantic import BaseModel, ConfigDict, Field, computed_field, field_validator
@@ -20,7 +20,7 @@ class CodeRunResult(BaseModel):
     memory_usage: int = Field(description="Max resident set size in bytes (when available)")
 
 
-class JudgeResult(str, Enum):
+class JudgeResult(StrEnum):
     """Result of the judge."""
 
     ACCEPTED = "ACCEPTED"

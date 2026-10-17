@@ -5,7 +5,7 @@ import logging
 import os
 from decimal import Decimal
 from pathlib import Path
-from typing import Any, Final
+from typing import Any
 from uuid import uuid4
 
 from pydantic import BaseModel
@@ -15,11 +15,9 @@ from ale_bench.constants import ALLOW_SCORE_NON_AC_PRIVATE
 from ale_bench.result import CaseResult, ResourceUsage, Result as AleBenchResult
 from ale_bench.schemas import ResultSerializable as AleBenchResultSerializable
 
-UTC: Final[datetime.tzinfo] = getattr(datetime, "UTC", datetime.timezone.utc)
-
 
 def get_now_utc() -> datetime.datetime:
-    return datetime.datetime.now(tz=UTC)
+    return datetime.datetime.now(tz=datetime.UTC)
 
 
 def get_now_utc_string() -> str:

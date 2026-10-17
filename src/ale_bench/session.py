@@ -7,7 +7,7 @@ import logging
 import os
 import shutil
 import warnings
-from enum import Enum
+from enum import StrEnum
 from pathlib import Path
 from typing import Any, NoReturn
 
@@ -25,7 +25,7 @@ from ale_bench.utils import docker_client
 logger = logging.getLogger(__name__)
 
 
-class AleBenchFunction(str, Enum):
+class AleBenchFunction(StrEnum):
     """Functions for ALE-Bench."""
 
     CODE_RUN = "code_run"
@@ -106,8 +106,8 @@ class Session:
 
         self._current_resource_usage = ResourceUsage()
         self._action_log: list[str] = []
-        self._last_public_eval_time = dt.datetime(1970, 1, 1, tzinfo=dt.timezone.utc)
-        self._last_private_eval_time = dt.datetime(1970, 1, 1, tzinfo=dt.timezone.utc)
+        self._last_public_eval_time = dt.datetime(1970, 1, 1, tzinfo=dt.UTC)
+        self._last_private_eval_time = dt.datetime(1970, 1, 1, tzinfo=dt.UTC)
 
         self._public_inputs = generate_inputs(public_seeds, {}, tool_dir)
         if len(self._public_inputs) != len(public_seeds):
@@ -134,7 +134,7 @@ class Session:
         atexit.register(self.close)
 
         # Set the session started time
-        self._session_started_at = dt.datetime.now(tz=dt.timezone.utc)
+        self._session_started_at = dt.datetime.now(tz=dt.UTC)
 
     def __repr__(self) -> str:
         """Return a concise representation of this session."""
@@ -176,7 +176,7 @@ class Session:
         if not self._check_within_resource_usage_before(AleBenchFunction.CODE_RUN):
             msg = "The resource usage is exceeded."
             raise AleBenchError(msg)
-        elapsed_time = (dt.datetime.now(tz=dt.timezone.utc) - self._session_started_at).total_seconds()
+        elapsed_time = (dt.datetime.now(tz=dt.UTC) - self._session_started_at).total_seconds()
         (input_list, code, code_language, judge_version, time_limit, memory_limit) = self._check_run_cases_arguments(
             input_str=input_str,
             allow_empty_input=True,
@@ -245,7 +245,7 @@ class Session:
         if not self._check_within_resource_usage_before(AleBenchFunction.CASE_GEN):
             msg = "The resource usage is exceeded."
             raise AleBenchError(msg)
-        elapsed_time = (dt.datetime.now(tz=dt.timezone.utc) - self._session_started_at).total_seconds()
+        elapsed_time = (dt.datetime.now(tz=dt.UTC) - self._session_started_at).total_seconds()
         is_scalar = isinstance(seed, int)
         seed, gen_kwargs = self._check_input_generation_arguments(seed=seed, gen_kwargs=gen_kwargs)
 
@@ -315,7 +315,7 @@ class Session:
         if not self._check_within_resource_usage_before(AleBenchFunction.CASE_EVAL):
             msg = "The resource usage is exceeded."
             raise AleBenchError(msg)
-        elapsed_time = (dt.datetime.now(tz=dt.timezone.utc) - self._session_started_at).total_seconds()
+        elapsed_time = (dt.datetime.now(tz=dt.UTC) - self._session_started_at).total_seconds()
         (input_str, code, code_language, judge_version, time_limit, memory_limit) = self._check_run_cases_arguments(
             input_str=input_str,
             code=code,
@@ -462,7 +462,7 @@ class Session:
         """
         # Preprocessing
         self._check_session_finished()
-        elapsed_time = (dt.datetime.now(tz=dt.timezone.utc) - self._session_started_at).total_seconds()
+        elapsed_time = (dt.datetime.now(tz=dt.UTC) - self._session_started_at).total_seconds()
         is_scalar = isinstance(input_str, str)
         input_str, output_str = self._check_local_visualization_arguments(input_str=input_str, output_str=output_str)
 
@@ -524,11 +524,11 @@ class Session:
         if not self._check_within_resource_usage_before(AleBenchFunction.PUBLIC_EVAL):
             msg = "The resource usage is exceeded."
             raise AleBenchError(msg)
-        elapsed_time = (dt.datetime.now(tz=dt.timezone.utc) - self._session_started_at).total_seconds()
+        elapsed_time = (dt.datetime.now(tz=dt.UTC) - self._session_started_at).total_seconds()
         _, code, code_language, judge_version, _, _ = self._check_run_cases_arguments(
             code=code, code_language=code_language, judge_version=judge_version
         )
-        self._last_public_eval_time = dt.datetime.now(tz=dt.timezone.utc)
+        self._last_public_eval_time = dt.datetime.now(tz=dt.UTC)
 
         # Evaluation
         public_case_results = run_cases(
@@ -608,11 +608,11 @@ class Session:
         if not self._check_within_resource_usage_before(AleBenchFunction.PRIVATE_EVAL):
             msg = "The resource usage is exceeded."
             raise AleBenchError(msg)
-        elapsed_time = (dt.datetime.now(tz=dt.timezone.utc) - self._session_started_at).total_seconds()
+        elapsed_time = (dt.datetime.now(tz=dt.UTC) - self._session_started_at).total_seconds()
         _, code, code_language, judge_version, _, _ = self._check_run_cases_arguments(
             code=code, code_language=code_language, judge_version=judge_version
         )
-        self._last_private_eval_time = dt.datetime.now(tz=dt.timezone.utc)
+        self._last_private_eval_time = dt.datetime.now(tz=dt.UTC)
 
         # Evaluation
         private_case_results = run_cases(
@@ -715,7 +715,7 @@ class Session:
                     "last_public_eval_time": self._last_public_eval_time.timestamp(),
                     "last_private_eval_time": self._last_private_eval_time.timestamp(),
                     "session_started_at": self._session_started_at.timestamp(),
-                    "session_paused_at": dt.datetime.now(tz=dt.timezone.utc).timestamp(),
+                    "session_paused_at": dt.datetime.now(tz=dt.UTC).timestamp(),
                 },
                 f,
                 ensure_ascii=False,
@@ -965,7 +965,7 @@ class Session:
             dt.timedelta: The remaining time of the session.
 
         """
-        return self._session_started_at + self._session_duration - dt.datetime.now(tz=dt.timezone.utc)
+        return self._session_started_at + self._session_duration - dt.datetime.now(tz=dt.UTC)
 
     @property
     def session_finished(self) -> bool:
@@ -1028,7 +1028,7 @@ class Session:
         if (
             self._use_same_time_scale
             and function_type == AleBenchFunction.PUBLIC_EVAL
-            and dt.datetime.now(tz=dt.timezone.utc) < self.next_public_eval_time
+            and dt.datetime.now(tz=dt.UTC) < self.next_public_eval_time
         ):
             msg = "The next public evaluation is not allowed yet."
             raise AleBenchError(msg)

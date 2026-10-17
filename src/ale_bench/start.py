@@ -189,9 +189,9 @@ def restart(
     session._action_log = session_data["action_log"]  # noqa: SLF001
 
     session._session_started_at -= dt.datetime.fromtimestamp(  # noqa: SLF001
-        session_data["session_paused_at"], tz=dt.timezone.utc
+        session_data["session_paused_at"], tz=dt.UTC
     ) - dt.datetime.fromtimestamp(
-        session_data["session_started_at"], tz=dt.timezone.utc
+        session_data["session_started_at"], tz=dt.UTC
     )  # NOTE: We need to subtract the duration time already passed
     if session_data["last_public_eval_time"] >= session_data["session_started_at"]:
         session._last_public_eval_time = session._session_started_at + dt.timedelta(  # noqa: SLF001

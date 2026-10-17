@@ -17,8 +17,8 @@ from ale_bench.utils import pil_to_base64
             ProblemSerializable(
                 metadata=ProblemMetaData(
                     problem_id="test",
-                    start_at=datetime.datetime(2025, 1, 1, 0, 0, 0, tzinfo=datetime.timezone.utc),
-                    end_at=datetime.datetime(2025, 7, 7, 0, 0, 0, tzinfo=datetime.timezone.utc),
+                    start_at=datetime.datetime(2025, 1, 1, 0, 0, 0, tzinfo=datetime.UTC),
+                    end_at=datetime.datetime(2025, 7, 7, 0, 0, 0, tzinfo=datetime.UTC),
                     contest_url="https://example.com/test",
                     title="Test Problem",
                     problem_type=ProblemType.BATCH,
