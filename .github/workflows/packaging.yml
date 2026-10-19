@@ -1,0 +1,49 @@
+name: Packaging
+
+on:
+  push:
+    branches:
+      - main
+  pull_request: {}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref == 'refs/heads/main' && github.run_number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  packaging:
+    name: Wheel installation (${{ matrix.variant }})
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        variant: [base, mcp, eval]
+    steps:
+    - uses: actions/checkout@v7
+      with:
+        fetch-depth: 0
+
+    - uses: astral-sh/setup-uv@v10.3.0
+      with:
+        enable-cache: true
+        python-version: "3.13"
+        version: 0.13.0
+
+    - name: Build the distribution
+      run: uv build --no-sources
+
+    - name: Install the wheel in a clean environment
+      env:
+        INSTALL_VARIANT: ${{ matrix.variant }}
+      run: |
+        uv venv .venv
+        wheel=$(find "$PWD/dist" -name '*.whl' -print -quit)
+        if [ "$INSTALL_VARIANT" != "base" ]; then
+          wheel="${wheel}[${INSTALL_VARIANT}]"
+        fi
+        uv pip install --python .venv/bin/python "$wheel"
+
+    - name: Check optional dependencies and installed entry points
+      env:
+        INSTALL_VARIANT: ${{ matrix.variant }}
+      # Run the installed wheel without uv run syncing the checkout into the environment.
+      run: .venv/bin/python scripts/check_wheel_install.py

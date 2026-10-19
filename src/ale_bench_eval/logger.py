@@ -1,5 +1,5 @@
 import base64
-import datetime
+import datetime as dt
 import json
 import logging
 import os
@@ -16,8 +16,8 @@ from ale_bench.result import CaseResult, ResourceUsage, Result as AleBenchResult
 from ale_bench.schemas import ResultSerializable as AleBenchResultSerializable
 
 
-def get_now_utc() -> datetime.datetime:
-    return datetime.datetime.now(tz=datetime.UTC)
+def get_now_utc() -> dt.datetime:
+    return dt.datetime.now(tz=dt.UTC)
 
 
 def get_now_utc_string() -> str:
@@ -33,7 +33,7 @@ class CustomJSONDecoder(json.JSONDecoder):
             case {"__type__": "bytes", "encoding": "base64", "data": str(data)}:
                 return base64.b64decode(data)
             case {"__type__": "datetime", "data": str(data)}:
-                return datetime.datetime.fromisoformat(data)
+                return dt.datetime.fromisoformat(data)
             case {"__type__": "decimal", "data": str(data)}:
                 return Decimal(data)
         return obj

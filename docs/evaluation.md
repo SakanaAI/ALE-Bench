@@ -23,6 +23,10 @@ uv sync --no-dev --extra eval
 
 > **Note**: The `eval` extra includes dependencies required for evaluation.
 
+To use the MCP server in the same environment, install both extras with `uv sync --no-dev --all-extras` (or `pip install 'ale-bench[eval,mcp]'`). For development and tests, follow [CONTRIBUTING.md](../CONTRIBUTING.md).
+
+The Packaging CI workflow installs the built wheel in separate clean environments for the base package, `[mcp]`, and `[eval]`. For `[eval]`, it checks dependency imports and `python -m ale_bench_eval -- --help` outside the source tree. The base and `[mcp]` checks also verify that invoking evaluation without its dependencies reports how to install the `eval` extra. These smoke checks do not call LLM APIs or run Docker evaluations.
+
 2. (Optional) Set up your LLM API credentials in [`.env`](../.env) (example in [.env.example](../.env.example)):
 ```sh
 OPENAI_API_KEY="Your OpenAI API Key"
@@ -56,7 +60,7 @@ OPENROUTER_API_KEY="Your OpenRouter API Key"
 
 2. Ensure setup is complete by running a quick test (change parameters as needed):
 ```bash
-uv run -m ale_bench_eval --model_config_path llm_configs/gpt-5.json --num_workers 5 --n_public_cases 5 --max_parallel_problems 2 --problem_ids_type debug
+uv run --extra eval -m ale_bench_eval --model_config_path llm_configs/gpt-5.json --num_workers 5 --n_public_cases 5 --max_parallel_problems 2 --problem_ids_type debug
 ```
 
 3. (Optional) Modify parameters in the provided script [`scripts/run_eval.sh`](../scripts/run_eval.sh) as needed.
@@ -68,7 +72,7 @@ uv run -m ale_bench_eval --model_config_path llm_configs/gpt-5.json --num_worker
 bash scripts/run_eval.sh gpt-5
 
 # Or directly run using uv
-uv run -m ale_bench_eval --model_config_path llm_configs/gpt-5.json --n_repeated_sampling 15 --n_self_refine 16 --num_workers 10 --n_public_cases 50 --judge_version 202510 --code_language typescript --prompt_language en --max_parallel_problems 5 --max_concurrent_llm_calls 20 --max_repeated_sampling_workers 100 --problem_ids_type all --selection_method median
+uv run --extra eval -m ale_bench_eval --model_config_path llm_configs/gpt-5.json --n_repeated_sampling 15 --n_self_refine 16 --num_workers 10 --n_public_cases 50 --judge_version 202510 --code_language typescript --prompt_language en --max_parallel_problems 5 --max_concurrent_llm_calls 20 --max_repeated_sampling_workers 100 --problem_ids_type all --selection_method median
 ```
 
 ### Bash Script Arguments

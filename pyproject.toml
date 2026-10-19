@@ -3,7 +3,7 @@ requires = ["hatchling", "uv-dynamic-versioning"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/ale_bench", "src/ale_bench_eval"]
+packages = ["src/ale_bench", "src/ale_bench_eval", "src/ale_bench_mcp"]
 
 [tool.hatch.version]
 source = "uv-dynamic-versioning"
@@ -50,10 +50,14 @@ dev = [
     "ty>=0.0.38",
 ]
 
+[project.scripts]
+ale-bench-mcp = "ale_bench_mcp.__main__:main"
+
 [project.urls]
 Repository = "https://github.com/SakanaAI/ALE-Bench"
 
 [project.optional-dependencies]
+mcp = ["mcp[cli]>=2,<3"]
 eval = [
     "fire>=0.7.0",
     "genai-prices>=0.1.0",
@@ -92,7 +96,6 @@ testpaths = ["tests"]
 extend-exclude = [
     "*.md",
     "dockerfiles/tests",
-    "mcp",
     "src/ale_bench_eval/codes",
     "src/ale_bench_eval/prompts/texts.py",
     "tests/judge/codes",
@@ -189,7 +192,8 @@ combine-as-imports = true
 default-section = "third-party"
 known-first-party = [
     "ale_bench",
-    "ale_bench_eval"
+    "ale_bench_eval",
+    "ale_bench_mcp",
 ]
 section-order = [
     "future",
@@ -203,7 +207,6 @@ split-on-trailing-comma = true
 [tool.ty.src]
 exclude = [
     "dockerfiles/tests/**",
-    "mcp/**",
     "src/ale_bench_eval/codes/**",
     "tests/judge/codes/**",
 ]

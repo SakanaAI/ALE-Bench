@@ -55,6 +55,8 @@ https://github.com/user-attachments/assets/50a8de5a-b519-4aef-8e54-c60ac9dcbb90
     cd ALE-Bench
     pip install .
     pip install ".[eval]"  # For evaluation dependencies
+    pip install ".[mcp]"  # For MCP server dependencies
+    pip install ".[eval,mcp]"  # For both
 
     # Using uv (recommended for faster environment management)
     git clone https://github.com/SakanaAI/ALE-Bench.git
@@ -62,8 +64,12 @@ https://github.com/user-attachments/assets/50a8de5a-b519-4aef-8e54-c60ac9dcbb90
     uv venv --python 3.13.16  # Or any supported Python version (3.11 ~ 3.15)
     uv sync --no-dev  # For core toolkit dependencies
     uv sync --no-dev --extra eval  # For evaluation dependencies
+    uv sync --no-dev --extra mcp  # For MCP server dependencies
+    uv sync --no-dev --all-extras  # For both
     source .venv/bin/activate
     ```
+
+    Choose the install command for the features you need. Extras select additional dependencies; `ale_bench`, `ale_bench_eval`, and `ale_bench_mcp` are included in the same distribution and share one version. For development and tests, use the all-extras setup in [CONTRIBUTING.md](./CONTRIBUTING.md).
 
 4.  **Build Docker Images:**
     Build the Docker execution images required for your target judge versions.
@@ -106,7 +112,7 @@ Please refer to the [AWS Evaluation Guide](./docs/aws_evaluation.md) for detaile
 
 We also provide a comprehensive framework for evaluating Large Language Models (LLMs) for ALE-Bench (scripts: [ale_bench_eval](./src/ale_bench_eval/)). Please read the [ALE-Bench Evaluation Tool documentation](./docs/evaluation.md) for more details.
 
-There is a MCP (Model Context Protocol) server feature to simplify the use of ALE-Bench as a tool. For setup and usage instructions, please refer to the [MCP Server documentation](./docs/mcp_server.md).
+The MCP (Model Context Protocol) server is included in ALE-Bench. Install its optional dependencies with `pip install 'ale-bench[mcp]'` and run `ale-bench-mcp`, or use `uv run --extra mcp ale-bench-mcp` from a checkout. Its resource-oriented API exposes problem statements, Rust sources, and bounded evaluation artifacts through `ale://` URIs. For setup and client configuration, see the [MCP Server documentation](./docs/mcp_server.md).
 
 ### Example Evaluation Script
 
