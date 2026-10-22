@@ -61,7 +61,7 @@ https://github.com/user-attachments/assets/50a8de5a-b519-4aef-8e54-c60ac9dcbb90
     # Using uv (recommended for faster environment management)
     git clone https://github.com/SakanaAI/ALE-Bench.git
     cd ALE-Bench
-    uv venv --python 3.13.16  # Or any supported Python version (3.11 ~ 3.15)
+    uv venv --python 3.13.17  # Or any supported Python version (3.11 ~ 3.15)
     uv sync --no-dev  # For core toolkit dependencies
     uv sync --no-dev --extra eval  # For evaluation dependencies
     uv sync --no-dev --extra mcp  # For MCP server dependencies

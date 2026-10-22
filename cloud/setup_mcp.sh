@@ -59,7 +59,7 @@ su - ubuntu -c "export NVM_DIR=\"\${HOME}/.nvm\" && [ -s \"\${NVM_DIR}/nvm.sh\" 
 
 # Clone the ALE-Bench repository and setup the environment
 su - ubuntu -c "cd /home/ubuntu/ && git clone https://github.com/SakanaAI/ALE-Bench.git"
-su - ubuntu -c "cd /home/ubuntu/ALE-Bench && uv -q venv --python 3.13.16 && uv -q sync --extra mcp"
+su - ubuntu -c "cd /home/ubuntu/ALE-Bench && uv -q venv --python 3.13.17 && uv -q sync --extra mcp"
 su - ubuntu -c "cd /home/ubuntu/ALE-Bench && bash ./scripts/docker_build_all.sh \$(id -u) \$(id -g)"
 su - ubuntu -c "docker pull rust:1.79.0-buster"
 
