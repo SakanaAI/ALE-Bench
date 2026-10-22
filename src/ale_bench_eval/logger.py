@@ -26,9 +26,9 @@ def get_now_utc_string() -> str:
 
 class CustomJSONDecoder(json.JSONDecoder):
     def __init__(self) -> None:
-        super().__init__(object_hook=self.object_hook)
+        super().__init__(object_hook=self._decode_object)
 
-    def object_hook(self, obj: object) -> object:
+    def _decode_object(self, obj: object) -> object:
         match obj:
             case {"__type__": "bytes", "encoding": "base64", "data": str(data)}:
                 return base64.b64decode(data)
