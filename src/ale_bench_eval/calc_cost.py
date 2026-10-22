@@ -330,6 +330,11 @@ FALLBACK_DICT = {
         output_mtok=Decimal(12) / Decimal(10),
         cache_read_mtok=Decimal(6) / Decimal(100),
     ),
+    "deepseek-v4.1-flash-1017": ModelPrice(
+        input_mtok=Decimal(3) / Decimal(10),
+        output_mtok=Decimal(12) / Decimal(10),
+        cache_read_mtok=Decimal(6) / Decimal(1000),
+    ),
     "mimo-v2-flash:free": ModelPrice(input_mtok=Decimal(1) / Decimal(10), output_mtok=Decimal(3) / Decimal(10)),
     "mimo-v2-pro": ModelPrice(
         input_mtok=TieredPrices(
@@ -517,6 +522,11 @@ FALLBACK_DICT = {
         input_mtok=Decimal(3) / Decimal(10),
         cache_read_mtok=Decimal(6) / Decimal(1000),
         output_mtok=Decimal(12) / Decimal(10),
+    ),
+    "mercury-3": ModelPrice(
+        input_mtok=Decimal(2) / Decimal(10),
+        cache_read_mtok=Decimal(2) / Decimal(100),
+        output_mtok=Decimal(7) / Decimal(10),
     ),
     "mercury-2.5": ModelPrice(
         input_mtok=Decimal(2) / Decimal(10),
