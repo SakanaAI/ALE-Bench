@@ -559,6 +559,11 @@ FALLBACK_DICT = {
         output_mtok=Decimal(24) / Decimal(10),
         cache_read_mtok=Decimal(12) / Decimal(100),
     ),
+    "minimax-m3.1-flash": ModelPrice(
+        input_mtok=Decimal(15) / Decimal(100),
+        output_mtok=Decimal(6) / Decimal(10),
+        cache_read_mtok=Decimal(15) / Decimal(1000),
+    ),
     "nemotron-3-super-120b-a12b:free": ModelPrice(
         input_mtok=Decimal(1) / Decimal(10),
         output_mtok=Decimal(5) / Decimal(10),
