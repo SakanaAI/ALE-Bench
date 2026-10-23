@@ -13,45 +13,22 @@ from pydantic_ai import (
     UsageLimitExceeded,
 )
 from pydantic_ai.messages import ModelMessage, ModelResponse, UserContent
-from pydantic_ai.models.anthropic import AnthropicModel, AnthropicModelSettings
-from pydantic_ai.models.bedrock import BedrockConverseModel, BedrockModelSettings
-from pydantic_ai.models.google import GoogleModel, GoogleModelSettings
+from pydantic_ai.models import infer_model
 from pydantic_ai.models.openai import (
     OpenAIChatModel,
-    OpenAIChatModelSettings,
     OpenAIResponsesModel,
-    OpenAIResponsesModelSettings,
 )
-from pydantic_ai.models.openrouter import OpenRouterModel, OpenRouterModelSettings
+from pydantic_ai.providers import infer_provider
 from pydantic_ai.providers.google import GoogleProvider
 from pydantic_ai.providers.openai import OpenAIProvider
 from pydantic_ai.run import AgentRunResult
+from pydantic_ai.settings import ModelSettings
 
 from ale_bench_eval.shared_async_loop import shared_async_loop
 
 if TYPE_CHECKING:
     from pydantic_ai.models import Model
-    from pydantic_ai.settings import ModelSettings
-
-OPENAI_COMPATIBLE_PROVIDERS = {
-    "azure",
-    "deepseek",
-    "cerebras",
-    "fireworks",
-    "github",
-    "grok",
-    "heroku",
-    "moonshotai",
-    "ollama",
-    "openai",
-    "openai-chat",
-    "together",
-    "vercel",
-    "litellm",
-    "nebius",
-    "ovhcloud",
-    "gateway",
-}
+    from pydantic_ai.providers import Provider
 
 
 class MaxTokenError(RuntimeError):
@@ -77,6 +54,21 @@ def parse_model_config(model_config: dict[str, Any]) -> dict[str, Any]:
     return model_config
 
 
+def _infer_provider_with_retries(provider_name: str) -> "Provider[Any]":
+    if provider_name == "google":
+        return GoogleProvider(
+            retry_options=HttpRetryOptions(
+                attempts=4,  # Initial request plus three retries; separate from Agent validation retries.
+                initial_delay=2,
+                exp_base=2,
+                max_delay=30,
+                jitter=1,
+                http_status_codes=[502, 503, 504],
+            ),
+        )
+    return infer_provider(provider_name)
+
+
 def build_agent_from_config(
     model_config: dict[str, Any],
     system_prompt: str | Sequence[str],
@@ -89,50 +81,18 @@ def build_agent_from_config(
     settings = model_config["settings"]
 
     model: Model
-    model_settings: ModelSettings
-    if provider == "openai":
-        model = OpenAIResponsesModel(model_name=model_name)
-        model_settings = OpenAIResponsesModelSettings(timeout=timeout, **settings)
-    elif provider == "anthropic":
-        model = AnthropicModel(model_name=model_name)
-        model_settings = AnthropicModelSettings(timeout=timeout, **settings)
-    elif provider == "google":
-        model = GoogleModel(
-            model_name=model_name,
-            provider=GoogleProvider(
-                retry_options=HttpRetryOptions(
-                    attempts=4,  # Initial request plus three retries; separate from Agent validation retries.
-                    initial_delay=2,
-                    exp_base=2,
-                    max_delay=30,
-                    jitter=1,
-                    http_status_codes=[502, 503, 504],
-                ),
-            ),
-        )
-        model_settings = GoogleModelSettings(timeout=timeout, **settings)
-    elif provider == "bedrock":
-        model = BedrockConverseModel(model_name=model_name)
-        model_settings = BedrockModelSettings(timeout=timeout, **settings)
-    elif provider == "openrouter":
-        model = OpenRouterModel(model_name=model_name)
-        model_settings = OpenRouterModelSettings(timeout=timeout, **settings)
-    elif provider in OPENAI_COMPATIBLE_PROVIDERS:
-        model = OpenAIChatModel(model_name=model_name, provider=provider)
-        model_settings = OpenAIChatModelSettings(timeout=timeout, **settings)
-    elif provider == "vllm-chat":
+    if provider == "vllm-chat":
         base_url = model_config.get("base_url")
         api_key = model_config.get("api_key")
         model = OpenAIChatModel(model_name=model_name, provider=OpenAIProvider(base_url=base_url, api_key=api_key))
-        model_settings = OpenAIChatModelSettings(timeout=timeout, **settings)
     elif provider == "vllm-responses":
         base_url = model_config.get("base_url")
         api_key = model_config.get("api_key")
         model = OpenAIResponsesModel(model_name=model_name, provider=OpenAIProvider(base_url=base_url, api_key=api_key))
-        model_settings = OpenAIResponsesModelSettings(timeout=timeout, **settings)
     else:
-        msg = f"Unsupported provider: {provider}"
-        raise ValueError(msg)
+        model = infer_model(f"{provider}:{model_name}", provider_factory=_infer_provider_with_retries)
+    # Settings types are TypedDicts; provider-specific keys remain intact at runtime.
+    model_settings = ModelSettings(timeout=timeout, **settings)
     return Agent(
         model=model,
         model_settings=model_settings,
