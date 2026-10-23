@@ -432,6 +432,11 @@ FALLBACK_DICT = {
     "gpt-oss-120b": ModelPrice(input_mtok=Decimal(1) / Decimal(10), output_mtok=Decimal(5) / Decimal(10)),
     "gpt-oss-20b": ModelPrice(input_mtok=Decimal(5) / Decimal(100), output_mtok=Decimal(2) / Decimal(10)),
     "grok-code-fast-1": ModelPrice(input_mtok=Decimal(2) / Decimal(10), output_mtok=Decimal(15) / Decimal(10)),
+    "muse-wonder": ModelPrice(
+        input_mtok=Decimal(4),
+        output_mtok=Decimal(20),
+        cache_read_mtok=Decimal(2) / Decimal(10),
+    ),
     "muse-spark-1.1": ModelPrice(
         input_mtok=Decimal(125) / Decimal(100),
         output_mtok=Decimal(425) / Decimal(100),
