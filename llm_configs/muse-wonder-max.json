@@ -1,0 +1,23 @@
+{
+    "model_name": "meta/muse-wonder",
+    "provider": "openrouter",
+    "settings": {
+        "extra_body": {
+            "max_tokens": 943718,
+            "provider": {
+                "allow_fallbacks": false,
+                "data_collection": "deny",
+                "order": ["meta"],
+                "require_parameters": true
+            },
+            "reasoning": {
+                "effort": "max",
+                "summary": "detailed",
+                "enabled": true
+            },
+            "usage": {
+                "include": true
+            }
+        }
+    }
+}
