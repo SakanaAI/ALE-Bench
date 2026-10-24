@@ -518,6 +518,11 @@ FALLBACK_DICT = {
         output_mtok=Decimal(15),
         cache_read_mtok=Decimal(3) / Decimal(10),
     ),
+    "kimi-k3.1-pro": ModelPrice(
+        input_mtok=Decimal(2),
+        output_mtok=Decimal(10),
+        cache_read_mtok=Decimal(2) / Decimal(10),
+    ),
     "laguna-s-2.1": ModelPrice(
         input_mtok=Decimal(1) / Decimal(10),
         cache_read_mtok=Decimal(1) / Decimal(100),
