@@ -323,6 +323,11 @@ FALLBACK_DICT = {
         cache_read_mtok=TieredPrices(base=Decimal(5) / Decimal(10), tiers=[Tier(start=200000, price=Decimal(1))]),
         output_mtok=TieredPrices(base=Decimal(6), tiers=[Tier(start=200000, price=Decimal(12))]),
     ),
+    "grok-4.7": ModelPrice(
+        input_mtok=TieredPrices(base=Decimal(2), tiers=[Tier(start=200000, price=Decimal(4))]),
+        cache_read_mtok=TieredPrices(base=Decimal(5) / Decimal(10), tiers=[Tier(start=200000, price=Decimal(1))]),
+        output_mtok=TieredPrices(base=Decimal(6), tiers=[Tier(start=200000, price=Decimal(12))]),
+    ),
     "nova-premier-v1": ModelPrice(
         input_mtok=Decimal(25) / Decimal(10),
         cache_read_mtok=Decimal(625) / Decimal(1000),
@@ -602,6 +607,16 @@ FALLBACK_DICT = {
         output_mtok=Decimal(6) / Decimal(10),
         cache_read_mtok=Decimal(15) / Decimal(1000),
     ),
+    "beam-1.0-501b-a23b": ModelPrice(
+        input_mtok=Decimal(4) / Decimal(10),
+        output_mtok=Decimal(12) / Decimal(10),
+        cache_read_mtok=Decimal(4) / Decimal(100),
+    ),
+    "nemotron-3.5-super-vl": ModelPrice(
+        input_mtok=Decimal(15) / Decimal(100),
+        output_mtok=Decimal(5) / Decimal(10),
+        cache_read_mtok=Decimal(2) / Decimal(100),
+    ),
     "nemotron-3-super-120b-a12b:free": ModelPrice(
         input_mtok=Decimal(1) / Decimal(10),
         output_mtok=Decimal(5) / Decimal(10),
@@ -611,6 +626,11 @@ FALLBACK_DICT = {
         input_mtok=Decimal(1) / Decimal(10),
         output_mtok=Decimal(25) / Decimal(100),
         cache_read_mtok=Decimal(5) / Decimal(100),
+    ),
+    "ling-3.1-flash": ModelPrice(
+        input_mtok=Decimal(3) / Decimal(10),
+        cache_read_mtok=Decimal(6) / Decimal(100),
+        output_mtok=Decimal(9) / Decimal(10),
     ),
     "ling-2.6-1t": ModelPrice(
         input_mtok=Decimal(3) / Decimal(10),
@@ -712,6 +732,11 @@ FALLBACK_DICT = {
                 Tier(start=256000, price=Decimal(25) / Decimal(100)),
             ],
         ),
+    ),
+    "qwen3.8-max-0902": ModelPrice(
+        input_mtok=Decimal(2),
+        output_mtok=Decimal(6),
+        cache_read_mtok=Decimal(25) / Decimal(100),
     ),
     "qwen3.8-max": ModelPrice(
         input_mtok=Decimal(2),

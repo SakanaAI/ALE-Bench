@@ -1,0 +1,23 @@
+{
+    "model_name": "qwen/qwen3.8-max-0902",
+    "provider": "openrouter",
+    "settings": {
+        "max_tokens": 131072,
+        "temperature": 1.0,
+        "extra_body": {
+            "provider": {
+                "allow_fallbacks": false,
+                "data_collection": "deny",
+                "order": ["alibaba"],
+                "require_parameters": true
+            },
+            "reasoning": {
+                "enabled": true,
+                "effort": "xhigh"
+            },
+            "usage": {
+                "include": true
+            }
+        }
+    }
+}
