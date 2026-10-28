@@ -1,0 +1,24 @@
+{
+    "model_name": "reflection/beam-1.0-501b-a23b",
+    "provider": "openrouter",
+    "settings": {
+        "max_tokens": 131072,
+        "temperature": 0.7,
+        "top_p": 0.99,
+        "extra_body": {
+            "provider": {
+                "allow_fallbacks": false,
+                "data_collection": "deny",
+                "order": ["together"],
+                "require_parameters": true
+            },
+            "reasoning": {
+                "enabled": true,
+                "effort": "max"
+            },
+            "usage": {
+                "include": true
+            }
+        }
+    }
+}

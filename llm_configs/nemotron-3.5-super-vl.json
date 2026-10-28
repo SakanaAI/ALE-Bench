@@ -1,0 +1,23 @@
+{
+    "model_name": "nvidia/nemotron-3.5-super-vl",
+    "provider": "openrouter",
+    "settings": {
+        "max_tokens": 262144,
+        "temperature": 1.0,
+        "top_p": 0.95,
+        "extra_body": {
+            "provider": {
+                "allow_fallbacks": false,
+                "data_collection": "deny",
+                "order": ["coreweave/nvfp4"],
+                "require_parameters": true
+            },
+            "reasoning": {
+                "enabled": true
+            },
+            "usage": {
+                "include": true
+            }
+        }
+    }
+}
