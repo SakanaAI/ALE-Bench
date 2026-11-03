@@ -58,6 +58,25 @@ OPENROUTER_API_KEY="Your OpenRouter API Key"
 
 > **Note**: See other example configurations in the [`llm_configs/`](../llm_configs/) directory.
 
+Model generation uses streaming by default. The evaluator consumes the full stream internally, then returns the completed output, conversation history (including reasoning), and token usage in the same format as non-streaming calls.
+Streaming can help avoid idle connection timeouts, but does not bypass provider-side execution time limits.
+
+For an endpoint that requires non-streaming requests, explicitly set `"stream": false` at the **top level** of its model configuration, alongside `model_name`, `provider`, and `settings`:
+
+```json
+{
+    "model_name": "your-model-id",
+    "provider": "openrouter",
+    "stream": false,
+    "settings": {}
+}
+```
+
+Omitting `stream` is equivalent to `"stream": true`. Do not put it in `settings` or `settings.extra_body`.
+Streaming errors are reported as failures rather than silently retried as non-streaming requests; partial output is not
+returned as a successful generation. All streams must include a provider-reported finish reason; an SDK-inferred `stop`
+on premature EOF is not sufficient. Endpoints that omit terminal metadata must explicitly use `"stream": false`.
+
 2. Ensure setup is complete by running a quick test (change parameters as needed):
 ```bash
 uv run --extra eval -m ale_bench_eval --model_config_path llm_configs/gpt-5.json --num_workers 5 --n_public_cases 5 --max_parallel_problems 2 --problem_ids_type debug

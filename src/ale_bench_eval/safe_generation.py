@@ -46,6 +46,12 @@ def parse_model_config(model_config: dict[str, Any]) -> dict[str, Any]:
     if missing_keys:
         msg = f"Missing or invalid keys in model configuration: {', '.join(missing_keys)}"
         raise ValueError(msg)
+    if "stream" in model_config and not isinstance(model_config["stream"], bool):
+        msg = "Key 'stream' must be a boolean in model configuration."
+        raise ValueError(msg)
+    if "stream" in model_config["settings"] or "stream" in model_config["settings"].get("extra_body", {}):
+        msg = "Set 'stream' at the top level of model configuration, not in settings or extra_body."
+        raise ValueError(msg)
     not_allowed_keys = ["timeout"]
     for key in not_allowed_keys:
         if key in model_config["settings"]:
@@ -123,6 +129,7 @@ def safe_generation(
     num_retries: int = 3,
     llm_semaphore: BoundedSemaphore | None = None,
 ) -> AgentRunResult[str]:
+    model_config = parse_model_config(model_config)
     agent = build_agent_from_config(
         model_config=model_config,
         system_prompt=system_prompt,
@@ -130,11 +137,22 @@ def safe_generation(
         num_retries=num_retries,
     )
 
+    async def generate() -> AgentRunResult[str]:
+        if not model_config.get("stream", True):
+            return await agent.run(user_prompt=user_prompt, message_history=message_history)
+        async with agent.run_stream(user_prompt=user_prompt, message_history=message_history) as stream:
+            # Drain the entire response, including reasoning and the final usage chunk.
+            await stream.get_output()
+            result = stream.result
+        # Some SDKs synthesize 'stop' on EOF. Require the provider's actual terminal reason instead.
+        if not (result.response.provider_details or {}).get("finish_reason"):
+            msg = "Model stream ended without a provider finish reason."
+            raise UnexpectedModelBehavior(msg)
+        return result
+
     try:
         with llm_semaphore if llm_semaphore is not None else nullcontext():
-            result = shared_async_loop().run(
-                agent.run(user_prompt=user_prompt, message_history=message_history),
-            )
+            result = shared_async_loop().run(generate())
         model_response = result.all_messages()[-1]
         validate_model_response(model_response)
     except ClientError as e:
