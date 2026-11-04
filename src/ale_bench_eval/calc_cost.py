@@ -754,6 +754,11 @@ FALLBACK_DICT = {
         cache_read_mtok=Decimal(4) / Decimal(100),
         output_mtok=Decimal(115) / Decimal(100),
     ),
+    "hy4": ModelPrice(
+        input_mtok=Decimal(834) / Decimal(1000),
+        cache_read_mtok=Decimal(42) / Decimal(1000),
+        output_mtok=Decimal(2501) / Decimal(1000),
+    ),
     # Calculated with 1 RMB = 0.15 USD
     "hy3": ModelPrice(
         input_mtok=Decimal(15) / Decimal(100),
