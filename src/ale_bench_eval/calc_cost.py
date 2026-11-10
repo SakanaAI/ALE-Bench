@@ -258,6 +258,12 @@ FALLBACK_DICT = {
         cache_read_mtok=Decimal(3) / Decimal(10),
         output_mtok=Decimal(15),
     ),
+    "claude-fable-5-2": ModelPrice(
+        input_mtok=Decimal(8),
+        cache_write_mtok=Decimal(10),
+        cache_read_mtok=Decimal(2) / Decimal(10),
+        output_mtok=Decimal(40),
+    ),
     "claude-fable-5-1": ModelPrice(
         input_mtok=Decimal(10),
         cache_write_mtok=Decimal(125) / Decimal(10),
