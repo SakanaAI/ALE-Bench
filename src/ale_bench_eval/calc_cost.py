@@ -749,6 +749,12 @@ FALLBACK_DICT = {
             ],
         ),
     ),
+    "qwen4-max": ModelPrice(
+        input_mtok=Decimal(15) / Decimal(10),
+        output_mtok=Decimal(45) / Decimal(10),
+        cache_read_mtok=Decimal(75) / Decimal(1000),
+        cache_write_mtok=Decimal(1875) / Decimal(1000),
+    ),
     "qwen3.8-max-0902": ModelPrice(
         input_mtok=Decimal(2),
         output_mtok=Decimal(6),

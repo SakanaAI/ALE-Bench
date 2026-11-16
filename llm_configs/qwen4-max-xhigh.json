@@ -1,0 +1,25 @@
+{
+    "model_name": "qwen/qwen4-max",
+    "provider": "openrouter",
+    "settings": {
+        "max_tokens": 262144,
+        "temperature": 1.0,
+        "top_p": 0.95,
+        "extra_body": {
+            "top_k": 20,
+            "provider": {
+                "allow_fallbacks": false,
+                "data_collection": "deny",
+                "order": ["alibaba"],
+                "require_parameters": true
+            },
+            "reasoning": {
+                "enabled": true,
+                "effort": "xhigh"
+            },
+            "usage": {
+                "include": true
+            }
+        }
+    }
+}
