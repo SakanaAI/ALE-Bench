@@ -74,6 +74,10 @@ exclude-newer = "1 week"
 
 [tool.uv.exclude-newer-package]
 certifi = false
+pydantic-ai = false
+pydantic-ai-slim = false
+pydantic-evals = false
+pydantic-graph = false
 
 [tool.uv-dynamic-versioning]
 fallback-version = "0.0.0"
