@@ -135,6 +135,11 @@ FALLBACK_DICT = {
         cache_read_mtok=Decimal(125) / Decimal(1000),
         output_mtok=Decimal(10),
     ),
+    "gemini-4-neon": ModelPrice(
+        input_mtok=Decimal(3),
+        cache_read_mtok=Decimal(15) / Decimal(100),
+        output_mtok=Decimal(15),
+    ),
     "gemini-4-hydrogen": ModelPrice(
         input_mtok=Decimal(15) / Decimal(10),
         cache_read_mtok=Decimal(75) / Decimal(1000),
