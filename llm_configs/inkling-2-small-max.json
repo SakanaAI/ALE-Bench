@@ -1,0 +1,23 @@
+{
+    "model_name": "thinkingmachines/inkling-2-small",
+    "provider": "openrouter",
+    "settings": {
+        "max_tokens": 943718,
+        "temperature": 1.0,
+        "extra_body": {
+            "provider": {
+                "allow_fallbacks": false,
+                "data_collection": "deny",
+                "order": ["primeintellect/fp4"],
+                "require_parameters": true
+            },
+            "reasoning": {
+                "effort": "max",
+                "enabled": true
+            },
+            "usage": {
+                "include": true
+            }
+        }
+    }
+}
