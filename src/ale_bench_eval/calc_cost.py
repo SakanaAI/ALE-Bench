@@ -558,6 +558,11 @@ FALLBACK_DICT = {
         cache_read_mtok=Decimal(3) / Decimal(100),
         output_mtok=Decimal(5) / Decimal(10),
     ),
+    "inkling-2-mini": ModelPrice(
+        input_mtok=Decimal(75) / Decimal(1000),
+        cache_read_mtok=Decimal(15) / Decimal(1000),
+        output_mtok=Decimal(3) / Decimal(10),
+    ),
     "kimi-k2": ModelPrice(
         input_mtok=Decimal(6) / Decimal(10),
         output_mtok=Decimal(25) / Decimal(10),
